@@ -43,4 +43,14 @@ describe('buildBoard', () => {
     expect(done.tasks).toHaveLength(1)
     expect(board.orphans.map((t) => t.frontmatter.id)).toEqual(['o'])
   })
+
+  it('exclut les tâches archivées du board (ni colonne ni orphelin)', () => {
+    const board = buildBoard(config, [
+      task('a', 'todo', 'a'),
+      task('z', 'archived', 'z'),
+    ])
+    const allIds = board.columns.flatMap((c) => c.tasks.map((t) => t.frontmatter.id))
+    expect(allIds).toEqual(['a'])
+    expect(board.orphans).toHaveLength(0)
+  })
 })

@@ -1,72 +1,170 @@
-/* Design system « dark glassmorphism » — tokens repris du système interne. */
+/*
+ * Design system « terminal » de suivre.md. Trois thèmes sélectionnables via
+ * `data-theme` sur <html> : terminal (teinte bleu-vert), dark (neutre, sans
+ * bleu), light. Tout composant lit UNIQUEMENT ces tokens — aucune couleur en dur.
+ * La couleur ne porte que trois notes sémantiques : danger, warn/dette, ok.
+ */
 :root {
   color-scheme: dark;
 
+  /* Rayons — indépendants du thème (par rôle, concentriques) */
+  --sv-r-badge: 3px;
+  --sv-r-card: 6px;
+  --sv-r: 7px;
+  --sv-r-box: 10px;
+  --sv-r-panel: 12px;
+  --sv-r-term: 16px;
+}
+
+/* ============================ TERMINAL (bleu-vert) ======================== */
+:root[data-theme='terminal'] {
+  color-scheme: dark;
+
   --sv-bg: #08080a;
-  --sv-surface: rgba(255, 255, 255, 0.045);
-  --sv-surface-2: rgba(255, 255, 255, 0.03);
-  --sv-border: rgba(255, 255, 255, 0.08);
-  --sv-border-strong: rgba(255, 255, 255, 0.14);
+  --sv-surface: #0b0d0f;
+  --sv-surface-2: #101316;
+  --sv-surface-3: #161a1d;
+  --sv-raised: #0e1114;
+  --sv-rail-bg: #0a0c0e;
 
-  --sv-ink: rgba(255, 255, 255, 0.93);
-  --sv-ink-2: rgba(255, 255, 255, 0.55);
-  --sv-ink-3: rgba(255, 255, 255, 0.4);
+  --sv-line-soft: #14191c;
+  --sv-line: #1e262b;
+  --sv-line-strong: #3a4a50;
+  --sv-chip-line: #2b353a;
 
-  --sv-radius-sm: 8px;
-  --sv-radius: 14px;
-  --sv-radius-card: 16px;
-  --sv-radius-col: 22px;
+  --sv-fg: #d7e0e0;
+  --sv-fg-mid: #8b9aa0;
+  --sv-fg-dim: #566668;
+  --sv-fg-body: #aab6b6;
+  --sv-fg-card: #c3cccc;
+  --sv-faint: #3d4749;
+  --sv-bright: #eef4f4;
 
-  --sv-glass-blur: blur(30px) saturate(150%);
-  --sv-shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 26px 60px -34px rgba(0, 0, 0, 0.9);
+  --sv-accent: #d7e0e0;
+  --sv-on-accent: #0b0d0f;
+  --sv-prompt: #7ea08f;
+  --sv-label: #7f9490;
 
-  /* Palette sémantique — candidate, ajustable en une ligne. */
-  --sv-urgent: #f5877a;
-  --sv-high: #e9b872;
-  --sv-low: #8fb0d4;
-  --sv-done: #83c89e;
-  --sv-blocked: #e08aae;
+  --sv-danger: #d09a94;
+  --sv-danger-line: #5c3a37;
+  --sv-danger-bg: #161010;
+  --sv-warn: #e6d6a8;
+  --sv-warn-line: #6a5f3a;
+  --sv-warn-bg: #161207;
+  --sv-warn-bg-2: #211d10;
+  --sv-ok: #7ea08f;
+  --sv-ok-line: #2b4a3f;
+  --sv-ok-bg: #0d1512;
+  --sv-blocked: #e0b7b3;
+
+  --sv-avatar-bg: #232a2c;
+  --sv-avatar-fg: #c4c6cd;
+  --sv-selection: #26312f;
+  --sv-placeholder: #4a5658;
+
+  --sv-shadow-term: 0 40px 100px -50px rgba(0, 0, 0, 0.85);
+  --sv-shadow-pop: 0 20px 40px -20px rgba(0, 0, 0, 0.9);
+  --sv-shadow-modal: 0 40px 90px -40px rgba(0, 0, 0, 0.95);
 }
 
-.sv-bg1 {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  background:
-    radial-gradient(1100px 760px at 16% -10%, rgba(255, 255, 255, 0.075), transparent 56%),
-    radial-gradient(1000px 720px at 110% 4%, rgba(255, 255, 255, 0.05), transparent 54%),
-    linear-gradient(180deg, #161618, #0c0c0e 55%, #08080a);
-}
-.sv-bg2 {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.5;
-  background: radial-gradient(680px 520px at 50% 122%, rgba(255, 255, 255, 0.045), transparent 60%);
+/* ============================ DARK (neutre, sans bleu) ==================== */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --sv-bg: #0a0a0a;
+  --sv-surface: #121212;
+  --sv-surface-2: #181818;
+  --sv-surface-3: #202020;
+  --sv-raised: #151515;
+  --sv-rail-bg: #0d0d0d;
+
+  --sv-line-soft: #1c1c1c;
+  --sv-line: #292929;
+  --sv-line-strong: #454545;
+  --sv-chip-line: #333333;
+
+  --sv-fg: #e6e6e6;
+  --sv-fg-mid: #9a9a9a;
+  --sv-fg-dim: #606060;
+  --sv-fg-body: #b6b6b6;
+  --sv-fg-card: #cfcfcf;
+  --sv-faint: #444444;
+  --sv-bright: #f4f4f4;
+
+  --sv-accent: #e6e6e6;
+  --sv-on-accent: #101010;
+  --sv-prompt: #8fbf9b;
+  --sv-label: #8a8a8a;
+
+  --sv-danger: #d99a92;
+  --sv-danger-line: #5a3a37;
+  --sv-danger-bg: #171111;
+  --sv-warn: #e6d3a3;
+  --sv-warn-line: #665e3f;
+  --sv-warn-bg: #16130a;
+  --sv-warn-bg-2: #201d12;
+  --sv-ok: #8fbf9b;
+  --sv-ok-line: #2f4a3c;
+  --sv-ok-bg: #0f1512;
+  --sv-blocked: #e0b3ad;
+
+  --sv-avatar-bg: #262626;
+  --sv-avatar-fg: #c8c8c8;
+  --sv-selection: #2c2c2c;
+  --sv-placeholder: #565656;
+
+  --sv-shadow-term: 0 40px 100px -50px rgba(0, 0, 0, 0.85);
+  --sv-shadow-pop: 0 20px 40px -20px rgba(0, 0, 0, 0.9);
+  --sv-shadow-modal: 0 40px 90px -40px rgba(0, 0, 0, 0.95);
 }
 
-::-webkit-scrollbar {
-  width: 11px;
-  height: 11px;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  border: 3px solid transparent;
-  background-clip: padding-box;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* ============================ LIGHT ====================================== */
+:root[data-theme='light'] {
+  color-scheme: light;
 
-@keyframes sv-fade {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  --sv-bg: #f3f3f4;
+  --sv-surface: #ffffff;
+  --sv-surface-2: #f7f7f8;
+  --sv-surface-3: #eeeef0;
+  --sv-raised: #f7f7f8;
+  --sv-rail-bg: #f6f6f7;
+
+  --sv-line-soft: #ececee;
+  --sv-line: #e1e1e4;
+  --sv-line-strong: #c4c4c9;
+  --sv-chip-line: #d6d6da;
+
+  --sv-fg: #1b1b1d;
+  --sv-fg-mid: #5c5c62;
+  --sv-fg-dim: #8a8a90;
+  --sv-fg-body: #35353a;
+  --sv-fg-card: #2a2a2e;
+  --sv-faint: #a6a6ad;
+  --sv-bright: #0a0a0c;
+
+  --sv-accent: #1b1b1d;
+  --sv-on-accent: #ffffff;
+  --sv-prompt: #3f7a5a;
+  --sv-label: #5c7c68;
+
+  --sv-danger: #b3453b;
+  --sv-danger-line: #e3b8b3;
+  --sv-danger-bg: #fbeceb;
+  --sv-warn: #8a6d1f;
+  --sv-warn-line: #e0d3a8;
+  --sv-warn-bg: #faf3dc;
+  --sv-warn-bg-2: #f2ead0;
+  --sv-ok: #3f7a5a;
+  --sv-ok-line: #bcd8c8;
+  --sv-ok-bg: #ecf4ef;
+  --sv-blocked: #b06a55;
+
+  --sv-avatar-bg: #e2e2e4;
+  --sv-avatar-fg: #4a4a50;
+  --sv-selection: #d8e2dc;
+  --sv-placeholder: #a0a0a6;
+
+  --sv-shadow-term: 0 30px 70px -40px rgba(0, 0, 0, 0.25);
+  --sv-shadow-pop: 0 16px 34px -18px rgba(0, 0, 0, 0.22);
+  --sv-shadow-modal: 0 40px 90px -40px rgba(0, 0, 0, 0.3);
 }

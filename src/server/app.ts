@@ -56,6 +56,44 @@ export function createApp(service: BoardService, events: EventEmitter, opts: App
     return c.json({ ok: await service.remove(c.req.param('id')) })
   })
 
+  app.get('/api/preferences', async (c) => c.json(await service.getPreferences()))
+
+  app.patch('/api/preferences/global', async (c) => {
+    return c.json(await service.patchGlobalPreferences(await c.req.json()))
+  })
+
+  app.patch('/api/preferences/project', async (c) => {
+    return c.json(await service.patchProjectPreferences(await c.req.json()))
+  })
+
+  app.get('/api/archive', async (c) => c.json(await service.getArchive()))
+
+  app.get('/api/decisions', async (c) => c.json(await service.listDecisions()))
+  app.post('/api/decisions', async (c) => c.json(await service.createDecision(await c.req.json()), 201))
+  app.get('/api/decisions/:id', async (c) => {
+    const decision = await service.getDecision(c.req.param('id'))
+    return decision ? c.json(decision) : c.json({ error: 'not-found' }, 404)
+  })
+  app.patch('/api/decisions/:id', async (c) => {
+    return c.json(await service.editDecision(c.req.param('id'), await c.req.json()))
+  })
+  app.delete('/api/decisions/:id', async (c) => {
+    return c.json({ ok: await service.removeDecision(c.req.param('id')) })
+  })
+
+  app.get('/api/docs', async (c) => c.json(await service.listDocs()))
+  app.post('/api/docs', async (c) => c.json(await service.createDoc(await c.req.json()), 201))
+  app.get('/api/docs/:id', async (c) => {
+    const doc = await service.getDoc(c.req.param('id'))
+    return doc ? c.json(doc) : c.json({ error: 'not-found' }, 404)
+  })
+  app.patch('/api/docs/:id', async (c) => {
+    return c.json(await service.editDoc(c.req.param('id'), await c.req.json()))
+  })
+  app.delete('/api/docs/:id', async (c) => {
+    return c.json({ ok: await service.removeDoc(c.req.param('id')) })
+  })
+
   app.get('/api/events', (c) =>
     streamSSE(c, async (stream) => {
       let open = true

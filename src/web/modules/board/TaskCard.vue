@@ -3,9 +3,10 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { draggable } from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
 import type { Task } from '../../../domain'
 import { useBoard } from './board.store'
+import { acProgress, blockedBy, meter, subtaskCount } from '../../lib/task-meta'
 
-const props = defineProps<{ task: Task }>()
-const { openTask } = useBoard()
+const props = defineProps<{ task: Task; orphan?: boolean }>()
+const { openTask, allTasks } = useBoard()
 
 const el = ref<HTMLElement | null>(null)
 const dragging = ref(false)
@@ -26,124 +27,160 @@ onMounted(() => {
 })
 onBeforeUnmount(() => cleanup?.())
 
-const PRIORITY_LABELS: Record<string, string> = {
-  urgent: 'Urgent',
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low',
-}
-const priority = computed(() => props.task.frontmatter.priority)
-const showPriority = computed(() => priority.value != null && priority.value !== 'medium')
+const fm = computed(() => props.task.frontmatter)
+const prio = computed(() => fm.value.priority)
+const ac = computed(() => acProgress(props.task.body))
+const acMeter = computed(() => meter(ac.value.done, ac.value.total, 5))
+const subs = computed(() => subtaskCount(fm.value.id, allTasks.value))
+const blocked = computed(() => blockedBy(props.task))
+const labels = computed(() => fm.value.labels.filter((l) => l !== 'dette'))
+const hasDebt = computed(() => fm.value.labels.includes('dette'))
+const hasLinks = computed(() => subs.value > 0 || blocked.value != null)
+const hasFoot = computed(() => labels.value.length > 0 || hasDebt.value || fm.value.assignee != null)
 </script>
 
 <template>
   <article
     ref="el"
-    class="sv-card"
-    :class="{ 'sv-card--dragging': dragging }"
+    class="card"
+    :class="{ 'card--dragging': dragging, 'card--orphan': orphan }"
     @click="openTask(task)"
   >
-    <header class="sv-card-head">
-      <span class="sv-card-id mono">{{ task.frontmatter.id }}</span>
-      <span v-if="showPriority" class="sv-badge" :data-prio="priority">
-        <span class="sv-badge-dot"></span>{{ PRIORITY_LABELS[priority as string] }}
-      </span>
-    </header>
-    <p class="sv-card-title">{{ task.frontmatter.title }}</p>
-    <div v-if="task.frontmatter.labels.length" class="sv-card-labels">
-      <span v-for="label in task.frontmatter.labels" :key="label" class="sv-label">{{ label }}</span>
+    <div class="card-head">
+      <span class="card-id">{{ fm.id }}</span>
+      <span v-if="prio === 'urgent'" class="card-prio card-prio--urgent">URGENT</span>
+      <span v-else-if="prio === 'high'" class="card-prio card-prio--high">HIGH</span>
+      <span v-else-if="prio === 'low'" class="card-prio card-prio--low">[low]</span>
+    </div>
+
+    <div class="card-title">{{ fm.title }}</div>
+
+    <div v-if="ac.total > 0" class="card-ac">
+      <span class="card-meter"><span class="card-meter-on">{{ acMeter.filled }}</span>{{ acMeter.empty }}</span>
+      <span class="card-ac-n">{{ ac.done }}/{{ ac.total }} critères</span>
+    </div>
+
+    <div v-if="hasLinks" class="card-links">
+      <span v-if="subs > 0">⊞ {{ subs }} sous-tâche{{ subs > 1 ? 's' : '' }}</span>
+      <span v-if="blocked" class="card-blocked">⤳ bloqué par {{ blocked }}</span>
+    </div>
+
+    <div v-if="hasFoot" class="card-foot">
+      <span v-for="l in labels" :key="l" class="card-label">#{{ l }}</span>
+      <span v-if="hasDebt" class="card-debt">#dette</span>
+      <span v-if="fm.assignee" class="card-assignee">@{{ fm.assignee }}</span>
     </div>
   </article>
 </template>
 
 <style scoped>
-.sv-card {
-  background: var(--sv-surface);
-  border: 1px solid var(--sv-border);
-  border-radius: var(--sv-radius-card);
-  box-shadow: var(--sv-shadow-card);
-  padding: 13px 14px;
+.card {
+  background: var(--sv-surface-2);
+  border: 1px solid var(--sv-line);
+  border-radius: var(--sv-r-card);
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  cursor: grab;
-  animation: sv-fade 0.28s ease both;
+  gap: 7px;
+  cursor: pointer;
+  animation: sv-fade 0.24s ease both;
   transition:
-    border-color 0.18s ease,
-    transform 0.18s ease;
+    border-color 0.15s ease,
+    background-color 0.15s ease;
 }
-.sv-card:hover {
-  border-color: var(--sv-border-strong);
+.card:hover {
+  border-color: var(--sv-line-strong);
+  background: var(--sv-surface-3);
 }
-.sv-card:active {
-  cursor: grabbing;
-}
-.sv-card--dragging {
+.card--dragging {
   opacity: 0.4;
 }
-.sv-card-head {
+.card--orphan {
+  border-color: var(--sv-warn-line);
+  background: var(--sv-warn-bg);
+}
+.card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
-.sv-card-id {
-  font-size: 10.5px;
-  color: var(--sv-ink-3);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--sv-border);
-  padding: 2px 7px;
-  border-radius: var(--sv-radius-sm);
-}
-.sv-card-title {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.4;
-  font-weight: 500;
-  color: var(--sv-ink);
-}
-.sv-card-labels {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.sv-label {
-  font-size: 10.5px;
-  color: var(--sv-ink-2);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--sv-border);
-  padding: 2px 8px;
-  border-radius: 999px;
-}
-.sv-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.card-id {
   font-size: 11px;
-  font-weight: 600;
-  padding: 3px 9px;
-  border-radius: 999px;
+  color: var(--sv-fg);
+  letter-spacing: 0.03em;
+}
+.card-prio {
+  font-size: 9.5px;
+  padding: 1px 7px;
+  border-radius: var(--sv-r-badge);
   white-space: nowrap;
 }
-.sv-badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
+.card-prio--urgent {
+  letter-spacing: 0.08em;
+  background: var(--sv-accent);
+  color: var(--sv-on-accent);
 }
-.sv-badge[data-prio='urgent'] {
-  color: var(--sv-urgent);
-  background: color-mix(in srgb, var(--sv-urgent) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--sv-urgent) 28%, transparent);
+.card-prio--high {
+  letter-spacing: 0.08em;
+  color: var(--sv-fg);
+  border: 1px solid var(--sv-line-strong);
 }
-.sv-badge[data-prio='high'] {
-  color: var(--sv-high);
-  background: color-mix(in srgb, var(--sv-high) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--sv-high) 28%, transparent);
+.card-prio--low {
+  letter-spacing: 0.06em;
+  color: var(--sv-fg-dim);
 }
-.sv-badge[data-prio='low'] {
-  color: var(--sv-low);
-  background: color-mix(in srgb, var(--sv-low) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--sv-low) 28%, transparent);
+.card-title {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--sv-fg-card);
+}
+.card-ac {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--sv-fg-mid);
+}
+.card-meter {
+  letter-spacing: -0.05em;
+}
+.card-meter-on {
+  color: var(--sv-fg);
+}
+.card-ac-n {
+  font-variant-numeric: tabular-nums;
+}
+.card-links {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 10px;
+  color: var(--sv-fg-mid);
+  flex-wrap: wrap;
+}
+.card-blocked {
+  color: var(--sv-blocked);
+}
+.card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 10px;
+}
+.card-label {
+  color: var(--sv-label);
+}
+.card-debt {
+  color: var(--sv-warn);
+  background: var(--sv-warn-bg-2);
+  border: 1px solid var(--sv-warn-line);
+  padding: 1px 5px;
+  border-radius: var(--sv-r-badge);
+}
+.card-assignee {
+  margin-left: auto;
+  color: var(--sv-fg-dim);
 }
 </style>

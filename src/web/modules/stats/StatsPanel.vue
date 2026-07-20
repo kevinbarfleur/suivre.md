@@ -1,19 +1,21 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useBoard } from '../board/board.store'
+import { meter } from '../../lib/task-meta'
 
-const { board, ensureLoaded } = useBoard()
+// Bilan : état d'avancement d'un coup d'œil. Barre ASCII + comptes par colonne
+// + indicateurs saillants (à tester / prioritaires / dette).
+const { board, allTasks, ensureLoaded } = useBoard()
 onMounted(ensureLoaded)
 
 const cols = computed(() => board.value?.columns ?? [])
-const allTasks = computed(() =>
-  board.value ? board.value.columns.flatMap((c) => c.tasks).concat(board.value.orphans) : [],
-)
 const total = computed(() => allTasks.value.length)
 const done = computed(() => cols.value.find((c) => c.column.id === 'done')?.tasks.length ?? 0)
 const pct = computed(() => (total.value ? Math.round((done.value / total.value) * 100) : 0))
+const bar = computed(() => meter(done.value, total.value || 1, 25, '█', '░'))
+
 const toTest = computed(() => cols.value.find((c) => c.column.id === 'test')?.tasks.length ?? 0)
-const priority = computed(
+const prio = computed(
   () =>
     allTasks.value.filter(
       (t) => t.frontmatter.priority === 'urgent' || t.frontmatter.priority === 'high',
@@ -23,126 +25,96 @@ const debt = computed(() => allTasks.value.filter((t) => t.frontmatter.labels.in
 </script>
 
 <template>
-  <section v-if="board" class="sv-stats">
-    <div class="sv-stats-head">
-      <h1 class="sv-stats-title">{{ board.config.name }}</h1>
-      <span class="sv-stats-sub mono">{{ total }} tâches · {{ pct }}% terminé</span>
+  <section v-if="board" class="bl">
+    <div class="bl-head">
+      <span class="bl-name">Bilan</span>
+      <span class="bl-sub">{{ done }}/{{ total }} · {{ pct }}%</span>
     </div>
-    <div class="sv-bar"><div class="sv-bar-fill" :style="{ width: pct + '%' }"></div></div>
-    <div class="sv-stats-row">
-      <div class="sv-metrics">
-        <div v-for="c in cols" :key="c.column.id" class="sv-metric">
-          <span class="sv-metric-n mono">{{ c.tasks.length }}</span>
-          <span class="sv-metric-l mono">{{ c.column.label }}</span>
-        </div>
-      </div>
-      <div class="sv-chips">
-        <span class="sv-chip" data-tone="test">{{ toTest }} à tester</span>
-        <span class="sv-chip" data-tone="prio">{{ priority }} prioritaires</span>
-        <span class="sv-chip" data-tone="debt">{{ debt }} dette</span>
-      </div>
+    <div class="bl-bar">[<span class="bl-bar-on">{{ bar.filled }}</span>{{ bar.empty }}] {{ pct }}%</div>
+    <div class="bl-foot">
+      <span v-for="c in cols" :key="c.column.id" class="bl-col"
+        >{{ c.column.label }}<span class="bl-col-n"> {{ c.tasks.length }}</span></span
+      >
+      <span class="bl-chips">
+        <span class="bl-chip">à_tester=<span class="bl-chip-n">{{ toTest }}</span></span>
+        <span class="bl-chip bl-chip--prio">prio=<span class="bl-chip-n">{{ prio }}</span></span>
+        <span class="bl-chip bl-chip--debt">dette=<span class="bl-chip-n">{{ debt }}</span></span>
+      </span>
     </div>
   </section>
 </template>
 
 <style scoped>
-.sv-stats {
-  margin: 0 24px 14px;
+.bl {
+  border: 1px solid var(--sv-line);
+  border-radius: var(--sv-r-box);
   padding: 18px 20px;
-  background: var(--sv-surface);
-  border: 1px solid var(--sv-border);
-  border-radius: var(--sv-radius-col);
-  box-shadow: var(--sv-shadow-card);
-  backdrop-filter: var(--sv-glass-blur);
-  -webkit-backdrop-filter: var(--sv-glass-blur);
 }
-.sv-stats-head {
+.bl-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+  margin-bottom: 14px;
 }
-.sv-stats-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--sv-ink);
+.bl-name {
+  font-size: 16px;
+  color: var(--sv-fg);
 }
-.sv-stats-sub {
-  font-size: 11.5px;
-  color: var(--sv-ink-2);
+.bl-sub {
+  font-size: 12px;
+  color: var(--sv-fg-dim);
   font-variant-numeric: tabular-nums;
 }
-.sv-bar {
-  margin: 13px 0 15px;
-  height: 5px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.07);
-  overflow: hidden;
+.bl-bar {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--sv-fg-mid);
+  margin-bottom: 14px;
+  white-space: nowrap;
+  overflow-x: auto;
+  font-variant-numeric: tabular-nums;
 }
-.sv-bar-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: var(--sv-done);
-  transition: width 0.4s ease;
+.bl-bar-on {
+  color: var(--sv-fg);
 }
-.sv-stats-row {
+.bl-foot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 16px;
   flex-wrap: wrap;
-  gap: 14px;
+  font-size: 12px;
+  color: var(--sv-fg-mid);
+  border-top: 1px solid var(--sv-line);
+  padding-top: 12px;
 }
-.sv-metrics {
-  display: flex;
-  gap: 22px;
-}
-.sv-metric {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.sv-metric-n {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--sv-ink);
+.bl-col-n {
+  color: var(--sv-fg);
   font-variant-numeric: tabular-nums;
-  line-height: 1;
 }
-.sv-metric-l {
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--sv-ink-3);
-}
-.sv-chips {
+.bl-chips {
+  margin-left: auto;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
-.sv-chip {
-  font-size: 11px;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 999px;
-  color: var(--sv-ink-2);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--sv-border);
+.bl-chip {
+  border: 1px solid var(--sv-line-strong);
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: var(--sv-fg-mid);
+  font-variant-numeric: tabular-nums;
 }
-.sv-chip[data-tone='test'] {
-  color: var(--sv-high);
-  background: color-mix(in srgb, var(--sv-high) 12%, transparent);
-  border-color: color-mix(in srgb, var(--sv-high) 26%, transparent);
+.bl-chip-n {
+  color: inherit;
 }
-.sv-chip[data-tone='prio'] {
-  color: var(--sv-urgent);
-  background: color-mix(in srgb, var(--sv-urgent) 12%, transparent);
-  border-color: color-mix(in srgb, var(--sv-urgent) 26%, transparent);
+.bl-chip--prio {
+  background: var(--sv-accent);
+  color: var(--sv-on-accent);
+  border-color: var(--sv-accent);
 }
-.sv-chip[data-tone='debt'] {
-  color: var(--sv-blocked);
-  background: color-mix(in srgb, var(--sv-blocked) 12%, transparent);
-  border-color: color-mix(in srgb, var(--sv-blocked) 26%, transparent);
+.bl-chip--debt {
+  border-color: var(--sv-warn-line);
+  color: var(--sv-warn);
 }
 </style>

@@ -20,7 +20,7 @@ export interface ServerHandle {
 /** Démarre le board : service + file-watcher → SSE + serveur HTTP. */
 export async function startServer(root: string, opts: ServerOptions = {}): Promise<ServerHandle> {
   const port = opts.port ?? Number(process.env.PORT ?? 45188)
-  const dirName = opts.dirName ?? 'backlog'
+  const dirName = opts.dirName ?? '.suivre'
   const service = new BoardService(root, dirName)
   const events = new EventEmitter()
   const paths = resolvePaths(root, dirName)

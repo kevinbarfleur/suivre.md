@@ -6,15 +6,23 @@ export interface BacklogPaths {
   baseDir: string
   configFile: string
   tasksDir: string
+  decisionsDir: string
+  docsDir: string
+  /** Préférences propres au projet (versionnées avec le repo). */
+  preferencesFile: string
 }
 
-/** Le backlog vit dans `<root>/<dirName>/` (config.yml + tasks/). */
-export function resolvePaths(root: string, dirName = 'backlog'): BacklogPaths {
+/** Les données vivent dans `<root>/<dirName>/` (config.yml + tasks/ + decisions/ + docs/ …).
+ *  Défaut `.suivre` : dossier caché brandé, sans collision avec d'autres outils. */
+export function resolvePaths(root: string, dirName = '.suivre'): BacklogPaths {
   const baseDir = join(root, dirName)
   return {
     root,
     baseDir,
     configFile: join(baseDir, 'config.yml'),
     tasksDir: join(baseDir, 'tasks'),
+    decisionsDir: join(baseDir, 'decisions'),
+    docsDir: join(baseDir, 'docs'),
+    preferencesFile: join(baseDir, 'preferences.json'),
   }
 }

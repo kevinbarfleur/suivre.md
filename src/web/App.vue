@@ -1,57 +1,45 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import DashboardShell from './dashboard/DashboardShell.vue'
+import NavRail from './modules/shell/NavRail.vue'
+import MainPane from './modules/shell/MainPane.vue'
 import { useBoard } from './modules/board/board.store'
+import { useView } from './modules/shell/view.store'
+import { usePreferences } from './modules/settings/prefs.store'
 
 const { ensureLoaded, startLive } = useBoard()
-onMounted(() => {
+const { setView, hasExplicitHash } = useView()
+const { load: loadPreferences, effectiveDefaultView } = usePreferences()
+
+onMounted(async () => {
   void ensureLoaded()
   startLive()
+  await loadPreferences()
+  // Sans deep-link explicite, on ouvre sur la vue par défaut préférée.
+  if (!hasExplicitHash()) setView(effectiveDefaultView.value)
 })
 </script>
 
 <template>
-  <div class="sv-wrap">
-    <header class="sv-app-head">
-      <span class="sv-dot"></span>
-      <span class="sv-eyebrow mono">suivre.md</span>
-    </header>
-    <main class="sv-app-main">
-      <DashboardShell />
-    </main>
+  <div class="sv-app">
+    <NavRail />
+    <MainPane />
   </div>
 </template>
 
 <style scoped>
-.sv-wrap {
-  position: relative;
-  z-index: 1;
-  height: 100%;
+.sv-app {
+  height: 100vh;
   display: flex;
-  flex-direction: column;
+  align-items: stretch;
+  overflow: hidden;
+  background: var(--sv-surface);
 }
-.sv-app-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 20px 24px 14px;
-}
-.sv-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--sv-high);
-  box-shadow: 0 0 10px rgba(233, 184, 114, 0.7);
-}
-.sv-eyebrow {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--sv-ink-3);
-}
-.sv-app-main {
-  flex: 1;
-  min-height: 0;
+@media (max-width: 860px) {
+  .sv-app {
+    height: auto;
+    min-height: 100vh;
+    flex-direction: column;
+    overflow: visible;
+  }
 }
 </style>

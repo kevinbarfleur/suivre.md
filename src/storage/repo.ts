@@ -1,4 +1,4 @@
-import { mkdir, readdir } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 import {
@@ -9,8 +9,9 @@ import {
   serializeTask,
 } from '../domain'
 import type { Board, BoardConfig, Task } from '../domain'
+import { ARCHIVE_SUBDIR } from './collection'
 import { resolvePaths, type BacklogPaths } from './paths'
-import { atomicWrite, readFileSafe, removeFile } from './io'
+import { atomicWrite, readFileSafe, readMarkdownDir, removeFile } from './io'
 
 /**
  * Dépôt de stockage : seul composant qui touche le disque. Les surfaces
@@ -19,7 +20,7 @@ import { atomicWrite, readFileSafe, removeFile } from './io'
 export class BacklogRepository {
   private readonly paths: BacklogPaths
 
-  constructor(root: string, dirName = 'backlog') {
+  constructor(root: string, dirName = '.suivre') {
     this.paths = resolvePaths(root, dirName)
   }
 
@@ -44,18 +45,20 @@ export class BacklogRepository {
   }
 
   async listTasks(): Promise<Task[]> {
-    let files: string[]
-    try {
-      files = await readdir(this.paths.tasksDir)
-    } catch {
-      return []
-    }
+    const files = await readMarkdownDir(this.paths.tasksDir)
+    return files.map(({ fileName, raw }) => parseTask(raw, fileName))
+  }
+
+  /** Tâches rangées dans `tasks/archive/` (archivées par emplacement). */
+  async listArchivedTasks(): Promise<Task[]> {
+    const files = await readMarkdownDir(join(this.paths.tasksDir, ARCHIVE_SUBDIR))
     const tasks: Task[] = []
-    for (const file of files) {
-      if (!file.endsWith('.md')) continue
-      const raw = await readFileSafe(join(this.paths.tasksDir, file))
-      if (raw === null) continue
-      tasks.push(parseTask(raw, file))
+    for (const { fileName, raw } of files) {
+      try {
+        tasks.push(parseTask(raw, fileName))
+      } catch {
+        /* fichier d'archive invalide : ignoré plutôt que bloquant */
+      }
     }
     return tasks
   }

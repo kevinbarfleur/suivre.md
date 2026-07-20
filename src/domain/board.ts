@@ -1,3 +1,4 @@
+import { ARCHIVED_STATUS } from './archive'
 import type { BoardConfig } from './schema'
 import type { Board, BoardColumn, Task } from './types'
 
@@ -17,6 +18,9 @@ export function buildBoard(config: BoardConfig, tasks: readonly Task[]): Board {
 
   const orphans: Task[] = []
   for (const task of tasks) {
+    // Une tâche archivée quitte le board actif : ni colonne ni orphelin. Elle
+    // reste sur disque et n'apparaît que dans la vue archives.
+    if (task.frontmatter.status === ARCHIVED_STATUS) continue
     const bucket = byStatus.get(task.frontmatter.status)
     if (bucket) bucket.push(task)
     else orphans.push(task)

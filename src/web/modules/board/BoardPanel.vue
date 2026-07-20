@@ -2,25 +2,32 @@
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
 import { useBoard } from './board.store'
+import { useFilter } from '../filter/filter.store'
 import Column from './Column.vue'
-import TaskDetailDialog from './TaskDetailDialog.vue'
+import TaskCard from './TaskCard.vue'
 
-const { board, loading, error, ensureLoaded, move, selected } = useBoard()
+// Vue « board » (kanban). La modale et les états globaux (loading/error/vide)
+// sont gérés par le MainPane ; ici on ne rend que les colonnes + orphelins.
+const { board, move } = useBoard()
+const { matches } = useFilter()
 
-// Statut courant de chaque tâche → pour ignorer un drop dans la même colonne.
 const statusById = computed(() => {
   const map = new Map<string, string>()
   if (board.value) {
-    for (const c of board.value.columns) {
-      for (const t of c.tasks) map.set(t.frontmatter.id, c.column.id)
-    }
+    for (const c of board.value.columns) for (const t of c.tasks) map.set(t.frontmatter.id, c.column.id)
   }
   return map
 })
 
+const columns = computed(() =>
+  board.value
+    ? board.value.columns.map((c) => ({ column: c.column, tasks: c.tasks.filter(matches) }))
+    : [],
+)
+const orphans = computed(() => (board.value ? board.value.orphans.filter(matches) : []))
+
 let cleanup: (() => void) | undefined
 onMounted(() => {
-  void ensureLoaded()
   cleanup = monitorForElements({
     onDrop: ({ source, location }) => {
       const target = location.current.dropTargets[0]
@@ -37,36 +44,62 @@ onBeforeUnmount(() => cleanup?.())
 </script>
 
 <template>
-  <section class="sv-board">
-    <div v-if="error" class="sv-state sv-state--err">{{ error }}</div>
-    <div v-else-if="loading && !board" class="sv-state">Chargement…</div>
-    <div v-else-if="board" class="sv-cols">
-      <Column v-for="col in board.columns" :key="col.column.id" :col="col" />
+  <div class="bd">
+    <div class="bd-cols">
+      <Column v-for="col in columns" :key="col.column.id" :col="col" />
     </div>
-    <div v-else class="sv-state">Backlog non initialisé.</div>
-    <TaskDetailDialog v-if="selected" :task="selected" />
-  </section>
+    <div v-if="orphans.length" class="bd-orphans">
+      <div class="bd-orphans-head">
+        <span class="bd-orphans-hash">#</span> orphelins
+        <span class="bd-orphans-hint">— statut inconnu → re-tri</span>
+        <span class="bd-orphans-n">[{{ orphans.length }}]</span>
+      </div>
+      <div class="bd-orphans-list">
+        <TaskCard v-for="t in orphans" :key="t.frontmatter.id" :task="t" orphan />
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-.sv-board {
-  height: 100%;
-  padding: 4px 24px 24px;
+.bd {
+  min-width: 0;
 }
-.sv-cols {
+.bd-cols {
   display: flex;
-  gap: 14px;
-  height: 100%;
-  overflow-x: auto;
+  gap: 12px;
   align-items: flex-start;
-  padding-bottom: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
 }
-.sv-state {
-  padding: 24px;
-  font-size: 14px;
-  color: var(--sv-ink-2);
+.bd-orphans {
+  margin-top: 22px;
+  padding: 16px;
+  border: 1px solid var(--sv-warn-line);
+  border-radius: 10px;
+  background: var(--sv-warn-bg);
 }
-.sv-state--err {
-  color: #ffb4a8;
+.bd-orphans-head {
+  font-size: 12px;
+  color: var(--sv-warn);
+  margin-bottom: 12px;
+}
+.bd-orphans-hash {
+  color: var(--sv-fg-dim);
+}
+.bd-orphans-hint {
+  color: var(--sv-warn);
+}
+.bd-orphans-n {
+  color: var(--sv-fg-dim);
+  margin-left: 4px;
+}
+.bd-orphans-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.bd-orphans-list > * {
+  width: 262px;
 }
 </style>

@@ -1,13 +1,25 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>suivre.md</title>
+    <script>
+      // Applique le thème mémorisé avant le rendu (pas de flash). Réconcilié
+      // ensuite par prefs.store après fetch des préférences machine.
+      try {
+        var t = localStorage.getItem('suivre.theme')
+        if (t) document.documentElement.setAttribute('data-theme', t)
+      } catch (e) {}
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <div class="sv-bg1"></div>
-    <div class="sv-bg2"></div>
     <div id="app"></div>
     <script type="module" src="/main.ts"></script>
   </body>

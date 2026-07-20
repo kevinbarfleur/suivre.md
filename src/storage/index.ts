@@ -1,3 +1,5 @@
 export * from './paths'
 export * from './io'
 export * from './repo'
+export * from './collection'
+export * from './preferences-store'

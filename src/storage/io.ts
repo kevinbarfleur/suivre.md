@@ -1,5 +1,5 @@
-import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import { mkdir, readdir, readFile, rename, unlink, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 
 /** Lecture tolérante : `null` si le fichier n'existe pas / est illisible. */
 export async function readFileSafe(path: string): Promise<string | null> {
@@ -8,6 +8,33 @@ export async function readFileSafe(path: string): Promise<string | null> {
   } catch {
     return null
   }
+}
+
+export interface MarkdownFile {
+  fileName: string
+  raw: string
+}
+
+/**
+ * Liste les fichiers `.md` d'un dossier (non récursif) avec leur contenu.
+ * Tolérant : dossier absent → liste vide ; fichier illisible → ignoré. Base
+ * partagée des tâches, décisions, docs et de leurs dossiers `archive/`.
+ */
+export async function readMarkdownDir(dir: string): Promise<MarkdownFile[]> {
+  let names: string[]
+  try {
+    names = await readdir(dir)
+  } catch {
+    return []
+  }
+  const files: MarkdownFile[] = []
+  for (const name of names) {
+    if (!name.endsWith('.md')) continue
+    const raw = await readFileSafe(join(dir, name))
+    if (raw === null) continue
+    files.push({ fileName: name, raw })
+  }
+  return files
 }
 
 /**

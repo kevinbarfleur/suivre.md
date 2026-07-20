@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Priority, Task } from '../../../domain'
 import { useBoard } from './board.store'
+import { acItems, shortDate } from '../../lib/task-meta'
 
 const props = defineProps<{ task: Task }>()
 const { board, update, remove, closeTask } = useBoard()
@@ -22,7 +23,12 @@ function sync(task: Task): void {
 }
 watch(() => props.task, sync, { immediate: true })
 
-const columns = () => board.value?.columns.map((c) => c.column) ?? []
+const columns = computed(() => board.value?.columns.map((c) => c.column) ?? [])
+const assignee = computed(() => props.task.frontmatter.assignee)
+const acList = computed(() => acItems(body.value))
+const acDone = computed(() => acList.value.filter((a) => a.done).length)
+const created = computed(() => shortDate(props.task.frontmatter.created))
+const updated = computed(() => shortDate(props.task.frontmatter.updated))
 
 function onKey(e: KeyboardEvent): void {
   if (e.key === 'Escape') closeTask()
@@ -58,56 +64,70 @@ async function destroy(): Promise<void> {
 
 <template>
   <Teleport to="body">
-    <div class="sv-modal" @click.self="closeTask">
-      <div class="sv-sheet" role="dialog" aria-modal="true">
-        <header class="sv-sheet-head">
-          <span class="sv-sheet-id mono">{{ task.frontmatter.id }}</span>
-          <button class="sv-x" type="button" aria-label="Fermer" @click="closeTask">×</button>
+    <div class="modal" @click.self="closeTask">
+      <div class="sheet" role="dialog" aria-modal="true">
+        <header class="sheet-head">
+          <span class="sheet-id">{{ task.frontmatter.id }}</span>
+          <button class="sheet-esc" type="button" @click="closeTask">[esc]</button>
         </header>
 
-        <label class="sv-field">
-          <span class="sv-field-l mono">Titre</span>
-          <input v-model="title" class="sv-input" type="text" />
-        </label>
+        <input v-model="title" class="sheet-title" type="text" placeholder="Titre de la tâche…" />
 
-        <div class="sv-field-row">
-          <label class="sv-field">
-            <span class="sv-field-l mono">Statut</span>
-            <select v-model="status" class="sv-input">
-              <option v-for="c in columns()" :key="c.id" :value="c.id">{{ c.label }}</option>
-            </select>
+        <div class="sheet-row">
+          <label class="field">
+            <span class="field-l">status</span>
+            <div class="select">
+              <select v-model="status">
+                <option v-for="c in columns" :key="c.id" :value="c.id">{{ c.label }}</option>
+              </select>
+              <span class="select-caret">▾</span>
+            </div>
           </label>
-          <label class="sv-field">
-            <span class="sv-field-l mono">Priorité</span>
-            <select v-model="priority" class="sv-input">
-              <option value="">—</option>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-            </select>
+          <label class="field">
+            <span class="field-l">priority</span>
+            <div class="select" :class="{ 'select--set': priority }">
+              <select v-model="priority">
+                <option value="">—</option>
+                <option value="low">low</option>
+                <option value="medium">medium</option>
+                <option value="high">high</option>
+                <option value="urgent">urgent</option>
+              </select>
+              <span class="select-caret">▾</span>
+            </div>
           </label>
+          <div v-if="assignee" class="field">
+            <span class="field-l">assignee</span>
+            <div class="field-ro">@{{ assignee }}</div>
+          </div>
         </div>
 
-        <label class="sv-field">
-          <span class="sv-field-l mono">Labels (séparés par des virgules)</span>
-          <input v-model="labels" class="sv-input" type="text" />
+        <label class="field">
+          <span class="field-l">labels <span class="field-hint">— séparés par des virgules</span></span>
+          <input v-model="labels" class="input" type="text" placeholder="bug, auth…" />
         </label>
 
-        <label class="sv-field">
-          <span class="sv-field-l mono">Notes</span>
-          <textarea v-model="body" class="sv-input sv-textarea" rows="5"></textarea>
+        <div v-if="acList.length" class="ac">
+          <div class="ac-l">## acceptance criteria · {{ acDone }}/{{ acList.length }}</div>
+          <div class="ac-list">
+            <div v-for="(a, i) in acList" :key="i" class="ac-item">
+              <span v-if="a.done" class="ac-done">[x] {{ a.text }}</span>
+              <span v-else class="ac-todo">[ ] {{ a.text }}</span>
+            </div>
+          </div>
+        </div>
+
+        <label class="field">
+          <span class="field-l">## corps <span class="field-hint">— description, critères, notes</span></span>
+          <textarea v-model="body" class="input textarea" rows="7" spellcheck="false"></textarea>
         </label>
 
-        <footer class="sv-sheet-foot">
-          <button class="sv-btn sv-btn--danger" type="button" :disabled="saving" @click="destroy">
-            Supprimer
-          </button>
-          <div class="sv-foot-right">
-            <button class="sv-btn" type="button" :disabled="saving" @click="closeTask">Annuler</button>
-            <button class="sv-btn sv-btn--primary" type="button" :disabled="saving" @click="save">
-              Enregistrer
-            </button>
+        <footer class="sheet-foot">
+          <span class="sheet-meta">created {{ created }} · updated {{ updated }}</span>
+          <div class="sheet-actions">
+            <button class="btn btn--danger" type="button" :disabled="saving" @click="destroy">rm</button>
+            <button class="btn" type="button" :disabled="saving" @click="closeTask">esc</button>
+            <button class="btn btn--primary" type="button" :disabled="saving" @click="save">save</button>
           </div>
         </footer>
       </div>
@@ -116,7 +136,7 @@ async function destroy(): Promise<void> {
 </template>
 
 <style scoped>
-.sv-modal {
+.modal {
   position: fixed;
   inset: 0;
   z-index: 100;
@@ -124,135 +144,212 @@ async function destroy(): Promise<void> {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(4, 4, 6, 0.55);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  animation: sv-fade 0.18s ease both;
+  background: rgba(4, 4, 6, 0.62);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  animation: sv-fade 0.16s ease both;
 }
-.sv-sheet {
+.sheet {
   width: 100%;
-  max-width: 520px;
+  max-width: 560px;
   max-height: 88vh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 22px;
-  background: rgba(22, 22, 24, 0.86);
-  border: 1px solid var(--sv-border-strong);
-  border-radius: var(--sv-radius-col);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 40px 90px -40px rgba(0, 0, 0, 0.95);
-  backdrop-filter: var(--sv-glass-blur);
-  -webkit-backdrop-filter: var(--sv-glass-blur);
+  padding: 22px 24px;
+  background: var(--sv-surface-2);
+  border: 1px solid var(--sv-line);
+  border-radius: var(--sv-r-panel);
+  box-shadow: var(--sv-shadow-modal);
 }
-.sv-sheet-head {
+.sheet-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  font-size: 12px;
+  color: var(--sv-fg-dim);
 }
-.sv-sheet-id {
-  font-size: 11px;
-  color: var(--sv-ink-3);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--sv-border);
-  padding: 3px 8px;
-  border-radius: var(--sv-radius-sm);
+.sheet-id {
+  color: var(--sv-fg);
 }
-.sv-x {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  border: 1px solid var(--sv-border);
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--sv-ink-2);
-  font-size: 16px;
-  line-height: 1;
+.sheet-esc {
+  background: transparent;
+  border: 0;
+  color: var(--sv-fg-dim);
+  font-size: 12px;
   cursor: pointer;
 }
-.sv-x:hover {
-  color: var(--sv-ink);
-  border-color: var(--sv-border-strong);
+.sheet-esc:hover {
+  color: var(--sv-fg);
 }
-.sv-field {
+.sheet-title {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--sv-line);
+  padding: 2px 0 14px;
+  font-size: 18px;
+  color: var(--sv-fg);
+}
+.sheet-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.field {
+  flex: 1;
+  min-width: 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.field-l {
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sv-fg-dim);
+}
+.field-hint {
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--sv-fg-dim);
+}
+.field-ro {
+  border: 1px solid var(--sv-line);
+  border-radius: var(--sv-r);
+  padding: 8px 11px;
+  font-size: 13px;
+  color: var(--sv-fg-mid);
+}
+.input {
+  width: 100%;
+  background: var(--sv-surface);
+  border: 1px solid var(--sv-line);
+  border-radius: var(--sv-r);
+  padding: 9px 12px;
+  color: var(--sv-fg);
+  font-family: inherit;
+  font-size: 13px;
+  transition: border-color 0.15s ease;
+}
+.input:focus {
+  border-color: var(--sv-accent);
+}
+.textarea {
+  resize: vertical;
+  line-height: 1.55;
+}
+.ac {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ac-l {
+  font-size: 11px;
+  color: var(--sv-fg-dim);
+}
+.ac-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  font-size: 12.5px;
 }
-.sv-field-row {
+.ac-done {
+  color: var(--sv-fg-dim);
+  text-decoration: line-through;
+}
+.ac-todo {
+  color: var(--sv-fg-card);
+}
+.select {
+  position: relative;
   display: flex;
-  gap: 12px;
 }
-.sv-field-row .sv-field {
-  flex: 1;
-}
-.sv-field-l {
-  font-size: 10px;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--sv-ink-3);
-}
-.sv-input {
+.select select {
+  appearance: none;
+  -webkit-appearance: none;
   width: 100%;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--sv-border);
-  border-radius: var(--sv-radius);
-  padding: 10px 12px;
-  color: var(--sv-ink);
+  background: var(--sv-surface);
+  border: 1px solid var(--sv-line);
+  border-radius: var(--sv-r);
+  padding: 8px 28px 8px 11px;
+  color: var(--sv-fg);
   font-family: inherit;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.18s ease;
+  font-size: 13px;
+  cursor: pointer;
 }
-.sv-input:focus {
-  border-color: var(--sv-border-strong);
+.select--set select {
+  border-color: var(--sv-line-strong);
 }
-.sv-textarea {
-  resize: vertical;
-  line-height: 1.5;
+.select select:focus {
+  border-color: var(--sv-accent);
 }
-.sv-sheet-foot {
+.select-caret {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--sv-fg-dim);
+  pointer-events: none;
+  font-size: 12px;
+}
+.sheet-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 4px;
+  gap: 12px;
+  border-top: 1px solid var(--sv-line);
+  padding-top: 16px;
+  flex-wrap: wrap;
 }
-.sv-foot-right {
+.sheet-meta {
+  font-size: 10.5px;
+  color: var(--sv-fg-dim);
+  font-variant-numeric: tabular-nums;
+}
+.sheet-actions {
   display: flex;
-  gap: 8px;
+  gap: 9px;
+  margin-left: auto;
 }
-.sv-btn {
-  padding: 9px 15px;
-  border-radius: var(--sv-radius);
-  border: 1px solid var(--sv-border);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--sv-ink);
+.btn {
+  padding: 8px 15px;
+  border-radius: var(--sv-r);
+  border: 1px solid var(--sv-line);
+  background: transparent;
+  color: var(--sv-fg-mid);
   font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
   cursor: pointer;
   transition:
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    opacity 0.18s ease;
+    border-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
 }
-.sv-btn:hover {
-  border-color: var(--sv-border-strong);
+.btn:hover {
+  border-color: var(--sv-line-strong);
+  color: var(--sv-fg);
 }
-.sv-btn:disabled {
+.btn:disabled {
   opacity: 0.5;
   cursor: default;
 }
-.sv-btn--primary {
-  background: linear-gradient(180deg, #ffffff, #eaeaed);
-  color: #0b0b0d;
-  border-color: rgba(255, 255, 255, 0.6);
+.btn--primary {
+  background: var(--sv-accent);
+  color: var(--sv-on-accent);
+  border-color: var(--sv-accent);
   font-weight: 600;
 }
-.sv-btn--danger {
-  color: var(--sv-urgent);
-  border-color: color-mix(in srgb, var(--sv-urgent) 26%, transparent);
-  background: color-mix(in srgb, var(--sv-urgent) 10%, transparent);
+.btn--primary:hover {
+  color: var(--sv-on-accent);
+}
+.btn--danger {
+  color: var(--sv-danger);
+  border-color: var(--sv-danger-line);
+}
+.btn--danger:hover {
+  color: var(--sv-danger);
+  border-color: var(--sv-danger);
 }
 </style>

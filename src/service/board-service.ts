@@ -1,6 +1,39 @@
-import { BacklogRepository } from '../storage'
-import { createTask, editTask, moveTask, rankBetween } from '../domain'
-import type { Board, BoardConfig, CreateTaskInput, Task, TaskPatch } from '../domain'
+import { BacklogRepository, MarkdownCollection, PreferencesStore, resolvePaths } from '../storage'
+import {
+  buildArchive,
+  createTask,
+  decisionFrontmatterSchema,
+  docFrontmatterSchema,
+  editTask,
+  globalPreferencesSchema,
+  moveTask,
+  nextTaskId,
+  parseDecision,
+  parseDoc,
+  projectPreferencesSchema,
+  rankBetween,
+  serializeDecision,
+  serializeDoc,
+  slugify,
+} from '../domain'
+import type {
+  ArchivedEntry,
+  Board,
+  BoardConfig,
+  CreateDecisionInput,
+  CreateDocInput,
+  CreateTaskInput,
+  Decision,
+  DecisionPatch,
+  Doc,
+  DocPatch,
+  GlobalPreferences,
+  Located,
+  Preferences,
+  ProjectPreferences,
+  Task,
+  TaskPatch,
+} from '../domain'
 
 export interface MoveOptions {
   beforeId?: string
@@ -14,9 +47,20 @@ export interface MoveOptions {
  */
 export class BoardService {
   private readonly repo: BacklogRepository
+  private readonly prefs: PreferencesStore
+  private readonly decisions: MarkdownCollection<Decision>
+  private readonly docs: MarkdownCollection<Doc>
 
-  constructor(root: string, dirName = 'backlog') {
+  constructor(root: string, dirName = '.suivre') {
+    const paths = resolvePaths(root, dirName)
     this.repo = new BacklogRepository(root, dirName)
+    this.prefs = new PreferencesStore(paths.preferencesFile)
+    this.decisions = new MarkdownCollection<Decision>(
+      paths.decisionsDir,
+      parseDecision,
+      serializeDecision,
+    )
+    this.docs = new MarkdownCollection<Doc>(paths.docsDir, parseDoc, serializeDoc)
   }
 
   private now(): string {
@@ -41,6 +85,30 @@ export class BoardService {
 
   getTask(id: string): Promise<Task | null> {
     return this.repo.getTask(id)
+  }
+
+  /**
+   * Liste unifiée des archives : tâches (statut `archived` ou dossier
+   * `tasks/archive/`), décisions (superseded/rejected ou `decisions/archive/`),
+   * docs (`docs/archive/`). Une seule vue transverse, triée par date.
+   */
+  async getArchive(): Promise<ArchivedEntry[]> {
+    const [tasks, archivedTasks, decisions, archivedDecisions, docs, archivedDocs] =
+      await Promise.all([
+        this.repo.listTasks(),
+        this.repo.listArchivedTasks(),
+        this.decisions.list(),
+        this.decisions.listArchived(),
+        this.docs.list(),
+        this.docs.listArchived(),
+      ])
+    const located = <T>(items: T[], inArchiveFolder: boolean): Located<T>[] =>
+      items.map((item) => ({ item, inArchiveFolder }))
+    return buildArchive({
+      tasks: [...located(tasks, false), ...located(archivedTasks, true)],
+      decisions: [...located(decisions, false), ...located(archivedDecisions, true)],
+      docs: [...located(docs, false), ...located(archivedDocs, true)],
+    })
   }
 
   async create(input: CreateTaskInput): Promise<Task> {
@@ -85,6 +153,133 @@ export class BoardService {
 
   remove(id: string): Promise<boolean> {
     return this.repo.deleteTask(id)
+  }
+
+  async getPreferences(): Promise<Preferences> {
+    const [global, project] = await Promise.all([this.prefs.loadGlobal(), this.prefs.loadProject()])
+    return { global, project }
+  }
+
+  async patchGlobalPreferences(patch: Partial<GlobalPreferences>): Promise<GlobalPreferences> {
+    const current = await this.prefs.loadGlobal()
+    const next = globalPreferencesSchema.parse({ ...current, ...patch })
+    await this.prefs.saveGlobal(next)
+    return next
+  }
+
+  async patchProjectPreferences(patch: Partial<ProjectPreferences>): Promise<ProjectPreferences> {
+    const current = await this.prefs.loadProject()
+    const next = projectPreferencesSchema.parse({ ...current, ...patch })
+    await this.prefs.saveProject(next)
+    return next
+  }
+
+  // --- Décisions (ADR) ---
+
+  listDecisions(): Promise<Decision[]> {
+    return this.decisions.list()
+  }
+
+  getDecision(id: string): Promise<Decision | null> {
+    return this.decisions.get(id)
+  }
+
+  async createDecision(input: CreateDecisionInput): Promise<Decision> {
+    const items = await this.decisions.list()
+    const id = nextTaskId('decision', items.map((d) => d.frontmatter.id))
+    const frontmatter = decisionFrontmatterSchema.parse({
+      id,
+      title: input.title,
+      status: input.status,
+      date: input.date ?? this.now(),
+      supersedes: input.supersedes,
+      labels: input.labels,
+    })
+    const decision: Decision = {
+      frontmatter,
+      body: input.body ?? '',
+      fileName: `${id}-${slugify(input.title)}.md`,
+    }
+    await this.decisions.save(decision)
+    if (frontmatter.supersedes) await this.markSuperseded(frontmatter.supersedes, id)
+    return decision
+  }
+
+  async editDecision(id: string, patch: DecisionPatch): Promise<Decision> {
+    const current = await this.decisions.get(id)
+    if (!current) throw new Error(`Décision introuvable: ${id}`)
+    const title = patch.title ?? current.frontmatter.title
+    const frontmatter = decisionFrontmatterSchema.parse({ ...current.frontmatter, ...patch, id, title })
+    const next: Decision = {
+      frontmatter,
+      body: patch.body ?? current.body,
+      fileName: `${id}-${slugify(title)}.md`,
+    }
+    await this.decisions.save(next, current.fileName)
+    return next
+  }
+
+  removeDecision(id: string): Promise<boolean> {
+    return this.decisions.remove(id)
+  }
+
+  private async markSuperseded(id: string, byId: string): Promise<void> {
+    const decision = await this.decisions.get(id)
+    if (!decision) return
+    const frontmatter = decisionFrontmatterSchema.parse({
+      ...decision.frontmatter,
+      status: 'superseded',
+      supersededBy: byId,
+    })
+    await this.decisions.save({ ...decision, frontmatter })
+  }
+
+  // --- Docs ---
+
+  listDocs(): Promise<Doc[]> {
+    return this.docs.list()
+  }
+
+  getDoc(id: string): Promise<Doc | null> {
+    return this.docs.get(id)
+  }
+
+  async createDoc(input: CreateDocInput): Promise<Doc> {
+    const items = await this.docs.list()
+    const id = nextTaskId('doc', items.map((d) => d.frontmatter.id))
+    const frontmatter = docFrontmatterSchema.parse({
+      id,
+      title: input.title,
+      tags: input.tags,
+      updated: this.now(),
+    })
+    const doc: Doc = { frontmatter, body: input.body ?? '', fileName: `${id}-${slugify(input.title)}.md` }
+    await this.docs.save(doc)
+    return doc
+  }
+
+  async editDoc(id: string, patch: DocPatch): Promise<Doc> {
+    const current = await this.docs.get(id)
+    if (!current) throw new Error(`Doc introuvable: ${id}`)
+    const title = patch.title ?? current.frontmatter.title
+    const frontmatter = docFrontmatterSchema.parse({
+      ...current.frontmatter,
+      ...patch,
+      id,
+      title,
+      updated: this.now(),
+    })
+    const next: Doc = {
+      frontmatter,
+      body: patch.body ?? current.body,
+      fileName: `${id}-${slugify(title)}.md`,
+    }
+    await this.docs.save(next, current.fileName)
+    return next
+  }
+
+  removeDoc(id: string): Promise<boolean> {
+    return this.docs.remove(id)
   }
 
   private async requireConfig(): Promise<BoardConfig> {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
 import type { BoardColumn } from '../../../domain'
 import { useBoard } from './board.store'
@@ -30,111 +30,146 @@ onMounted(() => {
 })
 onBeforeUnmount(() => cleanup?.())
 
+const wip = computed(() => props.col.column.wipLimit)
+const overWip = computed(() => wip.value != null && props.col.tasks.length > wip.value)
+
 const draft = ref('')
-async function add(): Promise<void> {
+const adding = ref(false)
+const input = ref<HTMLInputElement | null>(null)
+
+async function openAdd(): Promise<void> {
+  adding.value = true
+  await nextTick()
+  input.value?.focus()
+}
+function cancelAdd(): void {
+  adding.value = false
+  draft.value = ''
+}
+function onBlur(): void {
+  if (!draft.value.trim()) cancelAdd()
+}
+async function submit(): Promise<void> {
   const title = draft.value.trim()
   if (!title) return
   draft.value = ''
+  adding.value = false
   await create({ title, status: props.col.column.id })
 }
 </script>
 
 <template>
-  <section ref="el" class="sv-col" :class="{ 'sv-col--over': over }">
-    <header class="sv-col-head">
-      <span class="sv-col-label mono">{{ col.column.label }}</span>
-      <span class="sv-col-count mono">{{ col.tasks.length }}</span>
+  <section ref="el" class="col" :class="{ 'col--over': over }">
+    <header class="col-head">
+      <span class="col-label"><span class="col-hash">#</span> {{ col.column.label }}</span>
+      <span class="col-count" :class="{ 'col-count--over': overWip }"
+        >[{{ col.tasks.length }}<template v-if="wip != null">/{{ wip }}</template>]</span
+      >
     </header>
-    <div class="sv-col-list">
+
+    <div class="col-list">
       <TaskCard v-for="task in col.tasks" :key="task.frontmatter.id" :task="task" />
-      <p v-if="col.tasks.length === 0" class="sv-col-empty">Vide</p>
+      <div v-if="col.tasks.length === 0" class="col-empty">
+        column empty<br /><span class="col-empty-hint">drop task here</span>
+      </div>
     </div>
-    <div class="sv-col-add">
+
+    <div v-if="adding" class="col-add">
       <input
+        ref="input"
         v-model="draft"
-        class="sv-add-input"
+        class="col-add-input"
         type="text"
-        placeholder="+ Ajouter une tâche"
-        @keydown.enter="add"
+        placeholder="titre de la tâche…"
+        @keydown.enter="submit"
+        @keydown.esc="cancelAdd"
+        @blur="onBlur"
       />
     </div>
+    <button v-else class="col-add-btn" type="button" @click="openAdd">$ task add …</button>
   </section>
 </template>
 
 <style scoped>
-.sv-col {
-  width: 300px;
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  max-height: 100%;
-  background: var(--sv-surface-2);
-  border: 1px solid var(--sv-border);
-  border-radius: var(--sv-radius-col);
-  backdrop-filter: var(--sv-glass-blur);
-  -webkit-backdrop-filter: var(--sv-glass-blur);
-  transition:
-    border-color 0.18s ease,
-    background-color 0.18s ease;
-}
-.sv-col--over {
-  border-color: color-mix(in srgb, var(--sv-high) 45%, var(--sv-border));
-  background: rgba(255, 255, 255, 0.05);
-}
-.sv-col-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px 10px;
-}
-.sv-col-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--sv-ink-2);
-}
-.sv-col-count {
-  font-size: 11px;
-  color: var(--sv-ink-3);
-  font-variant-numeric: tabular-nums;
-}
-.sv-col-list {
+.col {
+  flex: 0 0 262px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 4px 12px 8px;
-  overflow-y: auto;
+  padding: 4px;
+  border-radius: 8px;
+  transition: background-color 0.15s ease;
 }
-.sv-col-empty {
-  margin: 0;
-  padding: 12px 0;
+.col--over {
+  background: rgba(126, 160, 143, 0.06);
+}
+.col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--sv-line);
+  padding: 0 4px 9px;
+  font-size: 13px;
+}
+.col-label {
+  color: var(--sv-fg-mid);
+}
+.col-hash {
+  color: var(--sv-fg-dim);
+}
+.col-count {
+  color: var(--sv-fg-dim);
+  font-variant-numeric: tabular-nums;
+}
+.col-count--over {
+  color: var(--sv-warn);
+}
+.col-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.col-empty {
+  border: 1px dashed var(--sv-line);
+  border-radius: 8px;
+  padding: 16px;
   text-align: center;
   font-size: 12px;
-  color: var(--sv-ink-3);
+  color: var(--sv-fg-dim);
+  line-height: 1.7;
 }
-.sv-col-add {
-  padding: 8px 12px 12px;
+.col-empty-hint {
+  font-size: 10px;
 }
-.sv-add-input {
-  width: 100%;
-  background: rgba(0, 0, 0, 0.22);
-  border: 1px solid var(--sv-border);
-  border-radius: var(--sv-radius);
+.col-add-btn {
+  text-align: left;
+  background: transparent;
+  border: 1px dashed var(--sv-line);
+  border-radius: 6px;
   padding: 9px 12px;
-  color: var(--sv-ink);
+  color: var(--sv-fg-dim);
   font-family: inherit;
-  font-size: 13px;
-  outline: none;
+  font-size: 12px;
+  cursor: pointer;
   transition:
-    border-color 0.18s ease,
-    background-color 0.18s ease;
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
-.sv-add-input::placeholder {
-  color: var(--sv-ink-3);
+.col-add-btn:hover {
+  border-color: var(--sv-line-strong);
+  color: var(--sv-fg-mid);
 }
-.sv-add-input:focus {
-  border-color: var(--sv-border-strong);
-  background: rgba(0, 0, 0, 0.32);
+.col-add {
+  border: 1px dashed var(--sv-line-strong);
+  border-radius: 6px;
+  padding: 9px 11px;
+  background: var(--sv-raised);
+}
+.col-add-input {
+  border: 0;
+  background: transparent;
+  width: 100%;
+  font-size: 12px;
+  color: var(--sv-fg);
 }
 </style>

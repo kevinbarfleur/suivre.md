@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { Board, Task } from '../../../domain'
 import * as api from '../../lib/api'
 
@@ -10,6 +10,12 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const selected = ref<Task | null>(null)
 let liveStarted = false
+
+// Toutes les tâches à plat (colonnes + orphelins) — source partagée pour le
+// bilan, les filtres et le calcul des sous-tâches.
+const allTasks = computed<Task[]>(() =>
+  board.value ? board.value.columns.flatMap((c) => c.tasks).concat(board.value.orphans) : [],
+)
 
 async function reload(): Promise<void> {
   loading.value = true
@@ -39,6 +45,7 @@ function startLive(): void {
 export function useBoard() {
   return {
     board,
+    allTasks,
     loading,
     error,
     selected,
