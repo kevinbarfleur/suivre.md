@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { fileURLToPath } from 'node:url'
 import { cac } from 'cac'
 import { BoardService } from '../service/board-service'
 import { prioritySchema } from '../domain'
@@ -44,11 +45,18 @@ cli.command('rm <id>', 'Supprime une tâche').action(async (id: string) => {
   console.log(ok ? 'Supprimée.' : 'Introuvable.')
 })
 
-cli.command('board', 'Lance le board web (live)').action(async () => {
-  const { startServer } = await import('../server/index')
-  const handle = await startServer(process.env.SUIVRE_ROOT ?? process.cwd())
-  console.log(`Board sur ${handle.url} — Ctrl+C pour arrêter.`)
-})
+cli
+  .command('board', 'Lance le board web (live, un seul process)')
+  .option('--port <port>', 'Port HTTP')
+  .action(async (options: { port?: string }) => {
+    const { startServer } = await import('../server/index')
+    const distDir = fileURLToPath(new URL('../../dist/web', import.meta.url))
+    const handle = await startServer(process.env.SUIVRE_ROOT ?? process.cwd(), {
+      distDir,
+      port: options.port ? Number(options.port) : undefined,
+    })
+    console.log(`\n  suivre.md — board sur ${handle.url}\n  Ctrl+C pour arrêter.\n`)
+  })
 
 cli.help()
 cli.parse()

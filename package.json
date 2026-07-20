@@ -43,6 +43,8 @@
     "vue-tsc": "^3.3.7"
   },
   "dependencies": {
+    "@ark-ui/vue": "^5.37.2",
+    "@atlaskit/pragmatic-drag-and-drop": "^2.0.1",
     "@hono/node-server": "^2.0.10",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "cac": "^7.0.0",

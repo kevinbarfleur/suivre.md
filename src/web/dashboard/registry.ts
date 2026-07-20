@@ -1,8 +1,8 @@
 import type { Component } from 'vue'
 
 /**
- * Registre de panneaux du dashboard. C'est le cœur de la modularité : chaque
- * bloc (board, filtres, stats…) s'enregistre ici. Réordonner = changer `order`.
+ * Registre de panneaux du dashboard. Cœur de la modularité : chaque bloc
+ * (bilan, board, filtres…) s'enregistre ici. Réordonner = changer `order`.
  * Ajouter = enregistrer un module. Retirer = ne plus l'enregistrer. Aucun
  * couplage entre blocs.
  */
@@ -11,6 +11,8 @@ export interface PanelDef {
   title: string
   component: Component
   order: number
+  /** Le panneau occupe la hauteur restante (le board) plutôt qu'une bande fixe. */
+  grow?: boolean
 }
 
 const registry: PanelDef[] = []

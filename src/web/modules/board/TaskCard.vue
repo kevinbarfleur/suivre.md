@@ -1,8 +1,30 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { draggable } from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
 import type { Task } from '../../../domain'
+import { useBoard } from './board.store'
 
 const props = defineProps<{ task: Task }>()
+const { openTask } = useBoard()
+
+const el = ref<HTMLElement | null>(null)
+const dragging = ref(false)
+let cleanup: (() => void) | undefined
+
+onMounted(() => {
+  if (!el.value) return
+  cleanup = draggable({
+    element: el.value,
+    getInitialData: () => ({ taskId: props.task.frontmatter.id }),
+    onDragStart: () => {
+      dragging.value = true
+    },
+    onDrop: () => {
+      dragging.value = false
+    },
+  })
+})
+onBeforeUnmount(() => cleanup?.())
 
 const PRIORITY_LABELS: Record<string, string> = {
   urgent: 'Urgent',
@@ -10,13 +32,17 @@ const PRIORITY_LABELS: Record<string, string> = {
   medium: 'Medium',
   low: 'Low',
 }
-
 const priority = computed(() => props.task.frontmatter.priority)
 const showPriority = computed(() => priority.value != null && priority.value !== 'medium')
 </script>
 
 <template>
-  <article class="sv-card">
+  <article
+    ref="el"
+    class="sv-card"
+    :class="{ 'sv-card--dragging': dragging }"
+    @click="openTask(task)"
+  >
     <header class="sv-card-head">
       <span class="sv-card-id mono">{{ task.frontmatter.id }}</span>
       <span v-if="showPriority" class="sv-badge" :data-prio="priority">
@@ -40,7 +66,20 @@ const showPriority = computed(() => priority.value != null && priority.value !==
   display: flex;
   flex-direction: column;
   gap: 9px;
+  cursor: grab;
   animation: sv-fade 0.28s ease both;
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+.sv-card:hover {
+  border-color: var(--sv-border-strong);
+}
+.sv-card:active {
+  cursor: grabbing;
+}
+.sv-card--dragging {
+  opacity: 0.4;
 }
 .sv-card-head {
   display: flex;

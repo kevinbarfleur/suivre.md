@@ -1,5 +1,13 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import DashboardShell from './dashboard/DashboardShell.vue'
+import { useBoard } from './modules/board/board.store'
+
+const { ensureLoaded, startLive } = useBoard()
+onMounted(() => {
+  void ensureLoaded()
+  startLive()
+})
 </script>
 
 <template>

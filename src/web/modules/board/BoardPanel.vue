@@ -1,10 +1,39 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
 import { useBoard } from './board.store'
 import Column from './Column.vue'
+import TaskDetailDialog from './TaskDetailDialog.vue'
 
-const { board, loading, error, load } = useBoard()
-onMounted(load)
+const { board, loading, error, ensureLoaded, move, selected } = useBoard()
+
+// Statut courant de chaque tâche → pour ignorer un drop dans la même colonne.
+const statusById = computed(() => {
+  const map = new Map<string, string>()
+  if (board.value) {
+    for (const c of board.value.columns) {
+      for (const t of c.tasks) map.set(t.frontmatter.id, c.column.id)
+    }
+  }
+  return map
+})
+
+let cleanup: (() => void) | undefined
+onMounted(() => {
+  void ensureLoaded()
+  cleanup = monitorForElements({
+    onDrop: ({ source, location }) => {
+      const target = location.current.dropTargets[0]
+      if (!target) return
+      const columnId = target.data.columnId as string | undefined
+      const taskId = source.data.taskId as string | undefined
+      if (!columnId || !taskId) return
+      if (statusById.value.get(taskId) === columnId) return
+      void move(taskId, { status: columnId })
+    },
+  })
+})
+onBeforeUnmount(() => cleanup?.())
 </script>
 
 <template>
@@ -15,6 +44,7 @@ onMounted(load)
       <Column v-for="col in board.columns" :key="col.column.id" :col="col" />
     </div>
     <div v-else class="sv-state">Backlog non initialisé.</div>
+    <TaskDetailDialog v-if="selected" :task="selected" />
   </section>
 </template>
 
