@@ -17,7 +17,7 @@ type TypeChoice = 'all' | ArchivedType
 type Period = 'all' | '30d' | 'year' | 'old'
 type SortKey = 'date' | 'title' | 'type'
 
-const TYPE_LABEL: Record<ArchivedType, string> = { task: 'tâche', decision: 'décision', doc: 'doc' }
+const TYPE_LABEL: Record<ArchivedType, string> = { task: 'task', decision: 'decision', doc: 'doc' }
 
 const search = ref('')
 const typeFilter = ref<TypeChoice>('all')
@@ -108,7 +108,7 @@ function setSort(key: SortKey): void {
           v-model="search"
           class="ar-search-in"
           type="text"
-          placeholder="rechercher un item archivé…"
+          placeholder="search archived items…"
           spellcheck="false"
         />
       </div>
@@ -122,7 +122,7 @@ function setSort(key: SortKey): void {
           type="button"
           @click="typeFilter = t"
         >
-          {{ t === 'all' ? 'tout' : TYPE_LABEL[t as ArchivedType] }}
+          {{ t === 'all' ? 'all' : TYPE_LABEL[t as ArchivedType] }}
           <span class="ar-opt-n">{{ typeCounts[t] }}</span>
         </button>
       </div>
@@ -130,10 +130,10 @@ function setSort(key: SortKey): void {
       <div class="ar-seg">
         <button
           v-for="p in [
-            ['all', 'toutes dates'],
-            ['30d', '30 j'],
-            ['year', 'cette année'],
-            ['old', 'plus ancien'],
+            ['all', 'all dates'],
+            ['30d', '30d'],
+            ['year', 'this year'],
+            ['old', 'older'],
           ] as [Period, string][]"
           :key="p[0]"
           class="ar-opt"
@@ -146,12 +146,12 @@ function setSort(key: SortKey): void {
       </div>
 
       <select v-if="labels.length" v-model="labelFilter" class="ar-select">
-        <option value="">tous labels</option>
+        <option value="">all labels</option>
         <option v-for="l in labels" :key="l" :value="l">#{{ l }}</option>
       </select>
 
       <div class="ar-sort">
-        <span class="ar-sort-l">tri</span>
+        <span class="ar-sort-l">sort</span>
         <button
           v-for="s in ['date', 'title', 'type'] as SortKey[]"
           :key="s"
@@ -160,22 +160,20 @@ function setSort(key: SortKey): void {
           type="button"
           @click="setSort(s)"
         >
-          {{ s === 'title' ? 'titre' : s
+          {{ s === 'title' ? 'title' : s
           }}<span v-if="sortKey === s" class="ar-arrow">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
         </button>
       </div>
     </div>
 
     <div v-if="entries.length === 0" class="ar-empty">
-      aucune archive — rien de statusé <code>archived</code> ni rangé dans un dossier
-      <code>archive/</code>
+      no archives — nothing statused <code>archived</code> or filed in an
+      <code>archive/</code> folder
     </div>
 
     <div v-else class="ar-grid">
       <div class="ar-list">
-        <div v-if="filtered.length === 0" class="ar-none">
-          0 résultat — aucun item ne correspond
-        </div>
+        <div v-if="filtered.length === 0" class="ar-none">0 results — no item matches</div>
         <button
           v-for="e in filtered"
           :key="e.id"
@@ -204,7 +202,7 @@ function setSort(key: SortKey): void {
         <div class="ar-detail-title">{{ selected.title }}</div>
         <div class="ar-detail-meta">
           <span class="ar-reason">{{
-            selected.reason === 'folder' ? 'rangé dans archive/' : 'archivé par statut'
+            selected.reason === 'folder' ? 'in archive/ folder' : 'archived by status'
           }}</span>
           <span v-for="l in selected.labels" :key="l" class="ar-tag">#{{ l }}</span>
           <button
@@ -213,18 +211,18 @@ function setSort(key: SortKey): void {
             type="button"
             @click="openInReader(selected)"
           >
-            ouvrir dans décisions →
+            open in decisions →
           </button>
         </div>
         <div v-if="selected.body.trim()" class="ar-body">
           <MarkdownBody :source="selected.body" />
         </div>
-        <div v-else class="ar-body ar-body--empty">— corps vide —</div>
+        <div v-else class="ar-body ar-body--empty">— empty body —</div>
       </div>
     </div>
 
     <div v-if="entries.length" class="ar-foot">
-      {{ filtered.length }} / {{ entries.length }} archivés · tri {{ sortKey }}
+      {{ filtered.length }} / {{ entries.length }} archived · sort {{ sortKey }}
       {{ sortDir === 'asc' ? '↑' : '↓' }}
     </div>
   </div>
@@ -233,8 +231,12 @@ function setSort(key: SortKey): void {
 <style scoped>
 .ar {
   min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 .ar-bar {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -354,17 +356,19 @@ function setSort(key: SortKey): void {
   color: var(--sv-fg-mid);
 }
 .ar-grid {
+  flex: 1;
+  min-height: 0;
   display: flex;
   gap: 16px;
-  align-items: flex-start;
-  flex-wrap: wrap;
+  align-items: stretch;
 }
 .ar-list {
   flex: 1.7;
   min-width: 360px;
+  min-height: 0;
+  overflow-y: auto;
   border: 1px solid var(--sv-line);
   border-radius: 10px;
-  overflow: hidden;
 }
 .ar-none {
   padding: 22px 15px;
@@ -455,6 +459,8 @@ function setSort(key: SortKey): void {
 .ar-detail {
   flex: 1;
   min-width: 320px;
+  min-height: 0;
+  overflow-y: auto;
   border: 1px solid var(--sv-line);
   border-radius: 10px;
   padding: 20px 22px;
@@ -525,10 +531,25 @@ function setSort(key: SortKey): void {
   font-size: 12px;
 }
 .ar-foot {
+  flex: 0 0 auto;
   margin-top: 14px;
   padding: 9px 2px;
   font-size: 11px;
   color: var(--sv-fg-dim);
   font-variant-numeric: tabular-nums;
+}
+@media (max-width: 860px) {
+  .ar {
+    height: auto;
+  }
+  .ar-grid {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .ar-list,
+  .ar-detail {
+    min-height: auto;
+    overflow-y: visible;
+  }
 }
 </style>

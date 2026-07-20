@@ -14,6 +14,13 @@ export interface ViewDef {
   component: Component
   /** Affiche le bandeau tâches (Bilan + toolbar filtres) au-dessus de la vue. */
   taskChrome?: boolean
+  /**
+   * Qui porte le scroll dans la zone bornée du MainPane.
+   * - `auto` (défaut) : le MainPane scrolle la vue entière (contenu simple).
+   * - `managed` : la vue remplit la zone et gère son propre scroll interne
+   *   (en-tête/pied fixes, panneaux master-détail indépendants, colonnes du board).
+   */
+  scroll?: 'auto' | 'managed'
   /** Commande affichée dans la ligne d'invite. */
   promptCmd: string
   /** Compteur affiché dans le rail de navigation. */

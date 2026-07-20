@@ -47,13 +47,11 @@ function select(id: string): void {
         type="button"
         @click="statusFilter = f"
       >
-        {{ f === 'all' ? 'tous' : f }}
+        {{ f === 'all' ? 'all' : f }}
       </button>
     </div>
 
-    <div v-if="decisions.length === 0" class="dc-empty">
-      aucune décision — le registre ADR est vide
-    </div>
+    <div v-if="decisions.length === 0" class="dc-empty">no decisions — the ADR log is empty</div>
 
     <div v-else class="dc-grid">
       <div class="dc-list">
@@ -84,13 +82,13 @@ function select(id: string): void {
         </div>
         <div class="dc-detail-title">{{ selected.frontmatter.title }}</div>
         <div v-if="selected.frontmatter.supersedes" class="dc-link dc-link--sup">
-          remplace
+          supersedes
           <button type="button" @click="select(selected.frontmatter.supersedes!)">
             {{ selected.frontmatter.supersedes }}
           </button>
         </div>
         <div v-if="selected.frontmatter.supersededBy" class="dc-link dc-link--by">
-          remplacée par
+          superseded by
           <button type="button" @click="select(selected.frontmatter.supersededBy!)">
             {{ selected.frontmatter.supersededBy }}
           </button>
@@ -104,8 +102,12 @@ function select(id: string): void {
 <style scoped>
 .dc {
   min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 .dc-filters {
+  flex: 0 0 auto;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -140,17 +142,19 @@ function select(id: string): void {
   font-size: 12px;
 }
 .dc-grid {
+  flex: 1;
+  min-height: 0;
   display: flex;
   gap: 16px;
-  align-items: flex-start;
-  flex-wrap: wrap;
+  align-items: stretch;
 }
 .dc-list {
   flex: 1;
   min-width: 340px;
+  min-height: 0;
+  overflow-y: auto;
   border: 1px solid var(--sv-line);
   border-radius: 10px;
-  overflow: hidden;
 }
 .dc-row {
   display: flex;
@@ -218,10 +222,26 @@ function select(id: string): void {
 .dc-detail {
   flex: 1;
   min-width: 340px;
+  min-height: 0;
+  overflow-y: auto;
   border: 1px solid var(--sv-line);
   border-radius: 10px;
   padding: 20px 22px;
   background: var(--sv-raised);
+}
+@media (max-width: 860px) {
+  .dc {
+    height: auto;
+  }
+  .dc-grid {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .dc-list,
+  .dc-detail {
+    min-height: auto;
+    overflow-y: visible;
+  }
 }
 .dc-detail-head {
   display: flex;

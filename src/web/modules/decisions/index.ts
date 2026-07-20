@@ -5,10 +5,11 @@ import DecisionsView from './DecisionsView.vue'
 export default function registerDecisionsModule(): void {
   registerView({
     id: 'decisions',
-    label: 'décisions',
+    label: 'decisions',
     group: 'resources',
     order: 40,
     component: DecisionsView,
+    scroll: 'managed',
     promptCmd: 'suivre decision list',
   })
 }

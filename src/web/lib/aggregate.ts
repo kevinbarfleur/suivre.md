@@ -36,7 +36,8 @@ export function byPriority(tasks: readonly Task[]): Dist[] {
 
 export function byLabel(tasks: readonly Task[], limit = 8): Dist[] {
   const counts = new Map<string, number>()
-  for (const t of tasks) for (const l of t.frontmatter.labels) counts.set(l, (counts.get(l) ?? 0) + 1)
+  for (const t of tasks)
+    for (const l of t.frontmatter.labels) counts.set(l, (counts.get(l) ?? 0) + 1)
   return [...counts.entries()]
     .map(([label, count]) => ({ key: label, label, count }))
     .sort((a, b) => b.count - a.count)
@@ -137,7 +138,8 @@ export interface Impact {
 export function highImpact(tasks: readonly Task[], limit = 6): Impact[] {
   const dependents = new Map<string, number>()
   const open = tasks.filter((t) => t.frontmatter.status !== 'done')
-  for (const t of open) for (const d of t.frontmatter.depends) dependents.set(d, (dependents.get(d) ?? 0) + 1)
+  for (const t of open)
+    for (const d of t.frontmatter.depends) dependents.set(d, (dependents.get(d) ?? 0) + 1)
   return open
     .filter((t) => (dependents.get(t.frontmatter.id) ?? 0) > 0)
     .map((t) => ({

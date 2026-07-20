@@ -5,7 +5,10 @@ import DepsView from './DepsView.vue'
 
 function blockedCount(board: Board): number {
   const tasks = board.columns.flatMap((c) => c.tasks).concat(board.orphans)
-  return blockedTasks(tasks, board.columns.map((c) => c.column)).length
+  return blockedTasks(
+    tasks,
+    board.columns.map((c) => c.column),
+  ).length
 }
 
 /** Enregistre la vue dépendances (ordre d'exécution). */

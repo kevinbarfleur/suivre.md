@@ -9,6 +9,7 @@ export default function registerDocsModule(): void {
     group: 'resources',
     order: 20,
     component: DocsView,
+    scroll: 'managed',
     promptCmd: 'suivre doc list',
   })
 }

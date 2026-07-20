@@ -18,7 +18,9 @@ const PRIORITIES: FilterOption[] = [
 const statusOptions = computed<FilterOption[]>(
   () => board.value?.columns.map((c) => ({ value: c.column.id, label: c.column.label })) ?? [],
 )
-const labelOptions = computed<FilterOption[]>(() => labels.value.map((l) => ({ value: l, label: l })))
+const labelOptions = computed<FilterOption[]>(() =>
+  labels.value.map((l) => ({ value: l, label: l })),
+)
 const assigneeOptions = computed<FilterOption[]>(() =>
   assignees.value.map((a) => ({ value: a, label: a })),
 )
@@ -33,16 +35,26 @@ function setPriority(value: string | null): void {
   <div class="tb">
     <div class="tb-search">
       <span class="tb-slash">/</span>
-      <input v-model="text" class="tb-input" type="text" placeholder="grep tâches…" />
+      <input v-model="text" class="tb-input" type="text" placeholder="grep tasks…" />
     </div>
-    <FilterMenu label="--status" :model-value="status" :options="statusOptions" @update:model-value="status = $event" />
+    <FilterMenu
+      label="--status"
+      :model-value="status"
+      :options="statusOptions"
+      @update:model-value="status = $event"
+    />
     <FilterMenu
       label="--priority"
       :model-value="priority"
       :options="PRIORITIES"
       @update:model-value="setPriority"
     />
-    <FilterMenu label="--label" :model-value="label" :options="labelOptions" @update:model-value="label = $event" />
+    <FilterMenu
+      label="--label"
+      :model-value="label"
+      :options="labelOptions"
+      @update:model-value="label = $event"
+    />
     <FilterMenu
       label="--assignee"
       :model-value="assignee"
@@ -50,7 +62,9 @@ function setPriority(value: string | null): void {
       @update:model-value="assignee = $event"
     />
     <span class="tb-count">
-      {{ resultCount }} results<template v-if="activeCount"> · {{ activeCount }} filter{{ activeCount > 1 ? 's' : '' }}</template>
+      {{ resultCount }} results<template v-if="activeCount">
+        · {{ activeCount }} filter{{ activeCount > 1 ? 's' : '' }}</template
+      >
     </span>
   </div>
 </template>

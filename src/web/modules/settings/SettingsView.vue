@@ -10,7 +10,7 @@ const { global, project, setTheme, setGlobalDefaultView, setProjectDefaultView }
 
 const THEMES: { value: Theme; label: string }[] = [
   { value: 'terminal', label: 'terminal' },
-  { value: 'dark', label: 'dark · neutre' },
+  { value: 'dark', label: 'dark · neutral' },
   { value: 'light', label: 'light' },
 ]
 
@@ -24,14 +24,14 @@ const viewOptions = computed(() =>
 
 <template>
   <div class="st">
-    <div class="st-lead">Préférences — réglages machine (tous projets) et propres à ce projet.</div>
+    <div class="st-lead">Preferences — machine settings (all projects) and project-specific.</div>
 
     <section class="st-section">
       <div class="st-scope st-scope--machine">machine</div>
       <div class="st-row">
         <div class="st-row-head">
-          <div class="st-row-l">Thème</div>
-          <div class="st-row-hint">appliqué partout, ne change pas d'un projet à l'autre</div>
+          <div class="st-row-l">Theme</div>
+          <div class="st-row-hint">applied everywhere, unchanged across projects</div>
         </div>
         <div class="st-seg">
           <button
@@ -49,8 +49,8 @@ const viewOptions = computed(() =>
 
       <div class="st-row">
         <div class="st-row-head">
-          <div class="st-row-l">Vue par défaut</div>
-          <div class="st-row-hint">vue ouverte à l'arrivée dans l'app</div>
+          <div class="st-row-l">Default view</div>
+          <div class="st-row-hint">view opened on app launch</div>
         </div>
         <div class="st-seg st-seg--wrap">
           <button
@@ -68,11 +68,13 @@ const viewOptions = computed(() =>
     </section>
 
     <section class="st-section">
-      <div class="st-scope st-scope--project">projet</div>
+      <div class="st-scope st-scope--project">project</div>
       <div class="st-row">
         <div class="st-row-head">
-          <div class="st-row-l">Vue par défaut — surcharge</div>
-          <div class="st-row-hint">pour CE projet uniquement ; sinon la préférence machine s'applique</div>
+          <div class="st-row-l">Default view — override</div>
+          <div class="st-row-hint">
+            for THIS project only; otherwise the machine preference applies
+          </div>
         </div>
         <div class="st-seg st-seg--wrap">
           <button
@@ -81,7 +83,7 @@ const viewOptions = computed(() =>
             type="button"
             @click="setProjectDefaultView(null)"
           >
-            (globale)
+            (global)
           </button>
           <button
             v-for="v in viewOptions"
@@ -98,9 +100,15 @@ const viewOptions = computed(() =>
     </section>
 
     <div class="st-store">
-      <div class="st-store-l">stockage</div>
-      <div class="st-store-row"><span class="st-store-tag">machine</span> <span class="st-store-path">~/.config/suivre/config.json</span></div>
-      <div class="st-store-row"><span class="st-store-tag">projet</span> <span class="st-store-path">.suivre/preferences.json</span></div>
+      <div class="st-store-l">storage</div>
+      <div class="st-store-row">
+        <span class="st-store-tag">machine</span>
+        <span class="st-store-path">~/.config/suivre/config.json</span>
+      </div>
+      <div class="st-store-row">
+        <span class="st-store-tag">project</span>
+        <span class="st-store-path">.suivre/preferences.json</span>
+      </div>
     </div>
   </div>
 </template>

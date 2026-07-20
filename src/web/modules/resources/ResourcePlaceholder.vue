@@ -9,11 +9,11 @@ const { view } = useView()
 const INFO: Record<string, { title: string; blurb: string }> = {
   milestones: {
     title: 'Milestones',
-    blurb: 'Regrouper les efforts en jalons et suivre leur avancement.',
+    blurb: 'Group work into milestones and track their progress.',
   },
-  docs: { title: 'Docs', blurb: 'Documentation markdown du projet, rendue en lecture.' },
-  drafts: { title: 'Drafts', blurb: 'Idées non promues — hors du board tant qu’elles ne sont pas promues.' },
-  decisions: { title: 'Décisions', blurb: 'Registre ADR : contexte, décision, conséquences, statut.' },
+  docs: { title: 'Docs', blurb: 'Project markdown documentation, rendered for reading.' },
+  drafts: { title: 'Drafts', blurb: 'Unpromoted ideas — off the board until promoted.' },
+  decisions: { title: 'Decisions', blurb: 'ADR log: context, decision, consequences, status.' },
 }
 const info = computed(() => INFO[view.value] ?? { title: view.value, blurb: '' })
 </script>
@@ -23,8 +23,8 @@ const info = computed(() => INFO[view.value] ?? { title: view.value, blurb: '' }
     <div class="rp-title"><span class="rp-hash">#</span> {{ info.title }}</div>
     <div class="rp-blurb">{{ info.blurb }}</div>
     <div class="rp-note">
-      <span class="rp-mark">$</span> backend à venir — domaine <span class="rp-code">{{ view }}</span>
-      (store <span class="rp-code">.md</span> + endpoints + MCP). Prochain chantier.
+      <span class="rp-mark">$</span> backend coming — <span class="rp-code">{{ view }}</span> domain
+      (<span class="rp-code">.md</span> store + endpoints + MCP). Next up.
     </div>
   </div>
 </template>

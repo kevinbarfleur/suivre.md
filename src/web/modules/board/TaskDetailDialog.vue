@@ -71,7 +71,7 @@ async function destroy(): Promise<void> {
           <button class="sheet-esc" type="button" @click="closeTask">[esc]</button>
         </header>
 
-        <input v-model="title" class="sheet-title" type="text" placeholder="Titre de la tâche…" />
+        <input v-model="title" class="sheet-title" type="text" placeholder="Task title…" />
 
         <div class="sheet-row">
           <label class="field">
@@ -103,7 +103,7 @@ async function destroy(): Promise<void> {
         </div>
 
         <label class="field">
-          <span class="field-l">labels <span class="field-hint">— séparés par des virgules</span></span>
+          <span class="field-l">labels <span class="field-hint">— comma-separated</span></span>
           <input v-model="labels" class="input" type="text" placeholder="bug, auth…" />
         </label>
 
@@ -118,16 +118,22 @@ async function destroy(): Promise<void> {
         </div>
 
         <label class="field">
-          <span class="field-l">## corps <span class="field-hint">— description, critères, notes</span></span>
+          <span class="field-l"
+            >## body <span class="field-hint">— description, criteria, notes</span></span
+          >
           <textarea v-model="body" class="input textarea" rows="7" spellcheck="false"></textarea>
         </label>
 
         <footer class="sheet-foot">
           <span class="sheet-meta">created {{ created }} · updated {{ updated }}</span>
           <div class="sheet-actions">
-            <button class="btn btn--danger" type="button" :disabled="saving" @click="destroy">rm</button>
+            <button class="btn btn--danger" type="button" :disabled="saving" @click="destroy">
+              rm
+            </button>
             <button class="btn" type="button" :disabled="saving" @click="closeTask">esc</button>
-            <button class="btn btn--primary" type="button" :disabled="saving" @click="save">save</button>
+            <button class="btn btn--primary" type="button" :disabled="saving" @click="save">
+              save
+            </button>
           </div>
         </footer>
       </div>

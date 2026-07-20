@@ -24,14 +24,14 @@ function sortBy(key: string): void {
 
 const HEADERS: { key: string; label: string; cls: string }[] = [
   { key: 'id', label: 'id', cls: 'c-id' },
-  { key: 'status', label: 'statut', cls: 'c-status' },
+  { key: 'status', label: 'status', cls: 'c-status' },
   { key: 'priority', label: 'prio', cls: 'c-prio' },
-  { key: 'title', label: 'titre', cls: 'c-title' },
+  { key: 'title', label: 'title', cls: 'c-title' },
   { key: 'labels', label: 'labels', cls: 'c-labels' },
-  { key: 'assignee', label: 'resp.', cls: 'c-assignee' },
-  { key: 'ac', label: 'critères', cls: 'c-ac' },
+  { key: 'assignee', label: 'owner', cls: 'c-assignee' },
+  { key: 'ac', label: 'criteria', cls: 'c-ac' },
   { key: 'blocked', label: '⤳', cls: 'c-blocked' },
-  { key: 'updated', label: 'maj', cls: 'c-updated' },
+  { key: 'updated', label: 'upd', cls: 'c-updated' },
 ]
 
 interface Row {
@@ -59,7 +59,9 @@ interface Row {
 const rows = computed<Row[]>(() => {
   if (!board.value) return []
   const columns = board.value.columns.map((c) => c.column)
-  const doneById = new Map(allTasks.value.map((t) => [t.frontmatter.id, t.frontmatter.status === 'done']))
+  const doneById = new Map(
+    allTasks.value.map((t) => [t.frontmatter.id, t.frontmatter.status === 'done']),
+  )
   const statusIndex = new Map(columns.map((c, i) => [c.id, i]))
   const statusLabel = new Map(columns.map((c) => [c.id, c.label]))
 
@@ -80,8 +82,8 @@ const rows = computed<Row[]>(() => {
       priority: fm.priority,
       prioRank: PRIO_RANK[fm.priority ?? 'none'] ?? 4,
       title: fm.title,
-      labels: fm.labels.filter((l) => l !== 'dette'),
-      hasDebt: fm.labels.includes('dette'),
+      labels: fm.labels.filter((l) => l !== 'debt'),
+      hasDebt: fm.labels.includes('debt'),
       assignee: fm.assignee,
       acDone: ac.done,
       acTotal: ac.total,
@@ -136,38 +138,46 @@ const sortLabel = computed(() => `${sortKey.value} ${sortDir.value === 'asc' ? '
         type="button"
         @click="sortBy(h.key)"
       >
-        {{ h.label }}<span v-if="sortKey === h.key" class="lv-arrow">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+        {{ h.label
+        }}<span v-if="sortKey === h.key" class="lv-arrow">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
       </button>
     </div>
 
-    <div v-if="rows.length === 0" class="lv-empty">0 results — aucune tâche ne correspond</div>
+    <div class="lv-body">
+      <div v-if="rows.length === 0" class="lv-empty">0 results — no task matches</div>
 
-    <button v-for="r in rows" :key="r.id" class="lv-row" type="button" @click="openTask(r.task)">
-      <span class="c-id" :class="{ 'c-id--orphan': r.isOrphan }">{{ r.id }}</span>
-      <span class="c-status"><span class="lv-pill">{{ r.statusLabel }}</span></span>
-      <span class="c-prio">
-        <span v-if="r.priority === 'urgent'" class="lv-prio lv-prio--urgent">URGENT</span>
-        <span v-else-if="r.priority === 'high'" class="lv-prio lv-prio--high">HIGH</span>
-        <span v-else-if="r.priority === 'medium'" class="lv-prio lv-prio--med">med</span>
-        <span v-else-if="r.priority === 'low'" class="lv-prio lv-prio--low">low</span>
-      </span>
-      <span class="c-title">{{ r.title }}</span>
-      <span class="c-labels">
-        <span v-for="l in r.labels" :key="l" class="lv-label">#{{ l }}</span>
-        <span v-if="r.hasDebt" class="lv-debt">#dette</span>
-      </span>
-      <span class="c-assignee">{{ r.assignee ? '@' + r.assignee : '' }}</span>
-      <span class="c-ac">
-        <template v-if="r.acTotal > 0"
-          ><span class="lv-meter"><span class="lv-meter-on">{{ r.acFilled }}</span>{{ r.acEmpty }}</span>
-          {{ r.acDone }}/{{ r.acTotal }}</template
+      <button v-for="r in rows" :key="r.id" class="lv-row" type="button" @click="openTask(r.task)">
+        <span class="c-id" :class="{ 'c-id--orphan': r.isOrphan }">{{ r.id }}</span>
+        <span class="c-status"
+          ><span class="lv-pill">{{ r.statusLabel }}</span></span
         >
-      </span>
-      <span class="c-blocked"><span v-if="r.blocked" class="lv-blocked">⤳</span></span>
-      <span class="c-updated">{{ r.updatedShort }}</span>
-    </button>
+        <span class="c-prio">
+          <span v-if="r.priority === 'urgent'" class="lv-prio lv-prio--urgent">URGENT</span>
+          <span v-else-if="r.priority === 'high'" class="lv-prio lv-prio--high">HIGH</span>
+          <span v-else-if="r.priority === 'medium'" class="lv-prio lv-prio--med">med</span>
+          <span v-else-if="r.priority === 'low'" class="lv-prio lv-prio--low">low</span>
+        </span>
+        <span class="c-title">{{ r.title }}</span>
+        <span class="c-labels">
+          <span v-for="l in r.labels" :key="l" class="lv-label">#{{ l }}</span>
+          <span v-if="r.hasDebt" class="lv-debt">#debt</span>
+        </span>
+        <span class="c-assignee">{{ r.assignee ? '@' + r.assignee : '' }}</span>
+        <span class="c-ac">
+          <template v-if="r.acTotal > 0"
+            ><span class="lv-meter"
+              ><span class="lv-meter-on">{{ r.acFilled }}</span
+              >{{ r.acEmpty }}</span
+            >
+            {{ r.acDone }}/{{ r.acTotal }}</template
+          >
+        </span>
+        <span class="c-blocked"><span v-if="r.blocked" class="lv-blocked">⤳</span></span>
+        <span class="c-updated">{{ r.updatedShort }}</span>
+      </button>
+    </div>
 
-    <div class="lv-foot">{{ rows.length }} tâches · tri {{ sortLabel }}</div>
+    <div class="lv-foot">{{ rows.length }} tasks · sort {{ sortLabel }}</div>
   </div>
 </template>
 
@@ -176,8 +186,17 @@ const sortLabel = computed(() => `${sortKey.value} ${sortDir.value === 'asc' ? '
   border: 1px solid var(--sv-line);
   border-radius: 10px;
   overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.lv-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 .lv-head {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -342,9 +361,18 @@ const sortLabel = computed(() => `${sortKey.value} ${sortDir.value === 'asc' ? '
   text-align: center;
 }
 .lv-foot {
+  flex: 0 0 auto;
   padding: 9px 14px;
   font-size: 11px;
   color: var(--sv-fg-dim);
   background: var(--sv-rail-bg);
+}
+@media (max-width: 860px) {
+  .lv {
+    height: auto;
+  }
+  .lv-body {
+    overflow: visible;
+  }
 }
 </style>

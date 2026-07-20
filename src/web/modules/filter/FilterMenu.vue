@@ -51,7 +51,9 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDoc))
       type="button"
       @click="toggle"
     >
-      <span class="fm-pill-text">{{ label }}<template v-if="modelValue"> {{ activeLabel }}</template></span>
+      <span class="fm-pill-text"
+        >{{ label }}<template v-if="modelValue"> {{ activeLabel }}</template></span
+      >
       <span class="fm-caret">{{ modelValue ? '×' : '▾' }}</span>
     </button>
     <div v-if="open" class="fm-menu">
@@ -64,7 +66,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDoc))
       >
         {{ option.label }}
       </button>
-      <div v-if="options.length === 0" class="fm-empty">aucune valeur</div>
+      <div v-if="options.length === 0" class="fm-empty">no values</div>
     </div>
   </div>
 </template>

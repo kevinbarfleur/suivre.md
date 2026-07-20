@@ -7,10 +7,11 @@ import ArchivedView from './ArchivedView.vue'
 export default function registerArchiveModule(): void {
   registerView({
     id: 'archive',
-    label: 'archives',
+    label: 'archive',
     group: 'resources',
     order: 50,
     component: ArchivedView,
+    scroll: 'managed',
     promptCmd: 'suivre archive list',
   })
 }

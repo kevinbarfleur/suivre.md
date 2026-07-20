@@ -15,14 +15,21 @@ const blocks = computed(() => toBlocks(props.source))
   <div class="mkd">
     <template v-for="(b, i) in blocks" :key="i">
       <div v-if="b.type === 'h1'" class="mkd-h1">{{ b.text }}</div>
-      <div v-else-if="b.type === 'h2'" class="mkd-h2"><span class="mkd-hash">##</span> {{ b.text }}</div>
-      <div v-else-if="b.type === 'h3'" class="mkd-h3"><span class="mkd-hash">###</span> {{ b.text }}</div>
+      <div v-else-if="b.type === 'h2'" class="mkd-h2">
+        <span class="mkd-hash">##</span> {{ b.text }}
+      </div>
+      <div v-else-if="b.type === 'h3'" class="mkd-h3">
+        <span class="mkd-hash">###</span> {{ b.text }}
+      </div>
       <pre v-else-if="b.type === 'code'" class="mkd-code">{{ b.text }}</pre>
       <div v-else-if="b.type === 'check'" class="mkd-check">
-        <span v-if="b.done" class="mkd-check-on">[x]</span><span v-else class="mkd-check-off">[ ]</span>
+        <span v-if="b.done" class="mkd-check-on">[x]</span
+        ><span v-else class="mkd-check-off">[ ]</span>
         <span :class="{ 'mkd-check-done': b.done }">{{ b.text }}</span>
       </div>
-      <div v-else-if="b.type === 'li'" class="mkd-li"><span class="mkd-bullet">–</span><span>{{ b.text }}</span></div>
+      <div v-else-if="b.type === 'li'" class="mkd-li">
+        <span class="mkd-bullet">–</span><span>{{ b.text }}</span>
+      </div>
       <div v-else-if="b.type === 'hr'" class="mkd-hr"></div>
       <p v-else class="mkd-p">{{ b.text }}</p>
     </template>

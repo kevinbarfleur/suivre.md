@@ -14,7 +14,8 @@ const { matches } = useFilter()
 const statusById = computed(() => {
   const map = new Map<string, string>()
   if (board.value) {
-    for (const c of board.value.columns) for (const t of c.tasks) map.set(t.frontmatter.id, c.column.id)
+    for (const c of board.value.columns)
+      for (const t of c.tasks) map.set(t.frontmatter.id, c.column.id)
   }
   return map
 })
@@ -50,8 +51,8 @@ onBeforeUnmount(() => cleanup?.())
     </div>
     <div v-if="orphans.length" class="bd-orphans">
       <div class="bd-orphans-head">
-        <span class="bd-orphans-hash">#</span> orphelins
-        <span class="bd-orphans-hint">— statut inconnu → re-tri</span>
+        <span class="bd-orphans-hash">#</span> orphans
+        <span class="bd-orphans-hint">— unknown status → re-sort</span>
         <span class="bd-orphans-n">[{{ orphans.length }}]</span>
       </div>
       <div class="bd-orphans-list">
@@ -64,20 +65,41 @@ onBeforeUnmount(() => cleanup?.())
 <style scoped>
 .bd {
   min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 .bd-cols {
+  flex: 1;
+  min-height: 0;
   display: flex;
   gap: 12px;
-  align-items: flex-start;
+  align-items: stretch;
   overflow-x: auto;
+  overflow-y: hidden;
   padding-bottom: 6px;
 }
 .bd-orphans {
+  flex: 0 1 auto;
+  max-height: 45%;
+  overflow-y: auto;
   margin-top: 22px;
   padding: 16px;
   border: 1px solid var(--sv-warn-line);
   border-radius: 10px;
   background: var(--sv-warn-bg);
+}
+@media (max-width: 860px) {
+  .bd {
+    height: auto;
+  }
+  .bd-cols {
+    overflow-y: visible;
+  }
+  .bd-orphans {
+    max-height: none;
+    overflow-y: visible;
+  }
 }
 .bd-orphans-head {
   font-size: 12px;

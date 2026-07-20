@@ -14,18 +14,20 @@ onMounted(ensureLoaded)
 const search = ref('')
 const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
-  const list = [...docs.value].sort((a, b) => a.frontmatter.title.localeCompare(b.frontmatter.title))
-  if (!q) return list
-  return list.filter(
-    (d) => `${d.frontmatter.title} ${d.body}`.toLowerCase().includes(q),
+  const list = [...docs.value].sort((a, b) =>
+    a.frontmatter.title.localeCompare(b.frontmatter.title),
   )
+  if (!q) return list
+  return list.filter((d) => `${d.frontmatter.title} ${d.body}`.toLowerCase().includes(q))
 })
 
 const selectedId = computed(() => {
   if (item.value && docs.value.some((d) => d.frontmatter.id === item.value)) return item.value
   return filtered.value[0]?.frontmatter.id ?? null
 })
-const selected = computed(() => docs.value.find((d) => d.frontmatter.id === selectedId.value) ?? null)
+const selected = computed(
+  () => docs.value.find((d) => d.frontmatter.id === selectedId.value) ?? null,
+)
 
 function select(id: string): void {
   setView('docs', id)
@@ -36,10 +38,10 @@ function select(id: string): void {
   <div class="dv">
     <div class="dv-search">
       <span class="dv-slash">/</span>
-      <input v-model="search" class="dv-input" type="text" placeholder="rechercher dans les docs…" />
+      <input v-model="search" class="dv-input" type="text" placeholder="search docs…" />
     </div>
 
-    <div v-if="docs.length === 0" class="dv-empty">aucun doc — la documentation est vide</div>
+    <div v-if="docs.length === 0" class="dv-empty">no docs — documentation is empty</div>
 
     <div v-else class="dv-grid">
       <div class="dv-list">
@@ -52,16 +54,17 @@ function select(id: string): void {
           @click="select(d.frontmatter.id)"
         >
           <span class="dv-item-t"
-            ><span v-if="d.frontmatter.id === selectedId" class="dv-caret">›</span>{{ d.frontmatter.title }}</span
+            ><span v-if="d.frontmatter.id === selectedId" class="dv-caret">›</span
+            >{{ d.frontmatter.title }}</span
           >
-          <span class="dv-item-d">maj {{ shortDate(d.frontmatter.updated) }}</span>
+          <span class="dv-item-d">upd {{ shortDate(d.frontmatter.updated) }}</span>
         </button>
       </div>
 
       <div v-if="selected" class="dv-reader">
         <div class="dv-reader-meta">
           <span v-for="t in selected.frontmatter.tags" :key="t" class="dv-tag">#{{ t }}</span>
-          <span class="dv-reader-date">maj {{ shortDate(selected.frontmatter.updated) }}</span>
+          <span class="dv-reader-date">upd {{ shortDate(selected.frontmatter.updated) }}</span>
         </div>
         <MarkdownBody :source="selected.body" />
       </div>
@@ -72,8 +75,12 @@ function select(id: string): void {
 <style scoped>
 .dv {
   min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 .dv-search {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -105,13 +112,16 @@ function select(id: string): void {
   font-size: 12px;
 }
 .dv-grid {
+  flex: 1;
+  min-height: 0;
   display: flex;
   gap: 18px;
-  align-items: flex-start;
-  flex-wrap: wrap;
+  align-items: stretch;
 }
 .dv-list {
   flex: 0 0 260px;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -155,10 +165,26 @@ function select(id: string): void {
   flex: 1;
   min-width: 340px;
   max-width: 680px;
+  min-height: 0;
+  overflow-y: auto;
   border: 1px solid var(--sv-line);
   border-radius: 10px;
   padding: 24px 28px;
   background: var(--sv-raised);
+}
+@media (max-width: 860px) {
+  .dv {
+    height: auto;
+  }
+  .dv-grid {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .dv-list,
+  .dv-reader {
+    min-height: auto;
+    overflow-y: visible;
+  }
 }
 .dv-reader-meta {
   display: flex;

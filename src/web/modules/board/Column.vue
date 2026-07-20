@@ -63,7 +63,8 @@ async function submit(): Promise<void> {
     <header class="col-head">
       <span class="col-label"><span class="col-hash">#</span> {{ col.column.label }}</span>
       <span class="col-count" :class="{ 'col-count--over': overWip }"
-        >[{{ col.tasks.length }}<template v-if="wip != null">/{{ wip }}</template>]</span
+        >[{{ col.tasks.length }}<template v-if="wip != null">/{{ wip }}</template
+        >]</span
       >
     </header>
 
@@ -80,7 +81,7 @@ async function submit(): Promise<void> {
         v-model="draft"
         class="col-add-input"
         type="text"
-        placeholder="titre de la tâche…"
+        placeholder="task title…"
         @keydown.enter="submit"
         @keydown.esc="cancelAdd"
         @blur="onBlur"
@@ -93,6 +94,7 @@ async function submit(): Promise<void> {
 <style scoped>
 .col {
   flex: 0 0 262px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -104,6 +106,7 @@ async function submit(): Promise<void> {
   background: rgba(126, 160, 143, 0.06);
 }
 .col-head {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -125,9 +128,13 @@ async function submit(): Promise<void> {
   color: var(--sv-warn);
 }
 .col-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding-right: 2px;
 }
 .col-empty {
   border: 1px dashed var(--sv-line);
@@ -142,6 +149,7 @@ async function submit(): Promise<void> {
   font-size: 10px;
 }
 .col-add-btn {
+  flex: 0 0 auto;
   text-align: left;
   background: transparent;
   border: 1px dashed var(--sv-line);
@@ -160,6 +168,7 @@ async function submit(): Promise<void> {
   color: var(--sv-fg-mid);
 }
 .col-add {
+  flex: 0 0 auto;
   border: 1px dashed var(--sv-line-strong);
   border-radius: 6px;
   padding: 9px 11px;
@@ -171,5 +180,13 @@ async function submit(): Promise<void> {
   width: 100%;
   font-size: 12px;
   color: var(--sv-fg);
+}
+@media (max-width: 860px) {
+  .col {
+    min-height: auto;
+  }
+  .col-list {
+    overflow: visible;
+  }
 }
 </style>

@@ -28,7 +28,7 @@ function badge(def: ViewDef): string | number {
     </div>
 
     <div class="rail-group">
-      <div class="rail-group-l">tâches</div>
+      <div class="rail-group-l">tasks</div>
       <button
         v-for="def in taskViews"
         :key="def.id"
@@ -45,7 +45,7 @@ function badge(def: ViewDef): string | number {
     </div>
 
     <div class="rail-group">
-      <div class="rail-group-l">ressources</div>
+      <div class="rail-group-l">resources</div>
       <button
         v-for="def in resourceViews"
         :key="def.id"
@@ -69,7 +69,7 @@ function badge(def: ViewDef): string | number {
         @click="setView('settings')"
       >
         <span class="rail-item-label"
-          ><span v-if="view === 'settings'" class="rail-caret">›</span>préférences</span
+          ><span v-if="view === 'settings'" class="rail-caret">›</span>settings</span
         >
       </button>
       <div class="rail-foot">

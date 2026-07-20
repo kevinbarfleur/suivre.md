@@ -76,5 +76,5 @@ export function slug(name: string): string {
 export function shortDate(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return iso
-  return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
+  return date.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
 }

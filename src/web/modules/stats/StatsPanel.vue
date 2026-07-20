@@ -21,24 +21,35 @@ const prio = computed(
       (t) => t.frontmatter.priority === 'urgent' || t.frontmatter.priority === 'high',
     ).length,
 )
-const debt = computed(() => allTasks.value.filter((t) => t.frontmatter.labels.includes('dette')).length)
+const debt = computed(
+  () => allTasks.value.filter((t) => t.frontmatter.labels.includes('debt')).length,
+)
 </script>
 
 <template>
   <section v-if="board" class="bl">
     <div class="bl-head">
-      <span class="bl-name">Bilan</span>
+      <span class="bl-name">Summary</span>
       <span class="bl-sub">{{ done }}/{{ total }} · {{ pct }}%</span>
     </div>
-    <div class="bl-bar">[<span class="bl-bar-on">{{ bar.filled }}</span>{{ bar.empty }}] {{ pct }}%</div>
+    <div class="bl-bar">
+      [<span class="bl-bar-on">{{ bar.filled }}</span
+      >{{ bar.empty }}] {{ pct }}%
+    </div>
     <div class="bl-foot">
       <span v-for="c in cols" :key="c.column.id" class="bl-col"
         >{{ c.column.label }}<span class="bl-col-n"> {{ c.tasks.length }}</span></span
       >
       <span class="bl-chips">
-        <span class="bl-chip">à_tester=<span class="bl-chip-n">{{ toTest }}</span></span>
-        <span class="bl-chip bl-chip--prio">prio=<span class="bl-chip-n">{{ prio }}</span></span>
-        <span class="bl-chip bl-chip--debt">dette=<span class="bl-chip-n">{{ debt }}</span></span>
+        <span class="bl-chip"
+          >to_test=<span class="bl-chip-n">{{ toTest }}</span></span
+        >
+        <span class="bl-chip bl-chip--prio"
+          >prio=<span class="bl-chip-n">{{ prio }}</span></span
+        >
+        <span class="bl-chip bl-chip--debt"
+          >debt=<span class="bl-chip-n">{{ debt }}</span></span
+        >
       </span>
     </div>
   </section>

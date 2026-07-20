@@ -6,7 +6,7 @@ import SettingsView from './SettingsView.vue'
 export default function registerSettingsModule(): void {
   registerView({
     id: 'settings',
-    label: 'préférences',
+    label: 'settings',
     group: 'system',
     order: 10,
     component: SettingsView,

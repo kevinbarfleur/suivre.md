@@ -12,7 +12,10 @@ const columns = computed(() => board.value?.columns.map((c) => c.column) ?? [])
 const blocked = computed(() => blockedTasks(allTasks.value, columns.value))
 const impact = computed(() => highImpact(allTasks.value))
 const parents = computed(() =>
-  parentGroups(allTasks.value, columns.value).map((p) => ({ ...p, meter: meter(p.done, p.total, 5) })),
+  parentGroups(allTasks.value, columns.value).map((p) => ({
+    ...p,
+    meter: meter(p.done, p.total, 5),
+  })),
 )
 const cycles = computed(() => directCycles(allTasks.value))
 const empty = computed(
@@ -25,20 +28,20 @@ const empty = computed(
     <div v-if="cycles.length" class="dp-cycle">
       <span class="dp-cycle-mark">!</span>
       <span>
-        Cycle détecté :
+        Cycle detected:
         <span v-for="(c, i) in cycles" :key="c.a + c.b" class="dp-cycle-pair"
           >{{ c.a }} ⇄ {{ c.b }}<span v-if="i < cycles.length - 1">, </span></span
         >
-        — impossible à ordonner tel quel.
+        — cannot be ordered as-is.
       </span>
     </div>
 
-    <div v-if="empty" class="dp-empty">aucune dépendance — rien à ordonner</div>
+    <div v-if="empty" class="dp-empty">no dependencies — nothing to order</div>
 
     <div v-else class="dp-grid">
       <div class="dp-col">
-        <div class="dp-label">tâches bloquées</div>
-        <div v-if="blocked.length === 0" class="dp-none">aucune tâche bloquée</div>
+        <div class="dp-label">blocked tasks</div>
+        <div v-if="blocked.length === 0" class="dp-none">no blocked task</div>
         <div v-for="b in blocked" :key="b.id" class="dp-blocked">
           <div class="dp-blocked-head">
             <span class="dp-blocked-title">{{ b.title }}</span>
@@ -59,23 +62,26 @@ const empty = computed(
       </div>
 
       <div class="dp-col">
-        <div class="dp-label">bloqueurs à fort impact</div>
-        <div v-if="impact.length === 0" class="dp-none">aucun bloqueur</div>
+        <div class="dp-label">high-impact blockers</div>
+        <div v-if="impact.length === 0" class="dp-none">no blocker</div>
         <div v-else class="dp-impact">
           <div v-for="im in impact" :key="im.id" class="dp-impact-row">
             <span class="dp-impact-id">{{ im.id }}</span>
             <span class="dp-impact-title">{{ im.title }}</span>
-            <span class="dp-impact-n">débloque {{ im.count }}</span>
+            <span class="dp-impact-n">unblocks {{ im.count }}</span>
           </div>
         </div>
 
-        <div class="dp-label dp-label--mt">sous-tâches</div>
-        <div v-if="parents.length === 0" class="dp-none">aucune sous-tâche</div>
+        <div class="dp-label dp-label--mt">subtasks</div>
+        <div v-if="parents.length === 0" class="dp-none">no subtask</div>
         <div v-for="p in parents" :key="p.id" class="dp-parent">
           <div class="dp-parent-head">
             <span class="dp-parent-title">{{ p.title }}</span>
             <span class="dp-parent-prog">
-              <span class="dp-meter"><span class="dp-meter-on">{{ p.meter.filled }}</span>{{ p.meter.empty }}</span>
+              <span class="dp-meter"
+                ><span class="dp-meter-on">{{ p.meter.filled }}</span
+                >{{ p.meter.empty }}</span
+              >
               {{ p.done }}/{{ p.total }}
             </span>
           </div>

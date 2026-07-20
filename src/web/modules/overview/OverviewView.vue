@@ -29,7 +29,9 @@ const done = computed(() => allTasks.value.filter((t) => t.frontmatter.status ==
 const pct = computed(() => (total.value ? Math.round((done.value / total.value) * 100) : 0))
 const bar = computed(() => meter(done.value, total.value || 1, 25, '█', '░'))
 
-const testingCount = computed(() => allTasks.value.filter((t) => t.frontmatter.status === 'test').length)
+const testingCount = computed(
+  () => allTasks.value.filter((t) => t.frontmatter.status === 'test').length,
+)
 const prioCount = computed(
   () =>
     allTasks.value.filter(
@@ -37,7 +39,7 @@ const prioCount = computed(
     ).length,
 )
 const debtCount = computed(
-  () => allTasks.value.filter((t) => t.frontmatter.labels.includes('dette')).length,
+  () => allTasks.value.filter((t) => t.frontmatter.labels.includes('debt')).length,
 )
 const blockedCount = computed(() => blockedTasks(allTasks.value, columns.value).length)
 const orphanCount = computed(() => board.value?.orphans.length ?? 0)
@@ -82,60 +84,106 @@ function goAssignee(key: string): void {
     <div class="ov-top">
       <div class="ov-stat">
         <div class="ov-stat-n">{{ total }}</div>
-        <div class="ov-stat-l">tâches</div>
+        <div class="ov-stat-l">tasks</div>
       </div>
       <div class="ov-stat">
-        <div class="ov-stat-n">{{ done }}<span class="ov-stat-of"> / {{ total }}</span></div>
-        <div class="ov-stat-l">terminées</div>
+        <div class="ov-stat-n">
+          {{ done }}<span class="ov-stat-of"> / {{ total }}</span>
+        </div>
+        <div class="ov-stat-l">done</div>
       </div>
       <div class="ov-adv">
-        <div class="ov-adv-head"><span>avancement</span><span class="ov-adv-pct">{{ pct }}%</span></div>
-        <div class="ov-adv-bar">[<span class="ov-on">{{ bar.filled }}</span>{{ bar.empty }}]</div>
+        <div class="ov-adv-head">
+          <span>progress</span><span class="ov-adv-pct">{{ pct }}%</span>
+        </div>
+        <div class="ov-adv-bar">
+          [<span class="ov-on">{{ bar.filled }}</span
+          >{{ bar.empty }}]
+        </div>
       </div>
     </div>
 
     <div class="ov-chips">
-      <span class="ov-chip ov-chip--line">à tester <b>{{ testingCount }}</b></span>
-      <span class="ov-chip ov-chip--fill">prioritaires {{ prioCount }}</span>
-      <span class="ov-chip ov-chip--debt">dette {{ debtCount }}</span>
-      <span class="ov-chip ov-chip--blocked">bloquées {{ blockedCount }}</span>
-      <span class="ov-chip ov-chip--warn">orphelines {{ orphanCount }}</span>
-      <span class="ov-chip ov-chip--line">critères <b>{{ acAgg.done }}/{{ acAgg.total }}</b></span>
+      <span class="ov-chip ov-chip--line"
+        >to test <b>{{ testingCount }}</b></span
+      >
+      <span class="ov-chip ov-chip--fill">high prio {{ prioCount }}</span>
+      <span class="ov-chip ov-chip--debt">debt {{ debtCount }}</span>
+      <span class="ov-chip ov-chip--blocked">blocked {{ blockedCount }}</span>
+      <span class="ov-chip ov-chip--warn">orphans {{ orphanCount }}</span>
+      <span class="ov-chip ov-chip--line"
+        >criteria <b>{{ acAgg.done }}/{{ acAgg.total }}</b></span
+      >
     </div>
 
     <div class="ov-grid">
       <div class="ov-card">
-        <div class="ov-card-l">par colonne</div>
-        <button v-for="d in statusDist" :key="d.key" class="ov-row" type="button" @click="goStatus(d.key)">
+        <div class="ov-card-l">by column</div>
+        <button
+          v-for="d in statusDist"
+          :key="d.key"
+          class="ov-row"
+          type="button"
+          @click="goStatus(d.key)"
+        >
           <span class="ov-row-l">{{ d.label }}</span>
-          <span class="ov-row-bar"><span class="ov-on">{{ d.filled }}</span>{{ d.empty }}</span>
+          <span class="ov-row-bar"
+            ><span class="ov-on">{{ d.filled }}</span
+            >{{ d.empty }}</span
+          >
           <span class="ov-row-n">{{ d.count }}</span>
         </button>
       </div>
 
       <div class="ov-card">
-        <div class="ov-card-l">par priorité</div>
-        <button v-for="d in priorityDist" :key="d.key" class="ov-row" type="button" @click="goPriority(d.key)">
+        <div class="ov-card-l">by priority</div>
+        <button
+          v-for="d in priorityDist"
+          :key="d.key"
+          class="ov-row"
+          type="button"
+          @click="goPriority(d.key)"
+        >
           <span class="ov-row-l">{{ d.label }}</span>
-          <span class="ov-row-bar"><span class="ov-on">{{ d.filled }}</span>{{ d.empty }}</span>
+          <span class="ov-row-bar"
+            ><span class="ov-on">{{ d.filled }}</span
+            >{{ d.empty }}</span
+          >
           <span class="ov-row-n">{{ d.count }}</span>
         </button>
       </div>
 
       <div class="ov-card">
-        <div class="ov-card-l">par label</div>
-        <div v-if="labelDist.length === 0" class="ov-none">aucun label</div>
-        <button v-for="d in labelDist" :key="d.key" class="ov-row" type="button" @click="goLabel(d.key)">
-          <span class="ov-row-l" :class="{ 'ov-row-l--debt': d.key === 'dette' }">#{{ d.label }}</span>
-          <span class="ov-row-bar"><span class="ov-on">{{ d.filled }}</span>{{ d.empty }}</span>
+        <div class="ov-card-l">by label</div>
+        <div v-if="labelDist.length === 0" class="ov-none">no labels</div>
+        <button
+          v-for="d in labelDist"
+          :key="d.key"
+          class="ov-row"
+          type="button"
+          @click="goLabel(d.key)"
+        >
+          <span class="ov-row-l" :class="{ 'ov-row-l--debt': d.key === 'debt' }"
+            >#{{ d.label }}</span
+          >
+          <span class="ov-row-bar"
+            ><span class="ov-on">{{ d.filled }}</span
+            >{{ d.empty }}</span
+          >
           <span class="ov-row-n">{{ d.count }}</span>
         </button>
       </div>
 
       <div class="ov-card">
-        <div class="ov-card-l">par responsable</div>
-        <div v-if="assigneeDist.length === 0" class="ov-none">aucun responsable assigné</div>
-        <button v-for="d in assigneeDist" :key="d.key" class="ov-arow" type="button" @click="goAssignee(d.key)">
+        <div class="ov-card-l">by owner</div>
+        <div v-if="assigneeDist.length === 0" class="ov-none">no owner assigned</div>
+        <button
+          v-for="d in assigneeDist"
+          :key="d.key"
+          class="ov-arow"
+          type="button"
+          @click="goAssignee(d.key)"
+        >
           <span class="ov-avatar">{{ d.label.charAt(0).toUpperCase() }}</span>
           <span class="ov-arow-l">@{{ d.label }}</span>
           <span class="ov-row-n">{{ d.count }}</span>
@@ -143,13 +191,13 @@ function goAssignee(key: string): void {
       </div>
 
       <div class="ov-card">
-        <div class="ov-card-l">fraîcheur</div>
-        <div class="ov-fresh-l">plus anciennes non terminées</div>
+        <div class="ov-card-l">freshness</div>
+        <div class="ov-fresh-l">oldest open</div>
         <div v-for="f in oldest" :key="f.id" class="ov-fresh">
           <span class="ov-fresh-t">{{ f.title }}</span>
           <span class="ov-fresh-d">{{ f.dateShort }}</span>
         </div>
-        <div class="ov-fresh-l ov-fresh-l--mt">dernières modifiées</div>
+        <div class="ov-fresh-l ov-fresh-l--mt">recently updated</div>
         <div v-for="f in recent" :key="f.id" class="ov-fresh">
           <span class="ov-fresh-t">{{ f.title }}</span>
           <span class="ov-fresh-d">{{ f.dateShort }}</span>

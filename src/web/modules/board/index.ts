@@ -15,6 +15,7 @@ export default function registerBoardModule(): void {
     order: 10,
     component: BoardPanel,
     taskChrome: true,
+    scroll: 'managed',
     promptCmd: 'suivre board',
     badge: totalTasks,
   })

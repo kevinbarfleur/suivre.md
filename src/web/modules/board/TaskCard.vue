@@ -33,10 +33,12 @@ const ac = computed(() => acProgress(props.task.body))
 const acMeter = computed(() => meter(ac.value.done, ac.value.total, 5))
 const subs = computed(() => subtaskCount(fm.value.id, allTasks.value))
 const blocked = computed(() => blockedBy(props.task))
-const labels = computed(() => fm.value.labels.filter((l) => l !== 'dette'))
-const hasDebt = computed(() => fm.value.labels.includes('dette'))
+const labels = computed(() => fm.value.labels.filter((l) => l !== 'debt'))
+const hasDebt = computed(() => fm.value.labels.includes('debt'))
 const hasLinks = computed(() => subs.value > 0 || blocked.value != null)
-const hasFoot = computed(() => labels.value.length > 0 || hasDebt.value || fm.value.assignee != null)
+const hasFoot = computed(
+  () => labels.value.length > 0 || hasDebt.value || fm.value.assignee != null,
+)
 </script>
 
 <template>
@@ -56,18 +58,21 @@ const hasFoot = computed(() => labels.value.length > 0 || hasDebt.value || fm.va
     <div class="card-title">{{ fm.title }}</div>
 
     <div v-if="ac.total > 0" class="card-ac">
-      <span class="card-meter"><span class="card-meter-on">{{ acMeter.filled }}</span>{{ acMeter.empty }}</span>
-      <span class="card-ac-n">{{ ac.done }}/{{ ac.total }} critères</span>
+      <span class="card-meter"
+        ><span class="card-meter-on">{{ acMeter.filled }}</span
+        >{{ acMeter.empty }}</span
+      >
+      <span class="card-ac-n">{{ ac.done }}/{{ ac.total }} criteria</span>
     </div>
 
     <div v-if="hasLinks" class="card-links">
-      <span v-if="subs > 0">⊞ {{ subs }} sous-tâche{{ subs > 1 ? 's' : '' }}</span>
-      <span v-if="blocked" class="card-blocked">⤳ bloqué par {{ blocked }}</span>
+      <span v-if="subs > 0">⊞ {{ subs }} subtask{{ subs > 1 ? 's' : '' }}</span>
+      <span v-if="blocked" class="card-blocked">⤳ blocked by {{ blocked }}</span>
     </div>
 
     <div v-if="hasFoot" class="card-foot">
       <span v-for="l in labels" :key="l" class="card-label">#{{ l }}</span>
-      <span v-if="hasDebt" class="card-debt">#dette</span>
+      <span v-if="hasDebt" class="card-debt">#debt</span>
       <span v-if="fm.assignee" class="card-assignee">@{{ fm.assignee }}</span>
     </div>
   </article>

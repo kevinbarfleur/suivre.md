@@ -35,7 +35,8 @@ export function useFilter() {
   })
   const assignees = computed(() => {
     const set = new Set<string>()
-    for (const task of allTasks.value) if (task.frontmatter.assignee) set.add(task.frontmatter.assignee)
+    for (const task of allTasks.value)
+      if (task.frontmatter.assignee) set.add(task.frontmatter.assignee)
     return [...set].sort()
   })
   const activeCount = computed(
