@@ -1,0 +1,51 @@
+{
+  "name": "suivre.md",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gestionnaire de backlog markdown-native avec board kanban, CLI et MCP — pilotable par un agent, réinstallable dans n'importe quel repo.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Kevin Barfleur",
+  "bin": {
+    "suivre": "dist/cli/index.js"
+  },
+  "exports": {
+    ".": "./dist/domain/index.js",
+    "./mcp": "./dist/mcp/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n web,api -c magenta,cyan \"npm:dev:web\" \"npm:dev:api\"",
+    "dev:web": "vite",
+    "dev:api": "tsx watch src/server/dev.ts",
+    "build": "npm run build:web && npm run build:node",
+    "build:web": "vite build",
+    "build:node": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "tsx": "^4.23.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.0.10",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "cac": "^7.0.0",
+    "chokidar": "^5.0.0",
+    "fractional-indexing": "^4.0.0",
+    "hono": "^4.12.30",
+    "yaml": "^2.9.0",
+    "zod": "^4.4.3"
+  }
+}
