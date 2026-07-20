@@ -1,0 +1,72 @@
+/* Design system « dark glassmorphism » — tokens repris du système interne. */
+:root {
+  color-scheme: dark;
+
+  --sv-bg: #08080a;
+  --sv-surface: rgba(255, 255, 255, 0.045);
+  --sv-surface-2: rgba(255, 255, 255, 0.03);
+  --sv-border: rgba(255, 255, 255, 0.08);
+  --sv-border-strong: rgba(255, 255, 255, 0.14);
+
+  --sv-ink: rgba(255, 255, 255, 0.93);
+  --sv-ink-2: rgba(255, 255, 255, 0.55);
+  --sv-ink-3: rgba(255, 255, 255, 0.4);
+
+  --sv-radius-sm: 8px;
+  --sv-radius: 14px;
+  --sv-radius-card: 16px;
+  --sv-radius-col: 22px;
+
+  --sv-glass-blur: blur(30px) saturate(150%);
+  --sv-shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 26px 60px -34px rgba(0, 0, 0, 0.9);
+
+  /* Palette sémantique — candidate, ajustable en une ligne. */
+  --sv-urgent: #f5877a;
+  --sv-high: #e9b872;
+  --sv-low: #8fb0d4;
+  --sv-done: #83c89e;
+  --sv-blocked: #e08aae;
+}
+
+.sv-bg1 {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(1100px 760px at 16% -10%, rgba(255, 255, 255, 0.075), transparent 56%),
+    radial-gradient(1000px 720px at 110% 4%, rgba(255, 255, 255, 0.05), transparent 54%),
+    linear-gradient(180deg, #161618, #0c0c0e 55%, #08080a);
+}
+.sv-bg2 {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background: radial-gradient(680px 520px at 50% 122%, rgba(255, 255, 255, 0.045), transparent 60%);
+}
+
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes sv-fade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

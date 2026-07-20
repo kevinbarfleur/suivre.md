@@ -34,9 +34,13 @@
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
+    "@vitejs/plugin-vue": "^6.0.8",
     "tsx": "^4.23.1",
     "typescript": "^7.0.2",
-    "vitest": "^4.1.10"
+    "unocss": "^66.7.5",
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10",
+    "vue-tsc": "^3.3.7"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.10",
@@ -45,6 +49,7 @@
     "chokidar": "^5.0.0",
     "fractional-indexing": "^4.0.0",
     "hono": "^4.12.30",
+    "vue": "^3.5.40",
     "yaml": "^2.9.0",
     "zod": "^4.4.3"
   }
