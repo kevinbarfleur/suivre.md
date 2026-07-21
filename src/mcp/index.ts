@@ -96,5 +96,32 @@ server.registerTool(
   async ({ id }) => asText({ removed: await service.remove(id) }),
 )
 
+server.registerTool(
+  'reveal_overlay',
+  {
+    description:
+      'Open the desktop overlay on a specific view/item to show it to the user (requires the ' +
+      'suivre macOS app). Use it whenever you want to point the user at something — a task, a ' +
+      'sprint, a decision, the roadmap. `view` is a dashboard deep-link without the hash, e.g. ' +
+      '"board/task-013", "sprints/sprint-001", "docs/doc-003", "decisions/decision-001", or a bare ' +
+      'view like "board" / "overview" / "archive". `target` is an optional project/link name ' +
+      '(defaults to the active target).',
+    inputSchema: {
+      view: z.string().optional(),
+      target: z.string().optional(),
+    },
+  },
+  async ({ view, target }) => {
+    const params = new URLSearchParams()
+    if (view) params.set('view', view)
+    if (target) params.set('target', target)
+    const query = params.toString()
+    const url = `suivre://show${query ? `?${query}` : ''}`
+    const { spawn } = await import('node:child_process')
+    spawn('open', [url], { stdio: 'ignore', detached: true }).unref()
+    return asText({ opened: url })
+  },
+)
+
 const transport = new StdioServerTransport()
 await server.connect(transport)

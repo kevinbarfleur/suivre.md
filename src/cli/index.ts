@@ -7,10 +7,12 @@ import { prioritySchema } from '../domain'
 const cli = cac('suivre')
 const service = (): BoardService => new BoardService(process.env.SUIVRE_ROOT ?? process.cwd())
 
-cli.command('init [name]', 'Initialise un backlog dans le repo courant').action(async (name?: string) => {
-  const config = await service().init(name ?? 'Backlog')
-  console.log(`Backlog « ${config.name} » prêt — ${config.columns.length} colonnes.`)
-})
+cli
+  .command('init [name]', 'Initialise un backlog dans le repo courant')
+  .action(async (name?: string) => {
+    const config = await service().init(name ?? 'Backlog')
+    console.log(`Backlog « ${config.name} » prêt — ${config.columns.length} colonnes.`)
+  })
 
 cli
   .command('add <title>', 'Crée une tâche')
@@ -56,6 +58,20 @@ cli
       port: options.port ? Number(options.port) : undefined,
     })
     console.log(`\n  suivre.md — board sur ${handle.url}\n  Ctrl+C pour arrêter.\n`)
+  })
+
+cli
+  .command('show [view]', 'Reveal the desktop overlay on a view/item (macOS app)')
+  .option('--target <name>', 'Project or link name (default: active target)')
+  .action(async (view: string | undefined, options: { target?: string }) => {
+    const params = new URLSearchParams()
+    if (view) params.set('view', view)
+    if (options.target) params.set('target', options.target)
+    const query = params.toString()
+    const url = `suivre://show${query ? `?${query}` : ''}`
+    const { spawn } = await import('node:child_process')
+    spawn('open', [url], { stdio: 'ignore', detached: true }).unref()
+    console.log(`overlay -> ${url}`)
   })
 
 cli.help()
