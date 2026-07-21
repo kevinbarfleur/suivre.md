@@ -8,6 +8,7 @@ export interface BacklogPaths {
   tasksDir: string
   decisionsDir: string
   docsDir: string
+  sprintsDir: string
   /** Préférences propres au projet (versionnées avec le repo). */
   preferencesFile: string
 }
@@ -23,6 +24,7 @@ export function resolvePaths(root: string, dirName = '.suivre'): BacklogPaths {
     tasksDir: join(baseDir, 'tasks'),
     decisionsDir: join(baseDir, 'decisions'),
     docsDir: join(baseDir, 'docs'),
+    sprintsDir: join(baseDir, 'sprints'),
     preferencesFile: join(baseDir, 'preferences.json'),
   }
 }

@@ -13,7 +13,11 @@ export interface AppOptions {
  * Adaptateur HTTP mince sur le service. REST pour les opérations, SSE pour le
  * live (poussé par le file-watcher). Aucune logique métier ici.
  */
-export function createApp(service: BoardService, events: EventEmitter, opts: AppOptions = {}): Hono {
+export function createApp(
+  service: BoardService,
+  events: EventEmitter,
+  opts: AppOptions = {},
+): Hono {
   const app = new Hono()
 
   app.get('/api/health', (c) => c.json({ ok: true }))
@@ -69,7 +73,9 @@ export function createApp(service: BoardService, events: EventEmitter, opts: App
   app.get('/api/archive', async (c) => c.json(await service.getArchive()))
 
   app.get('/api/decisions', async (c) => c.json(await service.listDecisions()))
-  app.post('/api/decisions', async (c) => c.json(await service.createDecision(await c.req.json()), 201))
+  app.post('/api/decisions', async (c) =>
+    c.json(await service.createDecision(await c.req.json()), 201),
+  )
   app.get('/api/decisions/:id', async (c) => {
     const decision = await service.getDecision(c.req.param('id'))
     return decision ? c.json(decision) : c.json({ error: 'not-found' }, 404)
@@ -92,6 +98,19 @@ export function createApp(service: BoardService, events: EventEmitter, opts: App
   })
   app.delete('/api/docs/:id', async (c) => {
     return c.json({ ok: await service.removeDoc(c.req.param('id')) })
+  })
+
+  app.get('/api/sprints', async (c) => c.json(await service.listSprints()))
+  app.post('/api/sprints', async (c) => c.json(await service.createSprint(await c.req.json()), 201))
+  app.get('/api/sprints/:id', async (c) => {
+    const sprint = await service.getSprint(c.req.param('id'))
+    return sprint ? c.json(sprint) : c.json({ error: 'not-found' }, 404)
+  })
+  app.patch('/api/sprints/:id', async (c) => {
+    return c.json(await service.editSprint(c.req.param('id'), await c.req.json()))
+  })
+  app.delete('/api/sprints/:id', async (c) => {
+    return c.json({ ok: await service.removeSprint(c.req.param('id')) })
   })
 
   app.get('/api/events', (c) =>

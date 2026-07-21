@@ -3,15 +3,19 @@ import type {
   Board,
   CreateDecisionInput,
   CreateDocInput,
+  CreateSprintInput,
   Decision,
   DecisionPatch,
   Doc,
   DocPatch,
   Priority,
+  Sprint,
+  SprintPatch,
   Task,
 } from '../../domain'
 
 export type { ArchivedEntry, ArchivedType } from '../../domain'
+export type { Sprint, SprintStatus, SprintStep, ResolvedSprint } from '../../domain'
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`Requête échouée (${res.status})`)
@@ -126,6 +130,34 @@ export async function patchProjectPreferences(
 
 export async function fetchArchive(): Promise<ArchivedEntry[]> {
   return json<ArchivedEntry[]>(await fetch('/api/archive'))
+}
+
+// --- Sprints (checklist ordonnée de tâches) ---
+
+export async function fetchSprints(): Promise<Sprint[]> {
+  return json<Sprint[]>(await fetch('/api/sprints'))
+}
+export async function createSprint(input: CreateSprintInput): Promise<Sprint> {
+  return json<Sprint>(
+    await fetch('/api/sprints', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(input),
+    }),
+  )
+}
+export async function updateSprint(id: string, patch: SprintPatch): Promise<Sprint> {
+  return json<Sprint>(
+    await fetch(`/api/sprints/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(patch),
+    }),
+  )
+}
+export async function deleteSprint(id: string): Promise<void> {
+  const res = await fetch(`/api/sprints/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`Suppression échouée (${res.status})`)
 }
 
 // --- Décisions (ADR) ---

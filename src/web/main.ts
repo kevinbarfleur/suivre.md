@@ -5,6 +5,7 @@ import './styles/base.css'
 import App from './App.vue'
 import registerBoardModule from './modules/board'
 import registerListModule from './modules/list'
+import registerSprintsModule from './modules/sprints'
 import registerOverviewModule from './modules/overview'
 import registerDepsModule from './modules/deps'
 import registerDocsModule from './modules/docs'
@@ -17,6 +18,7 @@ import registerSettingsModule from './modules/settings'
 // registerView ici. L'ordre de nav vient de `order`, le groupe de `group`.
 registerBoardModule()
 registerListModule()
+registerSprintsModule()
 registerOverviewModule()
 registerDepsModule()
 registerDocsModule()

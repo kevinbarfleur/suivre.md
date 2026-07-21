@@ -14,6 +14,9 @@ import {
   rankBetween,
   serializeDecision,
   serializeDoc,
+  serializeSprint,
+  parseSprint,
+  sprintFrontmatterSchema,
   slugify,
 } from '../domain'
 import type {
@@ -22,6 +25,7 @@ import type {
   BoardConfig,
   CreateDecisionInput,
   CreateDocInput,
+  CreateSprintInput,
   CreateTaskInput,
   Decision,
   DecisionPatch,
@@ -31,6 +35,8 @@ import type {
   Located,
   Preferences,
   ProjectPreferences,
+  Sprint,
+  SprintPatch,
   Task,
   TaskPatch,
 } from '../domain'
@@ -50,6 +56,7 @@ export class BoardService {
   private readonly prefs: PreferencesStore
   private readonly decisions: MarkdownCollection<Decision>
   private readonly docs: MarkdownCollection<Doc>
+  private readonly sprints: MarkdownCollection<Sprint>
 
   constructor(root: string, dirName = '.suivre') {
     const paths = resolvePaths(root, dirName)
@@ -61,6 +68,7 @@ export class BoardService {
       serializeDecision,
     )
     this.docs = new MarkdownCollection<Doc>(paths.docsDir, parseDoc, serializeDoc)
+    this.sprints = new MarkdownCollection<Sprint>(paths.sprintsDir, parseSprint, serializeSprint)
   }
 
   private now(): string {
@@ -186,7 +194,10 @@ export class BoardService {
 
   async createDecision(input: CreateDecisionInput): Promise<Decision> {
     const items = await this.decisions.list()
-    const id = nextTaskId('decision', items.map((d) => d.frontmatter.id))
+    const id = nextTaskId(
+      'decision',
+      items.map((d) => d.frontmatter.id),
+    )
     const frontmatter = decisionFrontmatterSchema.parse({
       id,
       title: input.title,
@@ -209,7 +220,12 @@ export class BoardService {
     const current = await this.decisions.get(id)
     if (!current) throw new Error(`Décision introuvable: ${id}`)
     const title = patch.title ?? current.frontmatter.title
-    const frontmatter = decisionFrontmatterSchema.parse({ ...current.frontmatter, ...patch, id, title })
+    const frontmatter = decisionFrontmatterSchema.parse({
+      ...current.frontmatter,
+      ...patch,
+      id,
+      title,
+    })
     const next: Decision = {
       frontmatter,
       body: patch.body ?? current.body,
@@ -246,14 +262,21 @@ export class BoardService {
 
   async createDoc(input: CreateDocInput): Promise<Doc> {
     const items = await this.docs.list()
-    const id = nextTaskId('doc', items.map((d) => d.frontmatter.id))
+    const id = nextTaskId(
+      'doc',
+      items.map((d) => d.frontmatter.id),
+    )
     const frontmatter = docFrontmatterSchema.parse({
       id,
       title: input.title,
       tags: input.tags,
       updated: this.now(),
     })
-    const doc: Doc = { frontmatter, body: input.body ?? '', fileName: `${id}-${slugify(input.title)}.md` }
+    const doc: Doc = {
+      frontmatter,
+      body: input.body ?? '',
+      fileName: `${id}-${slugify(input.title)}.md`,
+    }
     await this.docs.save(doc)
     return doc
   }
@@ -280,6 +303,64 @@ export class BoardService {
 
   removeDoc(id: string): Promise<boolean> {
     return this.docs.remove(id)
+  }
+
+  // --- Sprints ---
+
+  listSprints(): Promise<Sprint[]> {
+    return this.sprints.list()
+  }
+
+  getSprint(id: string): Promise<Sprint | null> {
+    return this.sprints.get(id)
+  }
+
+  async createSprint(input: CreateSprintInput): Promise<Sprint> {
+    const items = await this.sprints.list()
+    const id = nextTaskId(
+      'sprint',
+      items.map((s) => s.frontmatter.id),
+    )
+    const now = this.now()
+    const frontmatter = sprintFrontmatterSchema.parse({
+      id,
+      title: input.title,
+      goal: input.goal,
+      items: input.items,
+      created: now,
+      updated: now,
+    })
+    const sprint: Sprint = {
+      frontmatter,
+      body: input.body ?? '',
+      fileName: `${id}-${slugify(input.title)}.md`,
+    }
+    await this.sprints.save(sprint)
+    return sprint
+  }
+
+  async editSprint(id: string, patch: SprintPatch): Promise<Sprint> {
+    const current = await this.sprints.get(id)
+    if (!current) throw new Error(`Sprint not found: ${id}`)
+    const title = patch.title ?? current.frontmatter.title
+    const frontmatter = sprintFrontmatterSchema.parse({
+      ...current.frontmatter,
+      ...patch,
+      id,
+      title,
+      updated: this.now(),
+    })
+    const next: Sprint = {
+      frontmatter,
+      body: patch.body ?? current.body,
+      fileName: `${id}-${slugify(title)}.md`,
+    }
+    await this.sprints.save(next, current.fileName)
+    return next
+  }
+
+  removeSprint(id: string): Promise<boolean> {
+    return this.sprints.remove(id)
   }
 
   private async requireConfig(): Promise<BoardConfig> {
