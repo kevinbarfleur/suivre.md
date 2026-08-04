@@ -133,10 +133,10 @@ grow:
   summoned anything, the app is ~28 MB physical footprint with **zero** WebKit
   processes. Summon it and a WebContent process spins up; leave it hidden for ten
   minutes and the page is unloaded — its SSE connection closes and the app drops
-  back to ~24 MB. WebKit itself then keeps an empty WebContent shell cached for up
-  to ~30 minutes (system behavior, reclaimable under memory pressure) before the
-  processes exit. Sessions survive because they're on disk, so the next summon
-  just reloads.
+  back to ~24 MB. WebKit itself then keeps empty, dormant shells cached (measured:
+  ~65 MB RSS total, zero CPU over an hour) until memory pressure or quit — that's
+  the system's process cache, not ours to fight. Sessions survive because they're
+  on disk, so the next summon just reloads.
 - **One web view, reused** — no per-target accumulation.
 - **Bounded retries** — the hotkey's permission retry stops after a minute instead
   of waking up forever.
