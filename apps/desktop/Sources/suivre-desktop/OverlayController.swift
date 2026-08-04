@@ -29,8 +29,11 @@ final class OverlayController: NSObject, WKUIDelegate {
         super.init()
     }
 
+    /// Hides only when the overlay is the thing you're looking at. A visible but
+    /// non-key panel means focus went elsewhere without `hide()` running, and
+    /// dismissing it there would eat the summon and read as "it didn't open".
     func toggle() {
-        if let panel, panel.isVisible {
+        if let panel, panel.isVisible, panel.isKeyWindow {
             hide()
         } else {
             showActive()
@@ -151,8 +154,16 @@ final class OverlayController: NSObject, WKUIDelegate {
         self.panel = panel
         ensureWebView()
         layout(panel)
+
+        // Order in *before* activating, and regardless of whether the app is
+        // active: `makeKeyAndOrderFront` on an inactive accessory app is subject
+        // to macOS 14+ activation limits, and activating first lets the system
+        // switch Spaces to find the app — which is how a summon ended up on the
+        // wrong desktop. With the panel already on this Space (it joins all of
+        // them), activation has nowhere else to go.
+        panel.orderFrontRegardless()
+        panel.makeKey()
         NSApp.activate(ignoringOtherApps: true)
-        panel.makeKeyAndOrderFront(nil)
     }
 
     /// Frees WebKit's WebContent process after the overlay has been hidden a while.

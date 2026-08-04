@@ -12,8 +12,17 @@ import CoreGraphics
 final class DoubleTapCommand {
     var onTrigger: () -> Void = {}
 
-    private let windowSeconds: TimeInterval = 0.30
-    private var lastTapAt: TimeInterval = 0
+    /// Gap allowed between the two taps, measured from the first *release* to the
+    /// second *press* — so holding the second tap down doesn't run out the clock.
+    /// Timing the two releases instead made a deliberate "tap, tap-and-hold" miss.
+    private let gapSeconds: TimeInterval = 0.45
+
+    /// A press held longer than this is someone using Command, not tapping it.
+    private let maxHoldSeconds: TimeInterval = 0.5
+
+    private var pressedAt: TimeInterval = 0
+    private var lastTapEndedAt: TimeInterval = 0
+    private var isSecondTap = false
     private var commandDown = false
     private var cleanStart = false
     private var otherKeyWhileDown = false
@@ -23,12 +32,29 @@ final class DoubleTapCommand {
     private var retryTimer: Timer?
     private var retryCount = 0
 
+    /// Whether the hotkey is actually listening. False means the Input Monitoring
+    /// grant is missing — re-signing the app on every build can revoke it.
+    var isActive: Bool {
+        guard let tap = eventTap else { return false }
+        return CGEvent.tapIsEnabled(tap: tap)
+    }
+
     func start() {
         if !CGPreflightListenEventAccess() {
             // Triggers the Input Monitoring prompt on first launch.
             CGRequestListenEventAccess()
         }
         installTap()
+
+        // The system disables event taps across sleep, lock and fast user
+        // switching, without ever calling back — the hotkey would just go dead
+        // until the next time the menu was opened.
+        let workspace = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.didWakeNotification, NSWorkspace.sessionDidBecomeActiveNotification] {
+            workspace.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                self?.retryIfNeeded()
+            }
+        }
     }
 
     /// Creates the tap. If the grant isn't in place yet, `tapCreate` returns nil;
@@ -69,10 +95,16 @@ final class DoubleTapCommand {
         retryTimer = nil
     }
 
-    /// Re-attempt tap creation on demand (e.g. after the user may have granted
-    /// Input Monitoring). No-op if the tap is already running.
+    /// Re-arms the hotkey: re-enables a tap the system disabled, or creates one
+    /// that never came up (the Input Monitoring grant may have landed since).
+    /// No-op when the tap is already live.
     func retryIfNeeded() {
-        guard eventTap == nil else { return }
+        if let tap = eventTap {
+            if !CGEvent.tapIsEnabled(tap: tap) {
+                CGEvent.tapEnable(tap: tap, enable: true)
+            }
+            return
+        }
         retryCount = 0
         installTap()
     }
@@ -96,8 +128,14 @@ final class DoubleTapCommand {
         }
     }
 
-    private func handle(type: CGEventType, flags: CGEventFlags) {
+    /// The whole detector, driven only by (type, flags) — so `--selftest` can
+    /// replay a summon without an event tap or a real keyboard.
+    func handle(type: CGEventType, flags: CGEventFlags) {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            // Re-arm, and forget the half-seen tap: the events in between are lost,
+            // so Command may well be up while we still think it's down.
+            commandDown = false
+            lastTapEndedAt = 0
             if let tap = eventTap {
                 CGEvent.tapEnable(tap: tap, enable: true)
             }
@@ -115,25 +153,32 @@ final class DoubleTapCommand {
         let others: CGEventFlags = [.maskShift, .maskAlternate, .maskControl, .maskSecondaryFn]
         let hasOther = !flags.isDisjoint(with: others)
 
+        let now = ProcessInfo.processInfo.systemUptime
+
         if commandIsDown, !commandDown {
-            // Command just went down: a tap may be starting.
+            // Command just went down: a tap may be starting, and it counts as the
+            // second one if it lands close enough behind a clean first tap.
             commandDown = true
             cleanStart = !hasOther
             otherKeyWhileDown = false
+            pressedAt = now
+            isSecondTap = lastTapEndedAt > 0 && now - lastTapEndedAt <= gapSeconds
         } else if !commandIsDown, commandDown {
             // Command just came up: the tap ends here.
             commandDown = false
-            let clean = cleanStart && !otherKeyWhileDown && !hasOther
+            let clean =
+                cleanStart && !otherKeyWhileDown && !hasOther
+                && now - pressedAt <= maxHoldSeconds
             guard clean else {
-                lastTapAt = 0
+                lastTapEndedAt = 0
                 return
             }
-            let now = ProcessInfo.processInfo.systemUptime
-            if now - lastTapAt <= windowSeconds {
-                lastTapAt = 0
+            if isSecondTap {
+                lastTapEndedAt = 0
+                isSecondTap = false
                 onTrigger()
             } else {
-                lastTapAt = now
+                lastTapEndedAt = now
             }
         }
     }

@@ -89,6 +89,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         open.target = self
         menu.addItem(open)
 
+        // Otherwise a revoked grant just looks like a hotkey that stopped working.
+        if !hotKey.isActive {
+            let fix = NSMenuItem(
+                title: "\u{26A0}\u{FE0E} \u{2318}\u{2318} off \u{2014} allow Input Monitoring\u{2026}",
+                action: #selector(openInputMonitoringSettings),
+                keyEquivalent: ""
+            )
+            fix.target = self
+            menu.addItem(fix)
+        }
+
         let addProjectItem = NSMenuItem(
             title: "Add project\u{2026}",
             action: #selector(addProject),
@@ -241,7 +252,25 @@ extension AppDelegate {
     @objc private func startServerItem(_ sender: NSMenuItem) {
         guard let project = sender.representedObject as? Project else { return }
         supervisor.ensureRunning(project) { [weak self] up in
-            self?.statusCache[project.path] = up
+            guard let self else { return }
+            self.statusCache[project.path] = up
+            if !up { self.reportFailedStart(project) }
+        }
+    }
+
+    /// A failed start is otherwise silent: the menu is closed by then, so the
+    /// dot just stays grey the next time it's opened.
+    private func reportFailedStart(_ project: Project) {
+        let alert = NSAlert()
+        alert.messageText = "\(project.name) didn't start"
+        alert.informativeText =
+            "Nothing answered on port \(project.port). The server log says why."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Reveal logs")
+        alert.addButton(withTitle: "Close")
+        NSApp.activate(ignoringOtherApps: true)
+        if alert.runModal() == .alertFirstButtonReturn {
+            revealLogs()
         }
     }
 
@@ -265,6 +294,13 @@ extension AppDelegate {
     @objc private func setSize(_ sender: NSMenuItem) {
         guard let preset = sender.representedObject as? String else { return }
         registry.setOverlaySize(preset)
+    }
+
+    @objc private func openInputMonitoringSettings() {
+        let pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent"
+        if let url = URL(string: pane) {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     @objc private func revealLogs() {

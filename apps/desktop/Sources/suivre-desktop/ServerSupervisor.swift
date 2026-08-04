@@ -54,19 +54,31 @@ final class ServerSupervisor {
             return
         }
 
-        // Run through a login shell so nvm/homebrew node is on PATH even when the
-        // app was double-clicked (a bundled app doesn't inherit a shell PATH).
-        // `exec` replaces the shell with tsx so terminate() hits the server.
-        let command = "exec ./node_modules/.bin/tsx src/cli/index.ts board --port \(project.port)"
+        // node is resolved by hand and run directly: a bundled app inherits no
+        // shell PATH, and going through a login shell wouldn't find an nvm node
+        // either (see NodeLocator).
+        let repo = registry.suivreRepoPath
+        let tsx = repo + "/node_modules/.bin/tsx"
+        guard let node = NodeLocator.find() else {
+            fail(project, "no node binary found — looked in \(NodeLocator.searchDescription)")
+            return
+        }
+        guard FileManager.default.isExecutableFile(atPath: tsx) else {
+            fail(project, "\(tsx) is missing — run `npm install` in \(repo)")
+            return
+        }
 
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        process.arguments = ["-lc", command]
-        process.currentDirectoryURL = URL(fileURLWithPath: registry.suivreRepoPath)
+        process.executableURL = URL(fileURLWithPath: node)
+        process.arguments = [tsx, "src/cli/index.ts", "board", "--port", String(project.port)]
+        process.currentDirectoryURL = URL(fileURLWithPath: repo)
 
         var env = ProcessInfo.processInfo.environment
         env["SUIVRE_ROOT"] = project.path
         env["PORT"] = String(project.port)
+        // tsx re-spawns node for the runtime: keep the same one reachable.
+        let nodeDir = (node as NSString).deletingLastPathComponent
+        env["PATH"] = [nodeDir, env["PATH"] ?? ""].filter { !$0.isEmpty }.joined(separator: ":")
         process.environment = env
 
         if let handle = logHandle(for: project) {
@@ -78,8 +90,17 @@ final class ServerSupervisor {
             try process.run()
             processes[project.path] = process
         } catch {
-            NSLog("suivre: failed to spawn server for %@: %@", project.name, "\(error)")
+            fail(project, "\(error)")
         }
+    }
+
+    /// Records why a spawn never happened, in the file `Reveal logs` opens —
+    /// otherwise a failed start is invisible.
+    private func fail(_ project: Project, _ reason: String) {
+        NSLog("suivre: cannot start server for %@: %@", project.name, reason)
+        guard let handle = logHandle(for: project) else { return }
+        handle.write(Data("suivre: cannot start server — \(reason)\n".utf8))
+        try? handle.close()
     }
 
     private func pollHealth(
