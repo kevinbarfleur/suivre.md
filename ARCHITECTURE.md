@@ -26,9 +26,15 @@ domain (pur) ── storage (disque) ── mcp (agent) ───┼── même
   jamais un fichier à moitié écrit. Watch (chokidar) → SSE pour le live.
 - **`server/`** — Hono. REST (`/api/board`, `/api/task/...`) + SSE (`/api/events`) +
   sert la SPA buildée. Adaptateur mince.
-- **`mcp/`** — expose les opérations en tools MCP (`board_list`, `task_create`,
-  `task_move`, `task_edit`, …) sur le même domaine. L'agent ne parse jamais de fichier.
-- **`cli/`** — bin `suivre` (`init`, `task create/list/move`, `board`).
+- **`mcp/`** — expose les opérations en tools MCP (`task_add`, `task_list`,
+  `task_comment`, `task_close`, `task_next`, `sprint_*`, `doc_*`, `decision_*`,
+  `reveal_overlay`, …) sur le même domaine. L'agent ne parse jamais de fichier.
+- **`cli/`** — bin `suivre` (tâches, sprints, docs, décisions, `board`, `mcp`,
+  `setup`), une commande par verbe du contrat tracker, `--json` partout.
+- **`setup/`** — la commande de convergence : branche un repo sur les skills de
+  Matt Pocock (aihero.dev/skills) via son canal officiel et écrit l'adaptateur
+  `docs/agents/issue-tracker.md` (versionné + hash : jamais d'écrasement d'un
+  fichier approprié par l'utilisateur).
 - **`web/`** — SPA Vue modulaire (voir ci-dessous).
 
 ## Modularité du dashboard (exigence centrale)
@@ -44,8 +50,8 @@ domain (pur) ── storage (disque) ── mcp (agent) ───┼── même
 
 ## Modèle de données
 
-Défini dans `CONTRACT.md`. Résumé : `backlog/config.yml` (colonnes/statuts) +
-`backlog/tasks/<id>-<slug>.md` (frontmatter YAML + corps). Le statut d'une tâche =
+Défini dans `CONTRACT.md`. Résumé : `.suivre/config.yml` (colonnes/statuts) +
+`.suivre/tasks/<id>-<slug>.md` (frontmatter YAML + corps). Le statut d'une tâche =
 l'id d'une colonne. Rang = clé fractionnaire (insertion sans réindex).
 
 ## Distribution

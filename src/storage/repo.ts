@@ -83,6 +83,18 @@ export class BacklogRepository {
     return true
   }
 
+  /** Range une tâche dans `tasks/archive/` (hors board, conservée dans le repo). */
+  async archiveTask(id: string): Promise<boolean> {
+    const task = await this.getTask(id)
+    if (!task) return false
+    await atomicWrite(
+      join(this.paths.tasksDir, ARCHIVE_SUBDIR, task.fileName),
+      serializeTask(task),
+    )
+    await removeFile(join(this.paths.tasksDir, task.fileName))
+    return true
+  }
+
   async getBoard(): Promise<Board | null> {
     const config = await this.loadConfig()
     if (!config) return null

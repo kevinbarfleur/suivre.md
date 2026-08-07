@@ -1,12 +1,16 @@
 import { BacklogRepository, MarkdownCollection, PreferencesStore, resolvePaths } from '../storage'
 import {
+  appendComment,
   buildArchive,
   createTask,
   decisionFrontmatterSchema,
   docFrontmatterSchema,
+  doneStatus,
   editTask,
+  filterTasks,
   globalPreferencesSchema,
   moveTask,
+  nextReady,
   nextTaskId,
   parseDecision,
   parseDoc,
@@ -38,6 +42,7 @@ import type {
   Sprint,
   SprintPatch,
   Task,
+  TaskFilter,
   TaskPatch,
 } from '../domain'
 
@@ -163,6 +168,53 @@ export class BoardService {
     return this.repo.deleteTask(id)
   }
 
+  // --- Vocabulaire tracker (piloté par agent : /triage, /wayfinder, /implement) ---
+
+  /** Ajoute un commentaire horodaté sous `## Comments` (créée au premier). */
+  async comment(id: string, text: string, author?: string): Promise<Task> {
+    const task = await this.requireTask(id)
+    const body = appendComment(task.body, { text, author, at: this.now() })
+    const next = editTask(task, { body }, this.now())
+    await this.repo.saveTask(next, task.fileName)
+    return next
+  }
+
+  /**
+   * Ferme une tâche : déplacement en colonne finale (fin de colonne), avec
+   * commentaire de résolution optionnel, et archivage optionnel (le fichier part
+   * dans `tasks/archive/`, hors board mais versionné).
+   */
+  async close(
+    id: string,
+    opts: { comment?: string; author?: string; archive?: boolean } = {},
+  ): Promise<Task> {
+    const config = await this.requireConfig()
+    if (opts.comment) await this.comment(id, opts.comment, opts.author)
+    const task = await this.move(id, doneStatus(config))
+    if (opts.archive) await this.repo.archiveTask(id)
+    return task
+  }
+
+  /** Tâches filtrées + triées dans l'ordre du board (colonnes puis rang). */
+  async queryTasks(filter: TaskFilter): Promise<Task[]> {
+    const config = await this.requireConfig()
+    const tasks = await this.repo.listTasks()
+    return filterTasks(tasks, config, filter)
+  }
+
+  /**
+   * Prochaine tâche à prendre (ready : non finale, non assignée, dépendances
+   * résolues). Avec `sprintId`, la frontier suit l'ordre du sprint.
+   */
+  async next(sprintId?: string): Promise<Task | null> {
+    const config = await this.requireConfig()
+    const tasks = await this.repo.listTasks()
+    if (!sprintId) return nextReady(tasks, config)
+    const sprint = await this.sprints.get(sprintId)
+    if (!sprint) throw new Error(`Sprint not found: ${sprintId}`)
+    return nextReady(tasks, config, sprint.frontmatter.items)
+  }
+
   async getPreferences(): Promise<Preferences> {
     const [global, project] = await Promise.all([this.prefs.loadGlobal(), this.prefs.loadProject()])
     return { global, project }
@@ -218,7 +270,7 @@ export class BoardService {
 
   async editDecision(id: string, patch: DecisionPatch): Promise<Decision> {
     const current = await this.decisions.get(id)
-    if (!current) throw new Error(`Décision introuvable: ${id}`)
+    if (!current) throw new Error(`Decision not found: ${id}`)
     const title = patch.title ?? current.frontmatter.title
     const frontmatter = decisionFrontmatterSchema.parse({
       ...current.frontmatter,
@@ -283,7 +335,7 @@ export class BoardService {
 
   async editDoc(id: string, patch: DocPatch): Promise<Doc> {
     const current = await this.docs.get(id)
-    if (!current) throw new Error(`Doc introuvable: ${id}`)
+    if (!current) throw new Error(`Doc not found: ${id}`)
     const title = patch.title ?? current.frontmatter.title
     const frontmatter = docFrontmatterSchema.parse({
       ...current.frontmatter,
@@ -365,13 +417,13 @@ export class BoardService {
 
   private async requireConfig(): Promise<BoardConfig> {
     const config = await this.repo.loadConfig()
-    if (!config) throw new Error('Backlog non initialisé — lance `suivre init`.')
+    if (!config) throw new Error('Backlog not initialized — run `suivre init` first.')
     return config
   }
 
   private async requireTask(id: string): Promise<Task> {
     const task = await this.repo.getTask(id)
-    if (!task) throw new Error(`Tâche introuvable: ${id}`)
+    if (!task) throw new Error(`Task not found: ${id}`)
     return task
   }
 }

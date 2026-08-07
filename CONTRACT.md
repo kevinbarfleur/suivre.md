@@ -7,15 +7,22 @@ que les trois surfaces s'accordent.
 ## Arborescence
 
 ```
-backlog/
+.suivre/
   config.yml              # config du board (colonnes, préfixe d'id)
+  preferences.json        # préférences projet (vue par défaut)
   tasks/
     task-001-<slug>.md    # une tâche = un fichier
-    task-002-<slug>.md
-  archive/                # tâches archivées (V2)
+    archive/              # tâches archivées par emplacement
+  sprints/
+    sprint-001-<slug>.md  # checklist ordonnée d'ids de tâches
+  decisions/
+    decision-001-<slug>.md
+  docs/
+    doc-001-<slug>.md
+    archive/
 ```
 
-Le dossier `backlog/` vit à la racine du repo cible (`suivre init` le crée).
+Le dossier `.suivre/` vit à la racine du repo cible (`suivre init` le crée).
 
 ## `config.yml`
 
@@ -81,6 +88,27 @@ Champs de frontmatter :
 
 Le corps est du markdown libre ; les sections `## Description`,
 `## Acceptance Criteria` (cases à cocher) et `## Notes` sont conventionnelles.
+
+### Commentaires
+
+L'historique de conversation d'une tâche vit **en fin de corps**, sous une section
+`## Comments` (créée au premier commentaire par `suivre comment` / `task_comment`) :
+
+```markdown
+## Comments
+
+### 2026-08-08T10:00:00Z — claude
+
+Premier retour.
+```
+
+Une entrée = `### <ISO 8601>[ — <auteur>]` + le texte. Append-only par convention.
+
+### Fermeture et archivage
+
+`suivre done` déplace la tâche dans la **dernière colonne** du board. Avec
+`--archive`, le fichier part ensuite dans `tasks/archive/` : hors du board actif,
+mais versionné et visible dans la vue archive.
 
 ## Garanties
 

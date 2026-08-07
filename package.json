@@ -24,8 +24,9 @@
     "dev:web": "vite",
     "dev:api": "tsx watch src/server/dev.ts",
     "build": "npm run build:web && npm run build:node",
+    "prepare": "npm run build",
     "build:web": "vite build",
-    "build:node": "tsup",
+    "build:node": "rm -f dist/*.js && rm -rf dist/cli dist/mcp dist/domain && tsup",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
@@ -35,6 +36,7 @@
   "devDependencies": {
     "@types/node": "^26.1.1",
     "@vitejs/plugin-vue": "^6.0.8",
+    "tsup": "^8.5.1",
     "tsx": "^4.23.1",
     "typescript": "^7.0.2",
     "unocss": "^66.7.5",
