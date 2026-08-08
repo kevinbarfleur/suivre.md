@@ -1,0 +1,23 @@
+{
+  "name": "kevinbarfleur",
+  "owner": {
+    "name": "Kevin Barfleur",
+    "url": "https://github.com/kevinbarfleur"
+  },
+  "description": "suivre.md as an installable Claude Code plugin — the repo is its own marketplace.",
+  "plugins": [
+    {
+      "name": "suivre",
+      "source": "./",
+      "description": "Markdown-native backlog with a live board and desktop overlay, wired for agent workflows (Matt Pocock's skills, MCP). /suivre-setup does everything.",
+      "category": "productivity",
+      "keywords": [
+        "backlog",
+        "kanban",
+        "issue-tracker",
+        "markdown",
+        "agent-workflow"
+      ]
+    }
+  ]
+}

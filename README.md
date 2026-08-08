@@ -35,6 +35,9 @@ suivre board
 # → http://localhost:45188
 ```
 
+In Claude Code? Skip the terminal: install the `suivre` plugin and run
+`/suivre-setup` (see [the workflow section](#the-workflow-layer-matt-pococks-skills)).
+
 From a clone instead: `npm install && npm run build`, then
 `SUIVRE_ROOT=/path/to/your/repo npx tsx src/cli/index.ts board`.
 
@@ -74,6 +77,18 @@ One command wires a repo:
 ```bash
 suivre setup
 ```
+
+Or entirely from inside Claude Code, no terminal needed — the repo is its own
+plugin marketplace:
+
+```
+/plugin marketplace add kevinbarfleur/suivre.md
+/plugin install suivre@kevinbarfleur
+/suivre-setup
+```
+
+`/suivre-setup` has the agent do everything below (installing the CLI first if
+needed) and report back — invoking it is the consent.
 
 It **converges** — idempotent, so re-run it anytime to update or repair:
 
