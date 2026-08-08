@@ -150,6 +150,15 @@ the page is live), 0.0% CPU and <1 s of cumulative CPU time between summons,
 
 ## Install
 
+Strictly opt-in — no setup path installs this for you. From an npm/plugin install
+of suivre (the desktop sources ship with the package):
+
+```
+suivre overlay install   # build (release) + copy to /Applications + launch
+```
+
+Or from a checkout:
+
 ```
 cd apps/desktop
 ./install.sh          # build (release) + copy to /Applications + relaunch

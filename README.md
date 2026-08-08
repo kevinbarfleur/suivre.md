@@ -226,6 +226,7 @@ suivre board [--port]     launch the live web board
 suivre show [view]        reveal the desktop overlay on a view/item (macOS app)
 suivre mcp                run the MCP server (stdio)
 suivre setup [--yes --force --skip-skills --skip-mcp]   wire/update/repair a repo (see above)
+suivre overlay install    opt-in: build + install the macOS double-⌘ overlay (never automatic)
 ```
 
 Point any command at another repo with `SUIVRE_ROOT=/path/to/repo suivre …`.

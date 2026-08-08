@@ -9,13 +9,14 @@ import { run } from './context'
 
 const cli = cac('suivre')
 
-// Résolu ici (entrée) : vaut `<root>/dist/web` depuis src/ comme depuis dist/.
+// Résolus ici (entrée) : valables depuis src/ comme depuis dist/.
 const webDistDir = fileURLToPath(new URL('../../dist/web', import.meta.url))
+const desktopDir = fileURLToPath(new URL('../../apps/desktop', import.meta.url))
 
 registerTaskCommands(cli)
 registerSprintCommands(cli)
 registerKnowledgeCommands(cli)
-registerSurfaceCommands(cli, { webDistDir })
+registerSurfaceCommands(cli, { webDistDir, desktopDir })
 
 cli
   .command(
@@ -43,7 +44,7 @@ cli.help()
 // cac ne matche un nom de commande que sur le PREMIER token d'argv : les noms à
 // deux mots ("sprint create") ne matcheraient jamais — silencieusement. On fusionne
 // donc `sprint create …` en un seul token avant le parse ; l'aide reste inchangée.
-const GROUPS = new Set(['sprint', 'doc', 'decision'])
+const GROUPS = new Set(['sprint', 'doc', 'decision', 'overlay'])
 const argv = [...process.argv]
 if (argv[2] && GROUPS.has(argv[2]) && argv[3] && !argv[3].startsWith('-')) {
   argv.splice(2, 2, `${argv[2]} ${argv[3]}`)

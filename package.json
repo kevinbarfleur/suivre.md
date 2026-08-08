@@ -14,7 +14,12 @@
     "./mcp": "./dist/mcp/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "apps/desktop/Sources",
+    "apps/desktop/Package.swift",
+    "apps/desktop/install.sh",
+    "apps/desktop/make-app.sh",
+    "apps/desktop/README.md"
   ],
   "engines": {
     "node": ">=20"

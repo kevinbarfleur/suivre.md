@@ -96,13 +96,9 @@ export async function runSetup(root: string, opts: SetupOptions = {}): Promise<v
     await setupMcp(root, say)
   }
 
-  // 6. Overlay desktop (macOS) — optionnel, jamais bloquant.
+  // 6. Overlay desktop (macOS) — un petit plus opt-in : suggéré, JAMAIS installé.
   if (process.platform === 'darwin' && !existsSync('/Applications/suivre.app')) {
-    say(
-      '•',
-      'overlay',
-      'optional: build apps/desktop for the ⌘⌘ overlay (suivre repo → apps/desktop/install.sh)',
-    )
+    say('•', 'overlay', 'optional: `suivre overlay install` adds the double-⌘ overlay (macOS)')
   }
 
   const width = Math.max(...report.map((line) => line.label.length))

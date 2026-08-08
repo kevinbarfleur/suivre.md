@@ -53,8 +53,18 @@ consent for the installs it performs.
    - see the state → `suivre board` (web) or double-⌘ if the desktop overlay is
      installed; agents can point at items with `suivre show board/task-013`.
 
-5. **macOS only:** if `/Applications/suivre.app` is absent, mention (once, briefly)
-   that the optional overlay is built from the suivre repo: `apps/desktop/install.sh`.
+5. **macOS only — propose the overlay, never install it by default.** The desktop
+   overlay (double-⌘ summons the board over any app) is a nice-to-have, not part
+   of the setup. If the platform is macOS and `/Applications/suivre.app` (or
+   `~/Applications/suivre.app`) is absent, **ask** the user once:
+
+   > On macOS you can add the optional desktop overlay — double-tap ⌘ and the
+   > board drops over whatever you're doing. Install it? (builds locally,
+   > needs the Xcode Command Line Tools)
+
+   Only on an explicit yes, run `suivre overlay install` and relay its
+   first-launch note (the Input Monitoring permission). If the user declines,
+   drop the subject — don't bring it up on later runs.
 
 ## Notes
 

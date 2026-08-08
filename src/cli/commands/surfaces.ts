@@ -8,6 +8,8 @@ export interface SurfaceOptions {
    * partagé pointe sur un chunk — seule l'entrée a un chemin de sortie stable.
    */
   webDistDir: string
+  /** Sources de l'app desktop (apps/desktop), résolues par l'entrée aussi. */
+  desktopDir: string
 }
 
 /** Surfaces long-vivantes : board web, overlay desktop, serveur MCP. */
@@ -61,4 +63,39 @@ export function registerSurfaceCommands(cli: CAC, opts: SurfaceOptions): void {
       await runMcpServer()
     }),
   )
+
+  // L'overlay est strictement opt-in : jamais installé par un setup, toujours
+  // par cette commande explicite. Build local (pas de binaire téléchargé : une
+  // app ad-hoc non notarisée serait bloquée par Gatekeeper — un build local, non).
+  cli
+    .command('overlay install', 'Build and install the macOS desktop overlay (double-⌘ summon)')
+    .action(
+      run(async () => {
+        if (process.platform !== 'darwin') {
+          throw new Error('the desktop overlay is macOS-only')
+        }
+        const { existsSync } = await import('node:fs')
+        const { join } = await import('node:path')
+        const script = join(opts.desktopDir, 'install.sh')
+        if (!existsSync(script)) {
+          throw new Error(`desktop sources not found at ${opts.desktopDir}`)
+        }
+        const { spawnSync } = await import('node:child_process')
+        if (spawnSync('xcrun', ['--find', 'swiftc'], { stdio: 'ignore' }).status !== 0) {
+          throw new Error(
+            'Swift toolchain not found — install the Xcode Command Line Tools first: `xcode-select --install`',
+          )
+        }
+        console.log('Building the overlay (release)…')
+        const result = spawnSync('bash', [script], { stdio: 'inherit' })
+        if (result.status !== 0) {
+          throw new Error('overlay build/install failed (see output above)')
+        }
+        console.log(
+          '\nFirst launch: allow Input Monitoring (System Settings → Privacy & Security)\n' +
+            'for the double-⌘ summon. Re-running this command rebuilds and re-signs the\n' +
+            'app — if ⌘⌘ goes quiet after an update, re-grant Input Monitoring.',
+        )
+      }),
+    )
 }
