@@ -4,8 +4,8 @@ import type { Theme } from '../../lib/api'
 import { views } from '../shell/view-registry'
 import { usePreferences } from './prefs.store'
 
-// Page de préférences. Deux niveaux : machine (thème, vue par défaut — mêmes
-// pour tous les projets) et projet (surcharge de la vue par défaut).
+// Preferences page. Two levels: machine (theme, default view — same
+// for every project) and project (overrides the default view).
 const { global, project, setTheme, setGlobalDefaultView, setProjectDefaultView } = usePreferences()
 
 const THEMES: { value: Theme; label: string }[] = [
@@ -14,7 +14,7 @@ const THEMES: { value: Theme; label: string }[] = [
   { value: 'light', label: 'light' },
 ]
 
-// Toutes les vues navigables (hors « system ») comme choix de vue par défaut.
+// All navigable views (excluding "system") as default view choices.
 const viewOptions = computed(() =>
   views()
     .filter((v) => v.group !== 'system')

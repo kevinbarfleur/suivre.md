@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import { useView } from '../shell/view.store'
 
-// État honnête des vues ressources : leur backend (stores milestones / docs /
-// drafts / decisions) est le prochain chantier. On ne simule pas de données.
+// Honest state for resource views: their backend (milestones / docs /
+// drafts / decisions stores) is the next piece of work. We don't simulate data.
 const { view } = useView()
 
 const INFO: Record<string, { title: string; blurb: string }> = {

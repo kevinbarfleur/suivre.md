@@ -1,8 +1,8 @@
 import { registerView } from '../shell/view-registry'
 import ResourcePlaceholder from './ResourcePlaceholder.vue'
 
-// Vues ressources encore sans backend : milestones + drafts. État honnête,
-// pas de données simulées. (docs + décisions ont leur vrai module désormais.)
+// Resource views still without a backend: milestones + drafts. Honest state,
+// no simulated data. (docs + decisions now have their real module.)
 export default function registerResourceModules(): void {
   registerView({
     id: 'milestones',

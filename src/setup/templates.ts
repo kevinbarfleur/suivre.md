@@ -1,17 +1,17 @@
 /**
- * Templates écrits par `suivre setup` dans le repo de l'utilisateur. La pièce
- * centrale est l'ADAPTATEUR : le fichier `docs/agents/issue-tracker.md` que les
- * skills de Matt Pocock (aihero.dev/skills) lisent pour savoir comment parler au
- * tracker. On ne copie ni ne modifie jamais ses skills — on fournit le contrat
- * qu'elles consomment, au format de ses propres templates (GitHub / GitLab /
- * local markdown). C'est la SEULE pièce de l'intégration, versionnée ici pour
- * que `suivre setup` puisse la faire converger quand le contrat évolue.
+ * Templates `suivre setup` writes into the user's repo. The central one is the
+ * ADAPTER: the `docs/agents/issue-tracker.md` file that Matt Pocock's skills
+ * (aihero.dev/skills) read to know how to talk to the tracker. His skills are
+ * never copied or modified — we only provide the contract they consume, in the
+ * format of his own templates (GitHub / GitLab / local markdown). It is the
+ * only piece of the integration, versioned here so `suivre setup` can converge
+ * it when the contract changes.
  */
 
-/** Version de l'adaptateur : à incrémenter à chaque évolution du template. */
+/** Adapter version: bump on every template change. */
 export const ADAPTER_VERSION = 1
 
-/** Chemin conventionnel (celui que les skills lisent) relatif à la racine du repo. */
+/** Conventional path (the one the skills read), relative to the repo root. */
 export const ADAPTER_RELATIVE_PATH = 'docs/agents/issue-tracker.md'
 
 export const ADAPTER_BODY = `# Issue tracker: suivre.md
@@ -97,8 +97,8 @@ pops over whatever the user is doing. The command is a safe no-op otherwise.
 `
 
 /**
- * Bloc de pointage écrit dans AGENTS.md (délimité par des marqueurs pour rester
- * idempotent). Même rôle que la ligne que le setup de Matt Pocock ajoute.
+ * Pointer block written into AGENTS.md (marker-delimited to stay idempotent).
+ * Same role as the line Matt Pocock's own setup adds.
  */
 export const AGENTS_POINTER_START = '<!-- suivre:tracker:start -->'
 export const AGENTS_POINTER_END = '<!-- suivre:tracker:end -->'

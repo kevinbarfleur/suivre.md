@@ -3,8 +3,8 @@ import type { Sprint } from '../../lib/api'
 import type { CreateSprintInput, SprintPatch } from '../../../domain'
 import * as api from '../../lib/api'
 
-// Store des sprints : liste + CRUD, rechargé après mutation. La résolution
-// (ids → tâches + progression) se fait côté vue, réactive sur le board.
+// Sprints store: list + CRUD, reloaded after mutation. The resolution
+// (ids → tasks + progress) happens view-side, reactive on the board.
 const sprints = ref<Sprint[]>([])
 const loading = ref(false)
 const loaded = ref(false)

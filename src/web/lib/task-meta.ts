@@ -1,7 +1,7 @@
 import type { Task } from '../../domain'
 
-// Métadonnées dérivées d'une tâche pour le rendu terminal (barres ASCII,
-// indices de sous-tâches / blocage). Fonctions pures, testables.
+// Metadata derived from a task for the terminal rendering (ASCII bars,
+// subtask / blocking hints). Pure, testable functions.
 
 const CHECKBOX_RE = /^[ \t]*[-*][ \t]+\[([ xX-])\]/gm
 const AC_LINE_RE = /^[ \t]*[-*][ \t]+\[([ xX-])\][ \t]*(.*)$/gm
@@ -12,7 +12,7 @@ export interface AcProgress {
   total: number
 }
 
-/** Compte les cases à cocher du corps markdown (Acceptance Criteria). */
+/** Counts the checkboxes in the markdown body (Acceptance Criteria). */
 export function acProgress(body: string): AcProgress {
   let done = 0
   let total = 0
@@ -29,7 +29,7 @@ export interface AcItem {
   done: boolean
 }
 
-/** Détail des cases à cocher du corps (texte + état) pour la fiche. */
+/** Checkbox details from the body (text + state) for the detail card. */
 export function acItems(body: string): AcItem[] {
   const items: AcItem[] = []
   for (const match of body.matchAll(AC_LINE_RE)) {
@@ -44,24 +44,24 @@ export interface Meter {
   empty: string
 }
 
-/** Barre ASCII de `width` blocs, remplis au prorata de done/total. */
+/** ASCII bar of `width` blocks, filled proportionally to done/total. */
 export function meter(done: number, total: number, width: number, fill = '▓', blank = '░'): Meter {
   const ratio = total > 0 ? done / total : 0
   const on = Math.max(0, Math.min(width, Math.round(ratio * width)))
   return { filled: fill.repeat(on), empty: blank.repeat(width - on) }
 }
 
-/** Nombre de sous-tâches : tâches dont `parent` pointe vers `id`. */
+/** Subtask count: tasks whose `parent` points to `id`. */
 export function subtaskCount(id: string, all: readonly Task[]): number {
   return all.filter((task) => task.frontmatter.parent === id).length
 }
 
-/** Première dépendance bloquante d'une tâche, s'il y en a une. */
+/** First blocking dependency of a task, if any. */
 export function blockedBy(task: Task): string | null {
   return task.frontmatter.depends[0] ?? null
 }
 
-/** Slug d'invite terminal à partir du nom du projet (kevin@<slug>). */
+/** Terminal prompt slug from the project name (kevin@<slug>). */
 export function slug(name: string): string {
   const cleaned = name
     .toLowerCase()
@@ -72,7 +72,7 @@ export function slug(name: string): string {
   return cleaned || 'backlog'
 }
 
-/** Date courte pour la fiche (« 12 juil. »). */
+/** Short date for the detail card ("Jul 12"). */
 export function shortDate(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return iso

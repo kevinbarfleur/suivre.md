@@ -1,8 +1,8 @@
 import type { Task } from './types'
 
-// Résolution PURE d'un sprint (ids → étapes + progression). Volontairement
-// SANS zod : la vue web l'importe directement pour ne pas tirer zod dans le
-// bundle SPA. Le schéma/parse (avec zod) vit dans `sprint.ts`.
+// PURE sprint resolution (ids → steps + progress). Deliberately zod-free: the
+// web view imports it directly, so zod stays out of the SPA bundle. The schema
+// and parser (with zod) live in `sprint.ts`.
 
 const DONE_STATUS = 'done'
 

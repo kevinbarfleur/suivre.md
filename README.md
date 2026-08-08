@@ -8,15 +8,13 @@
 
 # suivre.md
 
-**A markdown-native backlog tool. One core, many surfaces — web board, CLI, and MCP.**
+**A markdown-native backlog: live kanban board, CLI, and MCP.**
 
 Every task is a plain `.md` file with YAML frontmatter, versioned in your repo.
-There is no database and no service to host: **git is the history**. The tool is
-built to be driven by an **agent** as much as by a human — an agent writes files,
-and the live board updates on screen.
+No database, nothing to host. Built to be driven by an agent as much as by a
+human: an agent writes files, and the live board updates on screen.
 
-> The name is a French pun (_suivre_ = "to follow / track"). Everything else — the
-> UI, statuses, labels, this document — is in English, like any dev tool.
+_suivre_ is French for "to track".
 
 ---
 
@@ -52,10 +50,9 @@ refreshes the board live over SSE.
 - **A task is a file.** `.suivre/tasks/<id>-<slug>.md` = YAML frontmatter + a markdown
   body. The frontmatter holds the structured fields; the body holds everything else
   (description, acceptance criteria, notes).
-- **One pure core, thin surfaces.** A pure `domain` (no I/O) + a `storage` layer
-  (atomic writes) + a shared `service`, with three thin adapters on top: **HTTP**
-  (the web board), **CLI** (`suivre`), and **MCP** (agent-driven). One logic, never
-  duplicated per surface.
+- **One core, thin surfaces.** Business logic lives in a pure `domain` plus a
+  `storage` layer (atomic writes); the web board, the CLI and the MCP server are
+  thin adapters over the same operations.
 - **Live.** Mutations write files; a file-watcher emits an SSE event; the board reloads.
   Whoever writes — human, CLI, or agent — everyone sees the same board.
 
@@ -66,8 +63,8 @@ refreshes the board live over SSE.
 suivre has no workflow of its own. It is built to be the issue tracker for
 [Matt Pocock's skills](https://www.aihero.dev/skills): `/grill-with-docs` writes
 specs, `/to-tickets` turns them into tasks, `/triage` labels the backlog,
-`/wayfinder` plans a fuzzy effort as a sprint. The skills stay his — installed
-through his plugin, never copied here.
+`/wayfinder` plans a fuzzy effort as a sprint. They're installed through his
+plugin, not copied into this repo.
 
 Wire a repo once:
 
@@ -153,8 +150,8 @@ type / period / label, plus search and sort.
 
 ## Data layout
 
-Everything lives under `<repo>/.suivre/` (a hidden, branded folder — the default
-`dirName`, chosen to avoid colliding with other tools):
+Everything lives under `<repo>/.suivre/` (a hidden folder, named to avoid
+colliding with other tools):
 
 ```
 .suivre/
@@ -191,7 +188,7 @@ UnoCSS, terminal design system (JetBrains Mono, monochrome + a few semantic acce
 ### CLI (`suivre`)
 
 Every read/write command takes `--json` for machine-readable output; multi-line
-bodies ride a shell heredoc.
+bodies use a shell heredoc.
 
 ```
 # tasks
@@ -246,8 +243,7 @@ manually with `SUIVRE_ROOT` set to the target repo.
 
 ## Working with an agent
 
-suivre.md is designed so an agent can read and maintain the board with zero ceremony.
-The contract:
+An agent can read and maintain the board directly. The contract:
 
 **Read the state**
 - MCP `backlog_list`, or `GET /api/board` (also `/api/archive`, `/api/decisions`,

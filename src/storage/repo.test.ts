@@ -18,7 +18,7 @@ describe('BacklogRepository', () => {
     await rm(root, { recursive: true, force: true })
   })
 
-  it('init crée la config et le dossier tasks', async () => {
+  it('init creates the config and the tasks directory', async () => {
     const config = await repo.init('Mon projet')
     expect(config.name).toBe('Mon projet')
     expect(config.columns.length).toBeGreaterThan(0)
@@ -28,7 +28,7 @@ describe('BacklogRepository', () => {
   it('save → list → get → delete', async () => {
     const config = await repo.init('P')
     const task = createTask(
-      { title: 'Première tâche', body: '## Description\n\nOK' },
+      { title: 'First task', body: '## Description\n\nOK' },
       { config, existingIds: [], lastOrderInColumn: null, now: '2026-07-20T00:00:00Z' },
     )
     await repo.saveTask(task)
@@ -44,7 +44,7 @@ describe('BacklogRepository', () => {
     expect(await repo.listTasks()).toHaveLength(0)
   })
 
-  it('getBoard range la tâche dans sa colonne', async () => {
+  it('getBoard places the task in its column', async () => {
     const config = await repo.init('P')
     const firstColumn = config.columns[0]!.id
     const task = createTask(

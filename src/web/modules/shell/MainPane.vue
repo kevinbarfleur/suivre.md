@@ -8,10 +8,10 @@ import StatsPanel from '../stats/StatsPanel.vue'
 import Toolbar from '../filter/Toolbar.vue'
 import TaskDetailDialog from '../board/TaskDetailDialog.vue'
 
-// Panneau principal : cadre FIXE (ligne d'invite + Bilan + toolbar pour les vues
-// tâches) au-dessus d'une zone de contenu BORNÉE qui ne dépasse jamais l'écran.
-// C'est le contenu qui scrolle, pas la page — `auto` scrolle la vue entière,
-// `managed` laisse la vue gérer son scroll interne (master-détail, board, liste).
+// Main pane: FIXED frame (prompt line + Summary + toolbar for task views)
+// above a BOUNDED content area that never exceeds the screen.
+// The content scrolls, not the page — `auto` scrolls the whole view,
+// `managed` lets the view manage its own internal scroll (master-detail, board, list).
 const { board, allTasks, loading, error, ensureLoaded, selected, openTask } = useBoard()
 const { view, item } = useView()
 
@@ -21,7 +21,7 @@ const promptCmd = computed(() => def.value?.promptCmd ?? 'suivre')
 const showChrome = computed(() => def.value?.taskChrome === true && board.value != null)
 const isManaged = computed(() => def.value?.scroll === 'managed')
 
-// Deep-link vers une tâche : `#board/task-012` ouvre directement sa fiche.
+// Deep link to a task: `#board/task-012` opens its detail directly.
 const TASK_VIEWS = new Set(['board', 'list', 'deps', 'overview'])
 watch(
   [view, item, board],
@@ -70,7 +70,7 @@ watch(
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  /* Pas de padding bas ici : la zone de contenu porte sa propre marge basse. */
+  /* No bottom padding here: the content area carries its own bottom margin. */
   padding: 26px 30px 0;
 }
 .main-prompt {
@@ -99,18 +99,18 @@ watch(
   flex: 0 0 auto;
   margin-bottom: 22px;
 }
-/* Zone de contenu bornée : occupe le reste de l'écran, marge basse toujours. */
+/* Bounded content area: fills the rest of the screen, always keeps a bottom margin. */
 .main-body {
   flex: 1;
   min-height: 0;
   padding-bottom: 30px;
 }
-/* Contenu simple : la zone elle-même scrolle. */
+/* Simple content: the area itself scrolls. */
 .main-body--auto {
   overflow-y: auto;
   overflow-x: hidden;
 }
-/* Contenu géré : la vue remplit la zone et gère son propre scroll interne. */
+/* Managed content: the view fills the area and manages its own internal scroll. */
 .main-body--managed {
   overflow: hidden;
   display: flex;
@@ -150,7 +150,7 @@ watch(
   border-color: var(--sv-line-strong);
   color: var(--sv-fg);
 }
-/* Étroit : on rend la page à son flux naturel (le shell repasse en scroll page). */
+/* Narrow: render the page in its natural flow (the shell falls back to page scroll). */
 @media (max-width: 860px) {
   .main {
     height: auto;

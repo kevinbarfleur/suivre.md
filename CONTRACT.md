@@ -1,20 +1,20 @@
-# Contrat de données — suivre.md
+# Data contract — suivre.md
 
-La webapp, le CLI et le MCP sont une **UI fine sur le système de fichiers**. Pas de
-base de données. Ce fichier est la seule source de vérité du format sur disque, pour
-que les trois surfaces s'accordent.
+The web app, the CLI and the MCP server are a thin UI over the file system. No
+database. This file is the single source of truth for the on-disk format, so the
+three surfaces always agree.
 
-## Arborescence
+## Layout
 
 ```
 .suivre/
-  config.yml              # config du board (colonnes, préfixe d'id)
-  preferences.json        # préférences projet (vue par défaut)
+  config.yml              # board config (columns, id prefix)
+  preferences.json        # project-level preferences (default view)
   tasks/
-    task-001-<slug>.md    # une tâche = un fichier
-    archive/              # tâches archivées par emplacement
+    task-001-<slug>.md    # one task = one file
+    archive/              # tasks archived by location
   sprints/
-    sprint-001-<slug>.md  # checklist ordonnée d'ids de tâches
+    sprint-001-<slug>.md  # ordered checklist of task ids
   decisions/
     decision-001-<slug>.md
   docs/
@@ -22,7 +22,7 @@ que les trois surfaces s'accordent.
     archive/
 ```
 
-Le dossier `.suivre/` vit à la racine du repo cible (`suivre init` le crée).
+`.suivre/` lives at the root of the target repo (`suivre init` creates it).
 
 ## `config.yml`
 
@@ -31,23 +31,23 @@ name: Relay
 taskPrefix: task
 columns:
   - { id: backlog, label: Backlog }
-  - { id: todo, label: À faire }
-  - { id: doing, label: En cours }
-  - { id: done, label: Terminé }
+  - { id: todo, label: To do }
+  - { id: doing, label: In progress }
+  - { id: done, label: Done }
 ```
 
-- `columns[].id` = les statuts possibles. L'ordre du tableau = l'ordre à l'écran.
-- `columns[].wipLimit?` : plafond optionnel de cartes en cours.
-- `taskPrefix` : préfixe des ids (`task-001`, `task-002`, …).
+- `columns[].id` = the possible statuses. Array order = screen order.
+- `columns[].wipLimit?`: optional cap on in-progress cards.
+- `taskPrefix`: id prefix (`task-001`, `task-002`, …).
 
-## Fichier de tâche
+## Task file
 
-Frontmatter YAML + corps markdown.
+YAML frontmatter + markdown body.
 
 ```markdown
 ---
 id: task-001
-title: Corriger la boucle de re-transcription
+title: Fix the re-transcription loop
 status: doing
 priority: high
 labels: [bug, capture]
@@ -71,49 +71,50 @@ updated: 2026-07-20T12:30:00Z
 ...
 ```
 
-Champs de frontmatter :
+Frontmatter fields:
 
-| Champ | Requis | Détail |
+| Field | Required | Detail |
 |---|---|---|
-| `id` | oui | `<prefix>-<n>` zéro-paddé |
-| `title` | oui | — |
-| `status` | oui | doit correspondre à une `column.id` |
-| `priority` | non | `low` \| `medium` \| `high` \| `urgent` |
-| `labels` | non | liste (omise si vide) |
-| `assignee` | non | ex. `kevin`, `claude` |
-| `order` | oui | rang lexicographique (fractional index) |
-| `parent` | non | id d'une tâche parente (sous-tâche) |
-| `depends` | non | ids bloquants (omis si vide) |
-| `created` / `updated` | oui | ISO 8601 |
+| `id` | yes | `<prefix>-<n>`, zero-padded |
+| `title` | yes | — |
+| `status` | yes | must match a `column.id` |
+| `priority` | no | `low` \| `medium` \| `high` \| `urgent` |
+| `labels` | no | list (omitted when empty) |
+| `assignee` | no | e.g. `kevin`, `claude` |
+| `order` | yes | lexicographic rank (fractional index) |
+| `parent` | no | parent task id (subtask) |
+| `depends` | no | blocking ids (omitted when empty) |
+| `created` / `updated` | yes | ISO 8601 |
 
-Le corps est du markdown libre ; les sections `## Description`,
-`## Acceptance Criteria` (cases à cocher) et `## Notes` sont conventionnelles.
+The body is free markdown; the `## Description`, `## Acceptance Criteria`
+(checkboxes) and `## Notes` sections are conventions.
 
-### Commentaires
+### Comments
 
-L'historique de conversation d'une tâche vit **en fin de corps**, sous une section
-`## Comments` (créée au premier commentaire par `suivre comment` / `task_comment`) :
+A task's conversation history lives at the end of the body, under a
+`## Comments` section (created on first comment by `suivre comment` /
+`task_comment`):
 
 ```markdown
 ## Comments
 
 ### 2026-08-08T10:00:00Z — claude
 
-Premier retour.
+First note.
 ```
 
-Une entrée = `### <ISO 8601>[ — <auteur>]` + le texte. Append-only par convention.
+One entry = `### <ISO 8601>[ — <author>]` + the text. Append-only by convention.
 
-### Fermeture et archivage
+### Closing and archiving
 
-`suivre done` déplace la tâche dans la **dernière colonne** du board. Avec
-`--archive`, le fichier part ensuite dans `tasks/archive/` : hors du board actif,
-mais versionné et visible dans la vue archive.
+`suivre done` moves the task to the board's last column. With `--archive`, the
+file then moves to `tasks/archive/`: out of the active board, still versioned,
+visible in the archive view.
 
-## Garanties
+## Guarantees
 
-- **Écriture atomique** (temp + `rename`) : jamais de fichier à moitié écrit,
-  même avec web + CLI + MCP concurrents.
-- **Sérialisation déterministe** : ordre de champ fixe, optionnels/vides omis →
-  diffs git propres.
-- **Statut orphelin** (colonne inconnue) : la tâche est remontée, jamais cachée.
+- **Atomic writes** (temp file + `rename`): never a half-written file, even with
+  concurrent web + CLI + MCP writers.
+- **Deterministic serialization**: fixed field order, empty optionals omitted →
+  clean git diffs.
+- **Orphan statuses** (unknown column): the task is surfaced, never hidden.

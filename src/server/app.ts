@@ -5,13 +5,13 @@ import type { EventEmitter } from 'node:events'
 import type { BoardService } from '../service/board-service'
 
 export interface AppOptions {
-  /** Dossier de la SPA buildée à servir (prod). Absent en dev (Vite sert le front). */
+  /** Directory of the built SPA to serve (prod). Absent in dev (Vite serves the frontend). */
   distDir?: string
 }
 
 /**
- * Adaptateur HTTP mince sur le service. REST pour les opérations, SSE pour le
- * live (poussé par le file-watcher). Aucune logique métier ici.
+ * Thin HTTP adapter over the service. REST for operations, SSE for live
+ * updates (pushed by the file watcher). No business logic here.
  */
 export function createApp(
   service: BoardService,

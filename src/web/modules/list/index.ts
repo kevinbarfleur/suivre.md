@@ -6,7 +6,7 @@ function totalTasks(board: Board): number {
   return board.columns.reduce((n, c) => n + c.tasks.length, 0) + board.orphans.length
 }
 
-/** Enregistre la vue liste (table triable). */
+/** Registers the list view (sortable table). */
 export default function registerListModule(): void {
   registerView({
     id: 'list',

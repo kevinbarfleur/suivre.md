@@ -1,9 +1,9 @@
 import type { Component } from 'vue'
 import type { Board } from '../../../domain'
 
-// Registre de VUES (évolution du registre de panneaux). Cœur de la modularité :
-// une vue s'enregistre ici avec son groupe de nav, son composant, sa commande
-// d'invite et un badge optionnel. Ajouter une vue = enregistrer un module.
+// View registry (evolution of the panel registry). Core of the modularity:
+// a view registers itself here with its nav group, component, prompt
+// command, and an optional badge. Adding a view = registering a module.
 export type ViewGroup = 'tasks' | 'resources' | 'system'
 
 export interface ViewDef {
@@ -12,18 +12,18 @@ export interface ViewDef {
   group: ViewGroup
   order: number
   component: Component
-  /** Affiche le bandeau tâches (Bilan + toolbar filtres) au-dessus de la vue. */
+  /** Shows the task chrome (Summary + filter toolbar) above the view. */
   taskChrome?: boolean
   /**
-   * Qui porte le scroll dans la zone bornée du MainPane.
-   * - `auto` (défaut) : le MainPane scrolle la vue entière (contenu simple).
-   * - `managed` : la vue remplit la zone et gère son propre scroll interne
-   *   (en-tête/pied fixes, panneaux master-détail indépendants, colonnes du board).
+   * Who owns the scroll within the MainPane's bounded area.
+   * - `auto` (default): the MainPane scrolls the whole view (simple content).
+   * - `managed`: the view fills the area and manages its own internal scroll
+   *   (fixed header/footer, independent master-detail panes, board columns).
    */
   scroll?: 'auto' | 'managed'
-  /** Commande affichée dans la ligne d'invite. */
+  /** Command shown on the prompt line. */
   promptCmd: string
-  /** Compteur affiché dans le rail de navigation. */
+  /** Counter shown in the navigation rail. */
   badge?: (board: Board) => string | number
 }
 

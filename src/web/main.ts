@@ -14,8 +14,8 @@ import registerArchiveModule from './modules/archive'
 import registerResourceModules from './modules/resources'
 import registerSettingsModule from './modules/settings'
 
-// Enregistre les vues avant le montage. Ajouter une vue = créer un module + un
-// registerView ici. L'ordre de nav vient de `order`, le groupe de `group`.
+// Register views before mounting. Adding a view = create a module + a
+// registerView here. Nav order comes from `order`, the group from `group`.
 registerBoardModule()
 registerListModule()
 registerSprintsModule()

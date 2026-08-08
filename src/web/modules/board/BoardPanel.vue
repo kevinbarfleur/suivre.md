@@ -6,8 +6,8 @@ import { useFilter } from '../filter/filter.store'
 import Column from './Column.vue'
 import TaskCard from './TaskCard.vue'
 
-// Vue « board » (kanban). La modale et les états globaux (loading/error/vide)
-// sont gérés par le MainPane ; ici on ne rend que les colonnes + orphelins.
+// "Board" view (kanban). The modal and global states (loading/error/empty)
+// are handled by MainPane; here we only render the columns + orphans.
 const { board, move } = useBoard()
 const { matches } = useFilter()
 

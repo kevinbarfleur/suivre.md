@@ -2,11 +2,11 @@
 import { computed } from 'vue'
 import { toBlocks } from '../lib/markdown-blocks'
 
-// Rendu markdown terminal (titres, paragraphes, listes, cases, code). Partagé
-// par le lecteur de docs, le détail de décision et les archives.
-// NB préfixe `mkd-` (et non `md-`) : `md` est le breakpoint UnoCSS, donc
-// `md-h1` était interprété comme l'utility `md:h-1` (height 0.25rem) et
-// écrasait la hauteur des titres. `mkd-*` ne matche aucune utility.
+// Terminal markdown rendering (headings, paragraphs, lists, checkboxes, code).
+// Shared by the docs reader, decision detail and the archive.
+// NB `mkd-` prefix (not `md-`): `md` is the UnoCSS breakpoint, so
+// `md-h1` was interpreted as the `md:h-1` utility (height 0.25rem) and
+// overrode heading heights. `mkd-*` matches no utility.
 const props = defineProps<{ source: string }>()
 const blocks = computed(() => toBlocks(props.source))
 </script>

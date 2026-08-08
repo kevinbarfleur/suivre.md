@@ -3,9 +3,9 @@ import { decisionStatusSchema } from '../../domain'
 import { decisionJson, docJson, printJson, run, service, toArray } from '../context'
 
 /**
- * Commandes de connaissance : docs (specs, notes) et décisions (ADR). C'est là
- * qu'un workflow type /grill-with-docs ou /to-spec dépose ce qu'il produit —
- * visible dans le dashboard, révélable dans l'overlay.
+ * Knowledge commands: docs (specs, notes) and decisions (ADR). This is where a
+ * workflow like /grill-with-docs or /to-spec deposits what it produces —
+ * visible in the dashboard, revealable in the overlay.
  */
 export function registerKnowledgeCommands(cli: CAC): void {
   // --- Docs ---
@@ -63,7 +63,7 @@ export function registerKnowledgeCommands(cli: CAC): void {
       }),
     )
 
-  // --- Décisions (ADR) ---
+  // --- Decisions (ADR) ---
 
   cli
     .command('decision create <title>', 'Record a decision (ADR)')

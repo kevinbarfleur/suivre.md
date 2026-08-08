@@ -14,7 +14,7 @@ onMounted(async () => {
   void ensureLoaded()
   startLive()
   await loadPreferences()
-  // Sans deep-link explicite, on ouvre sur la vue par défaut préférée.
+  // Without an explicit deep link, open on the preferred default view.
   if (!hasExplicitHash()) setView(effectiveDefaultView.value)
 })
 </script>

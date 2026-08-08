@@ -11,7 +11,7 @@ function blockedCount(board: Board): number {
   ).length
 }
 
-/** Enregistre la vue dépendances (ordre d'exécution). */
+/** Registers the dependencies view (execution order). */
 export default function registerDepsModule(): void {
   registerView({
     id: 'deps',

@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import type { CreateDecisionInput, Decision, DecisionPatch } from '../../../domain'
 import * as api from '../../lib/api'
 
-// Store des décisions (ADR). Liste + CRUD, rechargé après mutation.
+// Decisions store (ADR). List + CRUD, reloaded after mutation.
 const decisions = ref<Decision[]>([])
 const loading = ref(false)
 const loaded = ref(false)

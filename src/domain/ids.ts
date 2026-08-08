@@ -1,10 +1,10 @@
-/** Génération d'identifiants et de noms de fichiers de tâche. */
+/** Task id and file name generation. */
 
 function escapeRegExp(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-/** Slug ASCII pour un nom de fichier lisible (diacritiques repliés, borné à 60). */
+/** ASCII slug for a readable file name (diacritics folded, capped at 60). */
 export function slugify(title: string): string {
   const slug = title
     .normalize('NFD')
@@ -16,7 +16,7 @@ export function slugify(title: string): string {
   return slug || 'task'
 }
 
-/** Prochain id séquentiel zéro-paddé (`task-001`, `task-002`, …). */
+/** Next zero-padded sequential id (`task-001`, `task-002`, …). */
 export function nextTaskId(prefix: string, existingIds: readonly string[]): string {
   const re = new RegExp(`^${escapeRegExp(prefix)}-(\\d+)$`)
   let max = 0
@@ -30,7 +30,7 @@ export function nextTaskId(prefix: string, existingIds: readonly string[]): stri
   return `${prefix}-${String(max + 1).padStart(3, '0')}`
 }
 
-/** Nom de fichier canonique d'une tâche : `<id>-<slug>.md`. */
+/** Canonical task file name: `<id>-<slug>.md`. */
 export function taskFileName(id: string, title: string): string {
   return `${id}-${slugify(title)}.md`
 }

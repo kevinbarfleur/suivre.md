@@ -3,7 +3,7 @@ import type { Task } from './types'
 import { nextTaskId, taskFileName } from './ids'
 import { rankAfter } from './rank'
 
-/** Opérations pures sur les tâches. Aucune I/O : la persistance vit dans `storage`. */
+/** Pure operations on tasks. No I/O: persistence lives in `storage`. */
 
 export interface CreateTaskInput {
   title: string
@@ -19,16 +19,16 @@ export interface CreateTaskInput {
 export interface CreateTaskContext {
   config: BoardConfig
   existingIds: readonly string[]
-  /** Dernier rang de la colonne cible (la carte est ajoutée à la fin). */
+  /** Last rank in the target column (the card is appended at the end). */
   lastOrderInColumn: string | null
-  /** Horloge injectée (ISO) pour rester pur/testable. */
+  /** Injected clock (ISO) to stay pure and testable. */
   now: string
 }
 
 export function createTask(input: CreateTaskInput, ctx: CreateTaskContext): Task {
   const status = input.status ?? ctx.config.columns[0]?.id
   if (!status) {
-    throw new Error('Aucune colonne définie dans la config du board')
+    throw new Error('No column defined in the board config')
   }
   const id = nextTaskId(ctx.config.taskPrefix, ctx.existingIds)
   const frontmatter: TaskFrontmatter = {
@@ -58,7 +58,7 @@ export type TaskPatch = Partial<
   >
 > & { body?: string }
 
-/** Applique un patch, bump `updated`, resynchronise le nom de fichier si le titre change. */
+/** Applies a patch, bumps `updated`, renames the file when the title changes. */
 export function editTask(task: Task, patch: TaskPatch, now: string): Task {
   const { body, ...fmPatch } = patch
   const frontmatter: TaskFrontmatter = { ...task.frontmatter, ...fmPatch, updated: now }
@@ -73,7 +73,7 @@ export function editTask(task: Task, patch: TaskPatch, now: string): Task {
   }
 }
 
-/** Déplace une tâche vers un statut et un rang donnés. */
+/** Moves a task to a given status and rank. */
 export function moveTask(task: Task, toStatus: string, order: string, now: string): Task {
   return editTask(task, { status: toStatus, order }, now)
 }

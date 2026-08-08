@@ -1,8 +1,8 @@
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 
-// Découpe générique frontmatter YAML + corps markdown, partagée par les
-// collections (tâches, décisions, docs). Chaque domaine valide `data` avec son
-// propre schéma zod.
+// Generic split of YAML frontmatter + markdown body, shared by the
+// collections (tasks, decisions, docs). Each domain validates `data` with its
+// own zod schema.
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/
 
 export function splitFrontmatter(raw: string): { data: unknown; body: string } {
@@ -11,7 +11,7 @@ export function splitFrontmatter(raw: string): { data: unknown; body: string } {
   return { data: parseYaml(match[1] ?? '') ?? {}, body: (match[2] ?? '').trim() }
 }
 
-/** Sérialise frontmatter + corps ; `order` détermine l'ordre des clés (diffs stables). */
+/** Serializes frontmatter + body; `order` sets the key order (stable diffs). */
 export function joinFrontmatter(
   data: Record<string, unknown>,
   order: readonly string[],

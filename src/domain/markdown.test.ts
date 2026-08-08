@@ -5,7 +5,7 @@ import type { Task } from './types'
 const sample: Task = {
   frontmatter: {
     id: 'task-001',
-    title: 'Titre de la tâche',
+    title: 'Task title',
     status: 'todo',
     priority: 'high',
     labels: ['ui', 'bug'],
@@ -26,18 +26,18 @@ describe('markdown', () => {
     expect(parsed.body).toBe(sample.body)
   })
 
-  it('omet les optionnels absents et les tableaux vides', () => {
+  it('omits absent optionals and empty arrays', () => {
     const raw = serializeTask(sample)
     expect(raw).not.toContain('assignee')
     expect(raw).not.toContain('parent')
     expect(raw).not.toContain('depends')
   })
 
-  it('lève sans frontmatter', () => {
+  it('throws without frontmatter', () => {
     expect(() => parseTask('juste du texte', 'x.md')).toThrow()
   })
 
-  it('lève sur un frontmatter invalide (titre manquant)', () => {
+  it('throws on invalid frontmatter (missing title)', () => {
     const bad = '---\nid: task-1\nstatus: todo\norder: a0\ncreated: x\nupdated: x\n---\n'
     expect(() => parseTask(bad, 'x.md')).toThrow()
   })

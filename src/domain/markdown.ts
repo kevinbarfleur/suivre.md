@@ -4,11 +4,11 @@ import type { Task } from './types'
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/
 
-/** Parse un fichier de tâche (frontmatter YAML + corps). Valide via zod, lève si invalide. */
+/** Parses a task file (YAML frontmatter + body). Validates via zod, throws if invalid. */
 export function parseTask(raw: string, fileName: string): Task {
   const match = raw.match(FRONTMATTER_RE)
   if (!match) {
-    throw new Error(`Fichier de tâche sans frontmatter: ${fileName}`)
+    throw new Error(`Task file without frontmatter: ${fileName}`)
   }
   const yamlBlock = match[1] ?? ''
   const body = (match[2] ?? '').trim()
@@ -17,7 +17,7 @@ export function parseTask(raw: string, fileName: string): Task {
   return { frontmatter, body, fileName }
 }
 
-/** Ordre de champ déterministe → diffs git propres et stables. */
+/** Deterministic field order → clean, stable git diffs. */
 const FIELD_ORDER: readonly (keyof TaskFrontmatter)[] = [
   'id',
   'title',
@@ -32,7 +32,7 @@ const FIELD_ORDER: readonly (keyof TaskFrontmatter)[] = [
   'updated',
 ]
 
-/** Sérialise une tâche en markdown. Omet les optionnels absents et les tableaux vides. */
+/** Serializes a task to markdown. Omits absent optionals and empty arrays. */
 export function serializeTask(task: Task): string {
   const fm = task.frontmatter
   const ordered: Record<string, unknown> = {}

@@ -7,9 +7,9 @@ import type { Task } from './types'
 const config = boardConfigSchema.parse({
   name: 'T',
   columns: [
-    { id: 'todo', label: 'À faire' },
-    { id: 'doing', label: 'En cours' },
-    { id: 'done', label: 'Fait' },
+    { id: 'todo', label: 'To do' },
+    { id: 'doing', label: 'In progress' },
+    { id: 'done', label: 'Done' },
   ],
 })
 
@@ -22,18 +22,18 @@ function task(id: string, overrides: Partial<Task['frontmatter']> = {}, body = '
 }
 
 describe('appendComment', () => {
-  it('crée la section au premier commentaire', () => {
-    const body = appendComment('## Description\n\nTexte.', {
-      text: 'Premier retour',
+  it('creates the section on the first comment', () => {
+    const body = appendComment('## Description\n\nText.', {
+      text: 'First note',
       author: 'claude',
       at: '2026-08-08T10:00:00Z',
     })
     expect(body).toBe(
-      '## Description\n\nTexte.\n\n## Comments\n\n### 2026-08-08T10:00:00Z — claude\n\nPremier retour\n',
+      '## Description\n\nText.\n\n## Comments\n\n### 2026-08-08T10:00:00Z — claude\n\nFirst note\n',
     )
   })
 
-  it('appende sous la section existante, sans auteur', () => {
+  it('appends under the existing section, no author', () => {
     const first = appendComment('', { text: 'a', at: 't1' })
     const second = appendComment(first, { text: 'b', at: 't2' })
     expect(second).toBe('## Comments\n\n### t1\n\na\n\n### t2\n\nb\n')
@@ -41,7 +41,7 @@ describe('appendComment', () => {
 })
 
 describe('isReady / nextReady', () => {
-  it('exclut la colonne finale, les assignées et les bloquées', () => {
+  it('excludes the final column, assigned and blocked tasks', () => {
     const done = task('task-001', { status: 'done' })
     const claimed = task('task-002', { assignee: 'kevin' })
     const blocked = task('task-003', { depends: ['task-002'] })
@@ -53,13 +53,13 @@ describe('isReady / nextReady', () => {
     expect(isReady(free, tasks, config)).toBe(true)
   })
 
-  it('résout une dépendance done ou disparue', () => {
+  it('resolves a done or missing dependency', () => {
     const dep = task('task-001', { status: 'done' })
     const t = task('task-002', { depends: ['task-001', 'task-999'] })
     expect(isReady(t, [dep, t], config)).toBe(true)
   })
 
-  it('frontier de sprint : premier item ready dans l’ordre du sprint', () => {
+  it('sprint frontier: first ready item in sprint order', () => {
     const a = task('task-001', { status: 'done' })
     const b = task('task-002', { depends: ['task-003'] })
     const c = task('task-003')
@@ -70,7 +70,7 @@ describe('isReady / nextReady', () => {
 })
 
 describe('filterTasks', () => {
-  it('filtre par statut/label/assignee et trie par colonne puis rang', () => {
+  it('filters by status/label/assignee and sorts by column then rank', () => {
     const a = task('task-001', { status: 'doing', labels: ['bug'] })
     const b = task('task-002', { status: 'todo', labels: ['bug'], assignee: 'kevin' })
     const c = task('task-003', { status: 'todo' })

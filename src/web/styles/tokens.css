@@ -1,13 +1,13 @@
 /*
- * Design system « terminal » de suivre.md. Trois thèmes sélectionnables via
- * `data-theme` sur <html> : terminal (teinte bleu-vert), dark (neutre, sans
- * bleu), light. Tout composant lit UNIQUEMENT ces tokens — aucune couleur en dur.
- * La couleur ne porte que trois notes sémantiques : danger, warn/dette, ok.
+ * suivre.md "terminal" design system. Three themes selectable via
+ * `data-theme` on <html>: terminal (blue-green tint), dark (neutral, no
+ * blue), light. Every component reads ONLY these tokens — no hard-coded color.
+ * Color carries only three semantic notes: danger, warn/debt, ok.
  */
 :root {
   color-scheme: dark;
 
-  /* Rayons — indépendants du thème (par rôle, concentriques) */
+  /* Radii — theme-independent (per role, concentric) */
   --sv-r-badge: 3px;
   --sv-r-card: 6px;
   --sv-r: 7px;
@@ -16,7 +16,7 @@
   --sv-r-term: 16px;
 }
 
-/* ============================ TERMINAL (bleu-vert) ======================== */
+/* ============================ TERMINAL (blue-green) ====================== */
 :root[data-theme='terminal'] {
   color-scheme: dark;
 
@@ -67,7 +67,7 @@
   --sv-shadow-modal: 0 40px 90px -40px rgba(0, 0, 0, 0.95);
 }
 
-/* ============================ DARK (neutre, sans bleu) ==================== */
+/* ============================ DARK (neutral, no blue) ===================== */
 :root[data-theme='dark'] {
   color-scheme: dark;
 

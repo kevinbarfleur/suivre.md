@@ -17,7 +17,7 @@ export interface ServerHandle {
   close: () => Promise<void>
 }
 
-/** Démarre le board : service + file-watcher → SSE + serveur HTTP. */
+/** Starts the board: service + file watcher → SSE + HTTP server. */
 export async function startServer(root: string, opts: ServerOptions = {}): Promise<ServerHandle> {
   const port = opts.port ?? Number(process.env.PORT ?? 45188)
   const dirName = opts.dirName ?? '.suivre'

@@ -1,21 +1,15 @@
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
-import {
-  boardConfigSchema,
-  buildBoard,
-  DEFAULT_COLUMNS,
-  parseTask,
-  serializeTask,
-} from '../domain'
+import { boardConfigSchema, buildBoard, DEFAULT_COLUMNS, parseTask, serializeTask } from '../domain'
 import type { Board, BoardConfig, Task } from '../domain'
 import { ARCHIVE_SUBDIR } from './collection'
 import { resolvePaths, type BacklogPaths } from './paths'
 import { atomicWrite, readFileSafe, readMarkdownDir, removeFile } from './io'
 
 /**
- * Dépôt de stockage : seul composant qui touche le disque. Les surfaces
- * (server / cli / mcp) passent par lui, jamais par `fs` directement.
+ * Storage repository: the only component that touches the disk. Surfaces
+ * (server / cli / mcp) go through it, never through `fs` directly.
  */
 export class BacklogRepository {
   private readonly paths: BacklogPaths
@@ -24,7 +18,7 @@ export class BacklogRepository {
     this.paths = resolvePaths(root, dirName)
   }
 
-  /** Crée le backlog s'il n'existe pas ; renvoie la config (existante ou neuve). */
+  /** Creates the backlog if missing; returns the config (existing or new). */
   async init(name: string): Promise<BoardConfig> {
     const existing = await this.loadConfig()
     if (existing) return existing
@@ -49,7 +43,7 @@ export class BacklogRepository {
     return files.map(({ fileName, raw }) => parseTask(raw, fileName))
   }
 
-  /** Tâches rangées dans `tasks/archive/` (archivées par emplacement). */
+  /** Tasks stored in `tasks/archive/` (archived by location). */
   async listArchivedTasks(): Promise<Task[]> {
     const files = await readMarkdownDir(join(this.paths.tasksDir, ARCHIVE_SUBDIR))
     const tasks: Task[] = []
@@ -57,7 +51,7 @@ export class BacklogRepository {
       try {
         tasks.push(parseTask(raw, fileName))
       } catch {
-        /* fichier d'archive invalide : ignoré plutôt que bloquant */
+        /* invalid archive file: skipped rather than blocking */
       }
     }
     return tasks
@@ -68,7 +62,7 @@ export class BacklogRepository {
     return tasks.find((task) => task.frontmatter.id === id) ?? null
   }
 
-  /** Écrit une tâche. Si le nom de fichier a changé (titre édité), retire l'ancien. */
+  /** Writes a task. If the file name changed (title edited), removes the old one. */
   async saveTask(task: Task, previousFileName?: string): Promise<void> {
     if (previousFileName && previousFileName !== task.fileName) {
       await removeFile(join(this.paths.tasksDir, previousFileName))
@@ -83,14 +77,11 @@ export class BacklogRepository {
     return true
   }
 
-  /** Range une tâche dans `tasks/archive/` (hors board, conservée dans le repo). */
+  /** Moves a task into `tasks/archive/` (off the board, kept in the repo). */
   async archiveTask(id: string): Promise<boolean> {
     const task = await this.getTask(id)
     if (!task) return false
-    await atomicWrite(
-      join(this.paths.tasksDir, ARCHIVE_SUBDIR, task.fileName),
-      serializeTask(task),
-    )
+    await atomicWrite(join(this.paths.tasksDir, ARCHIVE_SUBDIR, task.fileName), serializeTask(task))
     await removeFile(join(this.paths.tasksDir, task.fileName))
     return true
   }

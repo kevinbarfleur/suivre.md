@@ -2,9 +2,9 @@ import { computed, ref } from 'vue'
 import * as api from '../../lib/api'
 import type { GlobalPreferences, ProjectPreferences, Theme } from '../../lib/api'
 
-// Store de préférences, singleton. Deux niveaux : global (machine) et projet.
-// Le thème est appliqué sur <html data-theme> ; un cache localStorage évite le
-// flash au boot (cf. le script inline dans index.html).
+// Preferences store, singleton. Two levels: global (machine) and project.
+// The theme is applied on <html data-theme>; a localStorage cache avoids the
+// flash on boot (see the inline script in index.html).
 const THEME_KEY = 'suivre.theme'
 
 const global = ref<GlobalPreferences>({ theme: 'dark', defaultView: 'board' })

@@ -9,13 +9,13 @@ import {
 } from '../domain'
 import { atomicWrite, readFileSafe } from './io'
 
-/** Fichier de config machine (XDG). Même thème/vue par défaut pour tous les projets. */
+/** Machine-level config file (XDG). Same default theme/view across all projects. */
 function globalConfigFile(): string {
   const base = process.env.XDG_CONFIG_HOME ?? join(homedir(), '.config')
   return join(base, 'suivre', 'config.json')
 }
 
-/** Parse tolérant : fichier absent ou corrompu → valeurs par défaut du schéma. */
+/** Tolerant parse: missing or corrupted file → schema defaults. */
 function parseOrDefault<T>(schema: z.ZodType<T>, raw: string | null): T {
   if (raw === null) return schema.parse({})
   try {
@@ -30,8 +30,8 @@ function serialize(value: unknown): string {
 }
 
 /**
- * Persiste les préférences aux deux niveaux : machine (dossier de config
- * utilisateur) et projet (dans le backlog, versionné). Écriture atomique.
+ * Persists preferences at both levels: machine (user config directory) and
+ * project (inside the backlog, versioned). Atomic writes.
  */
 export class PreferencesStore {
   constructor(private readonly projectFile: string) {}

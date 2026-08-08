@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import { atomicWrite, readMarkdownDir, removeFile } from './io'
 
-/** Sous-dossier conventionnel des items archivés (`<collection>/archive/`). */
+/** Conventional subfolder for archived items (`<collection>/archive/`). */
 export const ARCHIVE_SUBDIR = 'archive'
 
 export interface CollectionItem {
@@ -10,9 +10,9 @@ export interface CollectionItem {
 }
 
 /**
- * Collection générique de fichiers `.md` (frontmatter + corps) dans un dossier.
- * Mutualise la logique de tâches pour décisions et docs. Écriture atomique ;
- * un fichier invalide est ignoré à la lecture (jamais bloquant).
+ * Generic collection of `.md` files (frontmatter + body) in a directory.
+ * Reuses the task logic for decisions and docs. Atomic writes; an invalid
+ * file is skipped on read (never blocking).
  */
 export class MarkdownCollection<T extends CollectionItem> {
   constructor(
@@ -27,18 +27,18 @@ export class MarkdownCollection<T extends CollectionItem> {
       try {
         items.push(this.parse(raw, fileName))
       } catch {
-        /* fichier invalide : on l'ignore plutôt que de casser la liste */
+        /* invalid file: skip it rather than break the list */
       }
     }
     return items
   }
 
-  /** Items actifs (top-level du dossier, hors sous-dossier archive/). */
+  /** Active items (top level of the directory, excluding the archive/ subfolder). */
   async list(): Promise<T[]> {
     return this.parseAll(await readMarkdownDir(this.dir))
   }
 
-  /** Items rangés dans `<collection>/archive/` (archivés par emplacement). */
+  /** Items stored in `<collection>/archive/` (archived by location). */
   async listArchived(): Promise<T[]> {
     return this.parseAll(await readMarkdownDir(join(this.dir, ARCHIVE_SUBDIR)))
   }

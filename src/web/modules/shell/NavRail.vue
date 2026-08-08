@@ -5,8 +5,8 @@ import { useBoard } from '../board/board.store'
 import { useView } from './view.store'
 import { views, type ViewDef } from './view-registry'
 
-// Rail de navigation : marque + deux groupes (tâches / ressources) tirés du
-// registre de vues. La vue active est mise en avant ; les badges sont des comptes.
+// Navigation rail: brand + two groups (tasks / resources) pulled from the
+// view registry. The active view is highlighted; badges are counts.
 const { board } = useBoard()
 const { view, setView } = useView()
 

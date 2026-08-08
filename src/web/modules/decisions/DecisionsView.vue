@@ -5,8 +5,8 @@ import { shortDate } from '../../lib/task-meta'
 import MarkdownBody from '../../components/MarkdownBody.vue'
 import { useDecisions } from './decisions.store'
 
-// Vue « décisions » : registre ADR. Liste filtrable par statut + détail
-// (contexte / décision / conséquences). Deep-linkable (#decisions/decision-001).
+// "Decisions" view: ADR registry. List filterable by status + detail
+// (context / decision / consequences). Deep-linkable (#decisions/decision-001).
 const { decisions, ensureLoaded } = useDecisions()
 const { item, setView } = useView()
 onMounted(ensureLoaded)

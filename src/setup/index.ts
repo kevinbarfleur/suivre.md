@@ -15,15 +15,15 @@ import {
 } from './templates'
 
 /**
- * `suivre setup` — commande de CONVERGENCE, pas d'installation : idempotente,
- * elle amène le repo à l'état attendu quel que soit son état de départ. Premier
- * run = installation ; re-runs = mise à jour (nouvel adaptateur après un update
- * de suivre) ou réparation (fichier supprimé, MCP débranché).
+ * `suivre setup` — a CONVERGENCE command, not an installer: idempotent, it
+ * brings the repo to the expected state whatever its starting state. First
+ * run = installation; re-runs = update (new adapter after a suivre update)
+ * or repair (deleted file, unplugged MCP).
  *
- * Elle branche le repo sur les skills de Matt Pocock (aihero.dev/skills) — par
- * SON canal officiel, jamais en copiant quoi que ce soit — puis écrit
- * l'adaptateur qui fait de suivre leur issue tracker. Un fichier que
- * l'utilisateur s'est approprié n'est jamais écrasé (voir `reconcile.ts`).
+ * It wires the repo to Matt Pocock's skills (aihero.dev/skills) — through HIS
+ * official channel, never by copying anything — then writes the adapter that
+ * makes suivre their issue tracker. A file the user has taken ownership of is
+ * never overwritten (see `reconcile.ts`).
  */
 
 export interface SetupOptions {
@@ -49,7 +49,7 @@ export async function runSetup(root: string, opts: SetupOptions = {}): Promise<v
 
   console.log(`suivre setup — ${root}\n`)
 
-  // 1. Board — init si absent, adoption sinon.
+  // 1. Board — init if absent, adopt otherwise.
   const service = new BoardService(root)
   const existing = await service.loadConfig()
   if (existing) {
@@ -63,17 +63,17 @@ export async function runSetup(root: string, opts: SetupOptions = {}): Promise<v
     say('✓', 'board', `.suivre/ created ("${config.name}", ${config.columns.length} columns)`)
   }
 
-  // 2. Skills de Matt Pocock — via son canal officiel uniquement.
+  // 2. Matt Pocock's skills — through his official channel only.
   if (opts.skipSkills) {
     say('•', 'skills', 'skipped (--skip-skills)')
   } else {
     await setupSkills(opts, say)
   }
 
-  // 3. L'adaptateur : le contrat que ses skills lisent pour parler à suivre.
+  // 3. The adapter: the contract his skills read to talk to suivre.
   await setupAdapter(root, opts, say)
 
-  // 4. Pointeur dans AGENTS.md, pour les agents qui ne lisent pas docs/agents/ d'eux-mêmes.
+  // 4. Pointer in AGENTS.md, for agents that don't read docs/agents/ on their own.
   const agentsPath = join(root, 'AGENTS.md')
   const agentsBefore = await readFileSafe(agentsPath)
   const agentsAfter = upsertBlock(
@@ -89,14 +89,14 @@ export async function runSetup(root: string, opts: SetupOptions = {}): Promise<v
     say('✓', 'agents', `AGENTS.md pointer ${agentsBefore === null ? 'created' : 'updated'}`)
   }
 
-  // 5. MCP projet (.mcp.json) — le board en tools natifs pour l'agent.
+  // 5. Project MCP (.mcp.json) — the board as native tools for the agent.
   if (opts.skipMcp) {
     say('•', 'mcp', 'skipped (--skip-mcp)')
   } else {
     await setupMcp(root, say)
   }
 
-  // 6. Overlay desktop (macOS) — un petit plus opt-in : suggéré, JAMAIS installé.
+  // 6. Desktop overlay (macOS) — a small opt-in extra: suggested, NEVER installed.
   if (process.platform === 'darwin' && !existsSync('/Applications/suivre.app')) {
     say('•', 'overlay', 'optional: `suivre overlay install` adds the double-⌘ overlay (macOS)')
   }
@@ -119,9 +119,9 @@ async function setupSkills(
     say('!', 'skills', `Claude Code CLI not found — ${manual}`)
     return
   }
-  // Lancer un installeur externe demande un consentement EXPLICITE : un oui au
-  // prompt (TTY), ou --yes. Un agent en shell non-TTY sans --yes reçoit
-  // l'instruction au lieu de l'exécution — pas d'installation par surprise.
+  // Running an external installer requires EXPLICIT consent: a yes at the
+  // prompt (TTY), or --yes. An agent in a non-TTY shell without --yes gets
+  // the instruction instead of the execution — no installation by surprise.
   const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY)
   if (interactive && !opts.yes) {
     const ok = await confirm(`Install ${SKILLS_PLUGIN} (by Matt Pocock, official marketplace)?`)
@@ -151,7 +151,7 @@ async function setupAdapter(
   const plan = planAdapterWrite(await readFileSafe(path), ADAPTER_BODY)
   const label = 'adapter'
   const rel = ADAPTER_RELATIVE_PATH
-  // Un `.new` d'un run précédent n'a de sens que tant que le fichier diverge.
+  // A `.new` from a previous run only makes sense while the file diverges.
   const dropStaleNew = () => removeFile(`${path}.new`)
   switch (plan.action) {
     case 'create':

@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto'
 
 /**
- * Convergence de l'adaptateur SANS écraser le travail de l'utilisateur. Le
- * fichier généré porte un marqueur (version + empreinte du corps généré). Au
- * re-run : empreinte intacte → le fichier est à nous, on peut le remplacer ;
- * empreinte différente ou absente → l'utilisateur se l'est approprié, on ne
- * touche pas et on propose un `.new`. Logique pure, testée.
+ * Adapter convergence WITHOUT overwriting the user's work. The generated file
+ * carries a marker (version + fingerprint of the generated body). On re-run:
+ * fingerprint intact → the file is ours, we may replace it; fingerprint
+ * different or missing → the user has taken ownership, we don't touch it and
+ * offer a `.new` instead. Pure logic, tested.
  */
 
 const MARKER_RE = /^<!-- suivre-adapter v(\d+) content:([a-f0-9]{64}) -->\n/
@@ -14,7 +14,7 @@ export function hashBody(body: string): string {
   return createHash('sha256').update(body, 'utf8').digest('hex')
 }
 
-/** Corps → fichier complet, marqueur en tête. */
+/** Body → full file, marker on top. */
 export function renderAdapter(body: string, version: number): string {
   return `<!-- suivre-adapter v${version} content:${hashBody(body)} -->\n${body}`
 }
@@ -39,10 +39,10 @@ export type AdapterPlan =
   | { action: 'create' }
   | { action: 'update'; fromVersion: number | null }
   | { action: 'up-to-date' }
-  /** Fichier approprié par l'utilisateur : ne pas écraser (sauf --force). */
+  /** File taken over by the user: do not overwrite (except with --force). */
   | { action: 'diverged'; fromVersion: number | null }
 
-/** Décide quoi faire du fichier existant face au template courant. */
+/** Decides what to do with the existing file given the current template. */
 export function planAdapterWrite(existing: string | null, freshBody: string): AdapterPlan {
   if (existing === null) return { action: 'create' }
   const marker = parseAdapter(existing)
@@ -54,8 +54,8 @@ export function planAdapterWrite(existing: string | null, freshBody: string): Ad
 }
 
 /**
- * Insère ou remplace un bloc délimité par des marqueurs dans un contenu
- * existant (AGENTS.md). Absent → append ; présent → remplacé sur place.
+ * Inserts or replaces a marker-delimited block in existing content
+ * (AGENTS.md). Absent → append; present → replaced in place.
  */
 export function upsertBlock(
   existing: string | null,

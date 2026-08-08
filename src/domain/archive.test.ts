@@ -40,7 +40,7 @@ function doc(id: string, updated = '2026-03-01'): Doc {
 }
 
 describe('buildArchive', () => {
-  it('inclut les tâches au statut archived, exclut les tâches actives', () => {
+  it('includes tasks with archived status, excludes active tasks', () => {
     const out = buildArchive({
       tasks: [
         { item: task('t-active', 'done'), inArchiveFolder: false },
@@ -54,7 +54,7 @@ describe('buildArchive', () => {
     expect(out[0]!.type).toBe('task')
   })
 
-  it('inclut tout item rangé dans un dossier archive/, quel que soit son statut', () => {
+  it('includes any item stored in an archive/ folder, whatever its status', () => {
     const out = buildArchive({
       tasks: [{ item: task('t-done', 'done'), inArchiveFolder: true }],
       decisions: [{ item: decision('d-acc', 'accepted'), inArchiveFolder: true }],
@@ -64,7 +64,7 @@ describe('buildArchive', () => {
     expect(out.every((e) => e.reason === 'folder')).toBe(true)
   })
 
-  it('inclut les décisions superseded/rejected, exclut les décisions vivantes', () => {
+  it('includes superseded/rejected decisions, excludes live decisions', () => {
     const out = buildArchive({
       tasks: [],
       decisions: [
@@ -78,7 +78,7 @@ describe('buildArchive', () => {
     expect(out.map((e) => e.id).sort()).toEqual(['d-rej', 'd-sup'])
   })
 
-  it("n'archive un doc que via le dossier archive/ (docs sans statut)", () => {
+  it('archives a doc only via the archive/ folder (docs have no status)', () => {
     const out = buildArchive({
       tasks: [],
       decisions: [],
@@ -91,7 +91,7 @@ describe('buildArchive', () => {
     expect(out[0]!.status).toBeNull()
   })
 
-  it('trie par date décroissante et normalise les champs', () => {
+  it('sorts by descending date and normalizes fields', () => {
     const out = buildArchive({
       tasks: [{ item: task('t', 'archived', 'ligne un', '2026-01-01'), inArchiveFolder: false }],
       decisions: [{ item: decision('d', 'superseded', '2026-05-01'), inArchiveFolder: false }],

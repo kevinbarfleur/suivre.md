@@ -23,13 +23,13 @@ function task(id: string, status: string, order: string): Task {
 const config = boardConfigSchema.parse({
   name: 'T',
   columns: [
-    { id: 'todo', label: 'À faire' },
+    { id: 'todo', label: 'To do' },
     { id: 'done', label: 'Fait' },
   ],
 })
 
 describe('buildBoard', () => {
-  it('range par colonne, trie par rang, remonte les orphelins', () => {
+  it('buckets by column, sorts by rank, surfaces orphans', () => {
     const tasks = [
       task('c', 'todo', 'c'),
       task('a', 'todo', 'a'),
@@ -44,11 +44,8 @@ describe('buildBoard', () => {
     expect(board.orphans.map((t) => t.frontmatter.id)).toEqual(['o'])
   })
 
-  it('exclut les tâches archivées du board (ni colonne ni orphelin)', () => {
-    const board = buildBoard(config, [
-      task('a', 'todo', 'a'),
-      task('z', 'archived', 'z'),
-    ])
+  it('excludes archived tasks from the board (no column, no orphan)', () => {
+    const board = buildBoard(config, [task('a', 'todo', 'a'), task('z', 'archived', 'z')])
     const allIds = board.columns.flatMap((c) => c.tasks.map((t) => t.frontmatter.id))
     expect(allIds).toEqual(['a'])
     expect(board.orphans).toHaveLength(0)

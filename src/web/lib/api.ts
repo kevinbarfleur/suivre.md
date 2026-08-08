@@ -18,7 +18,7 @@ export type { ArchivedEntry, ArchivedType } from '../../domain'
 export type { Sprint, SprintStatus, SprintStep, ResolvedSprint } from '../../domain'
 
 async function json<T>(res: Response): Promise<T> {
-  if (!res.ok) throw new Error(`Requête échouée (${res.status})`)
+  if (!res.ok) throw new Error(`Request failed (${res.status})`)
   return (await res.json()) as T
 }
 
@@ -80,10 +80,10 @@ export async function moveTask(id: string, body: MoveInput): Promise<Task> {
 
 export async function deleteTask(id: string): Promise<void> {
   const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error(`Suppression échouée (${res.status})`)
+  if (!res.ok) throw new Error(`Delete failed (${res.status})`)
 }
 
-// --- Préférences (machine + projet) ---
+// --- Preferences (machine + project) ---
 
 export type Theme = 'terminal' | 'dark' | 'light'
 export interface GlobalPreferences {
@@ -126,13 +126,13 @@ export async function patchProjectPreferences(
   )
 }
 
-// --- Archives (vue transverse) ---
+// --- Archive (cross-cutting view) ---
 
 export async function fetchArchive(): Promise<ArchivedEntry[]> {
   return json<ArchivedEntry[]>(await fetch('/api/archive'))
 }
 
-// --- Sprints (checklist ordonnée de tâches) ---
+// --- Sprints (ordered task checklist) ---
 
 export async function fetchSprints(): Promise<Sprint[]> {
   return json<Sprint[]>(await fetch('/api/sprints'))
@@ -157,10 +157,10 @@ export async function updateSprint(id: string, patch: SprintPatch): Promise<Spri
 }
 export async function deleteSprint(id: string): Promise<void> {
   const res = await fetch(`/api/sprints/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error(`Suppression échouée (${res.status})`)
+  if (!res.ok) throw new Error(`Delete failed (${res.status})`)
 }
 
-// --- Décisions (ADR) ---
+// --- Decisions (ADR) ---
 
 export async function fetchDecisions(): Promise<Decision[]> {
   return json<Decision[]>(await fetch('/api/decisions'))
@@ -185,7 +185,7 @@ export async function updateDecision(id: string, patch: DecisionPatch): Promise<
 }
 export async function deleteDecision(id: string): Promise<void> {
   const res = await fetch(`/api/decisions/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error(`Suppression échouée (${res.status})`)
+  if (!res.ok) throw new Error(`Delete failed (${res.status})`)
 }
 
 // --- Docs ---
@@ -213,5 +213,5 @@ export async function updateDoc(id: string, patch: DocPatch): Promise<Doc> {
 }
 export async function deleteDoc(id: string): Promise<void> {
   const res = await fetch(`/api/docs/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error(`Suppression échouée (${res.status})`)
+  if (!res.ok) throw new Error(`Delete failed (${res.status})`)
 }

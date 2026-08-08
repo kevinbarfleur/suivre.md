@@ -17,8 +17,8 @@ import {
 } from '../../lib/aggregate'
 import { meter, shortDate } from '../../lib/task-meta'
 
-// Vue « overview » : l'état du projet en profondeur. Agrégats cliquables →
-// appliquent le filtre correspondant et basculent vers la liste.
+// "Overview" view: the project's state in depth. Clickable aggregates →
+// apply the matching filter and switch to the list.
 const { board, allTasks } = useBoard()
 const { status, priority, label, assignee } = useFilter()
 const { setView } = useView()

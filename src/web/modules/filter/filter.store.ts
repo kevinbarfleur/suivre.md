@@ -2,9 +2,9 @@ import { computed, ref } from 'vue'
 import type { Priority, Task } from '../../../domain'
 import { useBoard } from '../board/board.store'
 
-// Filtre client-side, singleton. Le board et la liste lisent `matches` pour
-// restreindre les cartes/lignes affichées ; la toolbar pilote les critères.
-// Aucune écriture disque — filtrer est une vue, pas une mutation.
+// Client-side filter, singleton. The board and the list read `matches` to
+// restrict the displayed cards/rows; the toolbar drives the criteria.
+// No disk writes — filtering is a view, not a mutation.
 const text = ref('')
 const status = ref<string | null>(null)
 const priority = ref<Priority | null>(null)

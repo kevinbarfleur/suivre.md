@@ -5,7 +5,7 @@ import { shortDate } from '../../lib/task-meta'
 import MarkdownBody from '../../components/MarkdownBody.vue'
 import { useDocs } from './docs.store'
 
-// Vue « docs » : index de la documentation + lecture (markdown rendu).
+// "Docs" view: documentation index + reading (rendered markdown).
 // Deep-linkable (#docs/doc-001).
 const { docs, ensureLoaded } = useDocs()
 const { item, setView } = useView()

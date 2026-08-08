@@ -18,14 +18,14 @@ describe('BoardService', () => {
     await rm(root, { recursive: true, force: true })
   })
 
-  it('create place en fin de colonne, rangs croissants, statut par défaut', async () => {
+  it('create places at end of column, increasing ranks, default status', async () => {
     const a = await svc.create({ title: 'A' })
     const b = await svc.create({ title: 'B' })
     expect(a.frontmatter.status).toBe('backlog')
     expect(a.frontmatter.order < b.frontmatter.order).toBe(true)
   })
 
-  it('move afterId insère strictement entre deux cartes', async () => {
+  it('move afterId inserts strictly between two cards', async () => {
     const a = await svc.create({ title: 'A', status: 'todo' })
     const b = await svc.create({ title: 'B', status: 'todo' })
     const c = await svc.create({ title: 'C', status: 'todo' })
@@ -34,7 +34,7 @@ describe('BoardService', () => {
     expect(moved.frontmatter.order < b.frontmatter.order).toBe(true)
   })
 
-  it('move change le statut et le board le reflète', async () => {
+  it('move changes the status and the board reflects it', async () => {
     const a = await svc.create({ title: 'A' })
     const moved = await svc.move(a.frontmatter.id, 'doing')
     expect(moved.frontmatter.status).toBe('doing')
@@ -43,7 +43,7 @@ describe('BoardService', () => {
     expect(doing.tasks.map((t) => t.frontmatter.id)).toContain(a.frontmatter.id)
   })
 
-  it('edit bump la priorité, remove supprime', async () => {
+  it('edit bumps the priority, remove deletes', async () => {
     const a = await svc.create({ title: 'A' })
     const edited = await svc.edit(a.frontmatter.id, { priority: 'high' })
     expect(edited.frontmatter.priority).toBe('high')

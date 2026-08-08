@@ -5,11 +5,11 @@ import { BoardService } from '../service/board-service'
 import { decisionStatusSchema, prioritySchema, resolveSprint } from '../domain'
 
 /**
- * Surface MCP : expose le backlog en tools natifs pour qu'un agent le pilote en
- * direct (écrit des fichiers → si le board tourne, le file-watcher rafraîchit
- * l'écran live). Adaptateur mince sur le service, comme le serveur et le CLI.
- * Le vocabulaire couvre le contrat "issue tracker" des workflows agentiques
- * (create/read/list/comment/close + sprints/docs/décisions + reveal).
+ * MCP surface: exposes the backlog as native tools so an agent can drive it
+ * directly (writes files → if the board is running, the file-watcher refreshes
+ * the live screen). Thin adapter over the service, like the server and the CLI.
+ * The vocabulary covers the "issue tracker" contract of agentic workflows
+ * (create/read/list/comment/close + sprints/docs/decisions + reveal).
  */
 
 const asText = (value: unknown) => ({
@@ -20,12 +20,12 @@ export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd
   const service = new BoardService(root)
   const server = new McpServer({ name: 'suivre', version: '1.0.0-alpha.2' })
 
-  // --- Board & tâches ---
+  // --- Board & tasks ---
 
   server.registerTool(
     'backlog_init',
     {
-      description: 'Initialise un backlog markdown dans le repo courant (idempotent).',
+      description: 'Initialize a markdown backlog in the current repo (idempotent).',
       inputSchema: { name: z.string().optional() },
     },
     async ({ name }) => asText(await service.init(name ?? 'Backlog')),
@@ -34,7 +34,7 @@ export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd
   server.registerTool(
     'backlog_list',
     {
-      description: 'Renvoie le board : colonnes + tâches triées par rang, et les orphelins.',
+      description: 'Return the board: columns + tasks sorted by rank, and the orphans.',
       inputSchema: {},
     },
     async () => {
@@ -47,8 +47,8 @@ export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd
     'task_list',
     {
       description:
-        'Liste les tâches (ordre du board), avec filtres : status (colonne), label, assignee, ' +
-        'ready (non finale, non assignée, dépendances résolues).',
+        'List tasks (board order), with filters: status (column), label, assignee, ' +
+        'ready (not final, unassigned, dependencies resolved).',
       inputSchema: {
         status: z.string().optional(),
         label: z.string().optional(),
@@ -62,7 +62,7 @@ export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd
   server.registerTool(
     'task_get',
     {
-      description: 'Renvoie une tâche complète (frontmatter + corps markdown).',
+      description: 'Return a full task (frontmatter + markdown body).',
       inputSchema: { id: z.string() },
     },
     async ({ id }) => {
@@ -74,7 +74,7 @@ export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd
   server.registerTool(
     'task_add',
     {
-      description: 'Crée une tâche et renvoie sa version persistée.',
+      description: 'Create a task and return its persisted version.',
       inputSchema: {
         title: z.string(),
         status: z.string().optional(),
@@ -93,8 +93,8 @@ export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd
     'task_edit',
     {
       description:
-        'Modifie une tâche (titre / statut / priorité / labels / assignee / depends / corps). ' +
-        'assignee: "" pour désassigner.',
+        'Edit a task (title / status / priority / labels / assignee / depends / body). ' +
+        'assignee: "" to unassign.',
       inputSchema: {
         id: z.string(),
         title: z.string().optional(),
@@ -119,7 +119,7 @@ export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd
   server.registerTool(
     'task_comment',
     {
-      description: 'Ajoute un commentaire horodaté à une tâche (section ## Comments du corps).',
+      description: 'Append a timestamped comment to a task (## Comments section of the body).',
       inputSchema: {
         id: z.string(),
         text: z.string(),
@@ -132,7 +132,7 @@ export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd
   server.registerTool(
     'task_move',
     {
-      description: 'Déplace une tâche vers une colonne, placement optionnel (beforeId / afterId).',
+      description: 'Move a task to a column, with optional placement (beforeId / afterId).',
       inputSchema: {
         id: z.string(),
         status: z.string(),
@@ -147,8 +147,7 @@ export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd
   server.registerTool(
     'task_close',
     {
-      description:
-        'Ferme une tâche : colonne finale, commentaire de résolution optionnel, archivage optionnel.',
+      description: 'Close a task: final column, optional resolution comment, optional archiving.',
       inputSchema: {
         id: z.string(),
         comment: z.string().optional(),
@@ -163,8 +162,8 @@ export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd
     'task_next',
     {
       description:
-        'Prochaine tâche "ready" (non finale, non assignée, dépendances résolues). ' +
-        'Avec sprintId : la frontier suit l’ordre du sprint.',
+        'Next "ready" task (not final, unassigned, dependencies resolved). ' +
+        'With sprintId: the frontier follows the sprint order.',
       inputSchema: { sprintId: z.string().optional() },
     },
     async ({ sprintId }) => asText((await service.next(sprintId)) ?? { next: null }),
@@ -173,20 +172,20 @@ export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd
   server.registerTool(
     'task_remove',
     {
-      description: 'Supprime une tâche.',
+      description: 'Delete a task.',
       inputSchema: { id: z.string() },
     },
     async ({ id }) => asText({ removed: await service.remove(id) }),
   )
 
-  // --- Sprints (la "map" d'un effort) ---
+  // --- Sprints (the "map" of an effort) ---
 
   server.registerTool(
     'sprint_create',
     {
       description:
-        'Crée un sprint : checklist ORDONNÉE de tâches existantes (items = ids). Le corps porte ' +
-        'les notes de l’effort (notes / décisions / questions ouvertes).',
+        'Create a sprint: ORDERED checklist of existing tasks (items = ids). The body carries ' +
+        "the effort's notes (notes / decisions / open questions).",
       inputSchema: {
         title: z.string(),
         goal: z.string().optional(),
@@ -197,16 +196,14 @@ export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd
     async (args) => asText(await service.createSprint(args)),
   )
 
-  server.registerTool(
-    'sprint_list',
-    { description: 'Liste les sprints.', inputSchema: {} },
-    async () => asText(await service.listSprints()),
+  server.registerTool('sprint_list', { description: 'List sprints.', inputSchema: {} }, async () =>
+    asText(await service.listSprints()),
   )
 
   server.registerTool(
     'sprint_get',
     {
-      description: 'Renvoie un sprint avec la progression réelle de ses tâches.',
+      description: 'Return a sprint with the real progress of its tasks.',
       inputSchema: { id: z.string() },
     },
     async ({ id }) => {
@@ -221,7 +218,7 @@ export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd
   server.registerTool(
     'sprint_edit',
     {
-      description: 'Modifie un sprint (titre / goal / status / items / corps).',
+      description: 'Edit a sprint (title / goal / status / items / body).',
       inputSchema: {
         id: z.string(),
         title: z.string().optional(),
@@ -234,12 +231,12 @@ export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd
     async ({ id, ...patch }) => asText(await service.editSprint(id, patch)),
   )
 
-  // --- Connaissance : docs (specs) et décisions (ADR) ---
+  // --- Knowledge: docs (specs) and decisions (ADR) ---
 
   server.registerTool(
     'doc_create',
     {
-      description: 'Crée un doc (spec, note, référence), rendu en lecture dans le dashboard.',
+      description: 'Create a doc (spec, note, reference), rendered read-only in the dashboard.',
       inputSchema: {
         title: z.string(),
         tags: z.array(z.string()).optional(),
@@ -249,21 +246,20 @@ export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd
     async (args) => asText(await service.createDoc(args)),
   )
 
-  server.registerTool('doc_list', { description: 'Liste les docs.', inputSchema: {} }, async () =>
+  server.registerTool('doc_list', { description: 'List docs.', inputSchema: {} }, async () =>
     asText(await service.listDocs()),
   )
 
   server.registerTool(
     'doc_get',
-    { description: 'Renvoie un doc complet.', inputSchema: { id: z.string() } },
+    { description: 'Return a full doc.', inputSchema: { id: z.string() } },
     async ({ id }) => asText((await service.getDoc(id)) ?? { error: 'not-found', id }),
   )
 
   server.registerTool(
     'decision_create',
     {
-      description:
-        'Enregistre une décision (ADR) : Contexte / Décision / Conséquences dans le corps.',
+      description: 'Record a decision (ADR): Context / Decision / Consequences in the body.',
       inputSchema: {
         title: z.string(),
         status: decisionStatusSchema.optional(),
@@ -277,17 +273,17 @@ export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd
 
   server.registerTool(
     'decision_list',
-    { description: 'Liste les décisions (ADR).', inputSchema: {} },
+    { description: 'List decisions (ADR).', inputSchema: {} },
     async () => asText(await service.listDecisions()),
   )
 
   server.registerTool(
     'decision_get',
-    { description: 'Renvoie une décision complète.', inputSchema: { id: z.string() } },
+    { description: 'Return a full decision.', inputSchema: { id: z.string() } },
     async ({ id }) => asText((await service.getDecision(id)) ?? { error: 'not-found', id }),
   )
 
-  // --- Restitution ---
+  // --- Showing your work ---
 
   server.registerTool(
     'reveal_overlay',

@@ -3,18 +3,18 @@ import { run, service } from '../context'
 
 export interface SurfaceOptions {
   /**
-   * Emplacement de la SPA buildée, résolu par l'ENTRÉE du CLI (src/cli/index.ts).
-   * Résolu là-bas et pas ici : après bundling, `import.meta.url` d'un module
-   * partagé pointe sur un chunk — seule l'entrée a un chemin de sortie stable.
+   * Location of the built SPA, resolved by the CLI ENTRY (src/cli/index.ts).
+   * Resolved there and not here: after bundling, a shared module's
+   * `import.meta.url` points at a chunk — only the entry has a stable output path.
    */
   webDistDir: string
-  /** Sources de l'app desktop (apps/desktop), résolues par l'entrée aussi. */
+  /** Desktop app sources (apps/desktop), also resolved by the entry. */
   desktopDir: string
 }
 
-/** Surfaces long-vivantes : board web, overlay desktop, serveur MCP. */
+/** Long-lived surfaces: web board, desktop overlay, MCP server. */
 export function registerSurfaceCommands(cli: CAC, opts: SurfaceOptions): void {
-  cli.command('init [name]', 'Initialise a backlog in the current repo').action(
+  cli.command('init [name]', 'Initialize a backlog in the current repo').action(
     run(async (name?: string) => {
       const config = await service().init(name ?? 'Backlog')
       console.log(`Backlog "${config.name}" ready — ${config.columns.length} columns.`)
@@ -64,9 +64,9 @@ export function registerSurfaceCommands(cli: CAC, opts: SurfaceOptions): void {
     }),
   )
 
-  // L'overlay est strictement opt-in : jamais installé par un setup, toujours
-  // par cette commande explicite. Build local (pas de binaire téléchargé : une
-  // app ad-hoc non notarisée serait bloquée par Gatekeeper — un build local, non).
+  // The overlay is strictly opt-in: never installed by a setup, always via this
+  // explicit command. Local build (no downloaded binary: an ad-hoc, non-notarized
+  // app would be blocked by Gatekeeper — a local build is not).
   cli
     .command('overlay install', 'Build and install the macOS desktop overlay (double-⌘ summon)')
     .action(

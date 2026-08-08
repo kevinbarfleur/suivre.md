@@ -5,7 +5,7 @@ import { useBoard } from '../board/board.store'
 import { useFilter } from '../filter/filter.store'
 import { acProgress, blockedBy, meter, shortDate } from '../../lib/task-meta'
 
-// Vue « liste » : toutes les tâches en table dense, triable. Réutilise le filtre.
+// "List" view: all tasks in a dense, sortable table. Reuses the filter.
 const { board, allTasks, openTask } = useBoard()
 const { matches } = useFilter()
 
@@ -246,7 +246,7 @@ const sortLabel = computed(() => `${sortKey.value} ${sortDir.value === 'asc' ? '
 .lv-row:hover {
   background: var(--sv-raised);
 }
-/* Colonnes — largeurs partagées entre header et rangées */
+/* Columns — widths shared between header and rows */
 .c-id {
   width: 84px;
   flex: 0 0 auto;

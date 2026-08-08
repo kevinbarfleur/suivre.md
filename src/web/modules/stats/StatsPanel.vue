@@ -3,8 +3,8 @@ import { computed, onMounted } from 'vue'
 import { useBoard } from '../board/board.store'
 import { meter } from '../../lib/task-meta'
 
-// Bilan : état d'avancement d'un coup d'œil. Barre ASCII + comptes par colonne
-// + indicateurs saillants (à tester / prioritaires / dette).
+// Summary: progress at a glance. ASCII bar + counts per column
+// + salient indicators (to test / high priority / debt).
 const { board, allTasks, ensureLoaded } = useBoard()
 onMounted(ensureLoaded)
 

@@ -9,7 +9,7 @@ import { run } from './context'
 
 const cli = cac('suivre')
 
-// Résolus ici (entrée) : valables depuis src/ comme depuis dist/.
+// Resolved here (entry): valid from src/ as well as from dist/.
 const webDistDir = fileURLToPath(new URL('../../dist/web', import.meta.url))
 const desktopDir = fileURLToPath(new URL('../../apps/desktop', import.meta.url))
 
@@ -41,9 +41,9 @@ cli
 
 cli.help()
 
-// cac ne matche un nom de commande que sur le PREMIER token d'argv : les noms à
-// deux mots ("sprint create") ne matcheraient jamais — silencieusement. On fusionne
-// donc `sprint create …` en un seul token avant le parse ; l'aide reste inchangée.
+// cac only matches a command name against the FIRST argv token: two-word names
+// ("sprint create") would never match — silently. So we merge `sprint create …`
+// into a single token before parsing; help output is unchanged.
 const GROUPS = new Set(['sprint', 'doc', 'decision', 'overlay'])
 const argv = [...process.argv]
 if (argv[2] && GROUPS.has(argv[2]) && argv[3] && !argv[3].startsWith('-')) {
@@ -52,7 +52,7 @@ if (argv[2] && GROUPS.has(argv[2]) && argv[3] && !argv[3].startsWith('-')) {
 
 cli.parse(argv)
 
-// cac est muet sur une commande inconnue — on préfère échouer bruyamment.
+// cac is silent on an unknown command — we prefer to fail loudly.
 if (!cli.matchedCommand && !cli.options['help']) {
   if (cli.args.length === 0) {
     cli.outputHelp()

@@ -2,41 +2,41 @@ import type { Decision } from './decision'
 import type { Doc } from './doc'
 import type { Task } from './types'
 
-// Vue « archives » : liste unifiée, tous types confondus (tâches, décisions,
-// docs). Un item est archivé s'il porte un statut d'archive OU s'il est rangé
-// dans le sous-dossier `archive/` de sa collection. Ces fonctions sont pures :
-// la lecture disque (dossiers archive/) vit dans `storage`.
+// "Archives" view: a unified list across all types (tasks, decisions, docs).
+// An item is archived if it carries an archive status OR if it lives in its
+// collection's `archive/` subfolder. These functions are pure: disk reads
+// (archive/ folders) live in `storage`.
 
-/** Statut de tâche réservé : une tâche « archived » quitte le board actif et
- *  n'apparaît plus que dans les archives. Ce n'est pas une colonne. */
+/** Reserved task status: an "archived" task leaves the active board and
+ *  only shows up in the archives. It is not a column. */
 export const ARCHIVED_STATUS = 'archived'
 
-/** Statuts de décision (ADR) considérés comme historiques donc archivés. */
+/** Decision (ADR) statuses considered historical, hence archived. */
 export const ARCHIVED_DECISION_STATUSES: readonly string[] = ['superseded', 'rejected']
 
 export type ArchivedType = 'task' | 'decision' | 'doc'
 
-/** Ligne normalisée de la vue archives, indépendante du type d'origine. */
+/** Normalized row of the archives view, independent of the source type. */
 export interface ArchivedEntry {
   type: ArchivedType
   id: string
   title: string
-  /** Date de référence ISO (task.updated / decision.date / doc.updated). */
+  /** ISO reference date (task.updated / decision.date / doc.updated). */
   date: string
-  /** Étiquettes (task.labels / decision.labels / doc.tags). */
+  /** Labels (task.labels / decision.labels / doc.tags). */
   labels: string[]
-  /** Statut d'origine quand il est porteur de sens (task/decision), sinon null. */
+  /** Original status when it carries meaning (task/decision), otherwise null. */
   status: string | null
-  /** Pourquoi c'est archivé : le statut de l'item, ou un dossier `archive/`. */
+  /** Why it is archived: the item's status, or an `archive/` folder. */
   reason: 'status' | 'folder'
   fileName: string
-  /** Corps markdown complet (rendu dans le panneau de détail). */
+  /** Full markdown body (rendered in the detail panel). */
   body: string
-  /** Première ligne de contenu, pour la recherche et l'aperçu. */
+  /** First content line, for search and preview. */
   excerpt: string
 }
 
-/** Un item lu depuis le disque, avec l'info « venait-il d'un dossier archive/ ». */
+/** An item read from disk, with whether it came from an archive/ folder. */
 export interface Located<T> {
   item: T
   inArchiveFolder: boolean
@@ -115,9 +115,9 @@ function docEntry(doc: Doc, inFolder: boolean): ArchivedEntry {
 }
 
 /**
- * Construit la liste unifiée des archives à partir des items lus (actifs +
- * dossiers archive/). Ne garde que les items réellement archivés, triés par
- * date décroissante. On peut lui passer TOUS les items : le filtrage est ici.
+ * Builds the unified archive list from the items read (active + archive/
+ * folders). Keeps only the items actually archived, sorted by descending
+ * date. It can be given ALL items: the filtering happens here.
  */
 export function buildArchive(input: ArchiveInput): ArchivedEntry[] {
   const entries: ArchivedEntry[] = []

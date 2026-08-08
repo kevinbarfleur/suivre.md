@@ -12,7 +12,7 @@ import {
   toArray,
 } from '../context'
 
-/** Commandes tâches : le cœur du contrat tracker (create/read/list/edit/comment/close/next). */
+/** Task commands: the core of the tracker contract (create/read/list/edit/comment/close/next). */
 export function registerTaskCommands(cli: CAC): void {
   cli
     .command('add <title>', 'Create a task')
@@ -115,7 +115,7 @@ export function registerTaskCommands(cli: CAC): void {
           labels,
           body: options.body,
         })
-        // `--assignee ""` désassigne : le `undefined` explicite survit au compactage.
+        // `--assignee ""` unassigns: the explicit `undefined` survives compaction.
         if (options.assignee === '') patch.assignee = undefined
         const task = await svc.edit(id, patch)
         if (options.json) printJson(taskJson(task))

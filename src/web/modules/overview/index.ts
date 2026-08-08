@@ -1,7 +1,7 @@
 import { registerView } from '../shell/view-registry'
 import OverviewView from './OverviewView.vue'
 
-/** Enregistre la vue overview (synthèse développée, lecture seule). */
+/** Registers the overview view (expanded summary, read-only). */
 export default function registerOverviewModule(): void {
   registerView({
     id: 'overview',

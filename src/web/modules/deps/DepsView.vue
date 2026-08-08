@@ -4,8 +4,8 @@ import { useBoard } from '../board/board.store'
 import { blockedTasks, directCycles, highImpact, parentGroups } from '../../lib/aggregate'
 import { meter } from '../../lib/task-meta'
 
-// Vue « deps » : ordre d'exécution. Bloqués (bloqueurs résolus/non résolus),
-// bloqueurs à fort impact, sous-tâches, et signalement des cycles directs.
+// "Deps" view: execution order. Blocked tasks (resolved/unresolved blockers),
+// high-impact blockers, subtasks, and direct cycle reporting.
 const { board, allTasks } = useBoard()
 
 const columns = computed(() => board.value?.columns.map((c) => c.column) ?? [])

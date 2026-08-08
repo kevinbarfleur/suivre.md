@@ -1,8 +1,8 @@
 import { ref } from 'vue'
 
-// Vue active + item ciblé, deep-linkables par `#<vue>/<item>` (ex.
-// `#decisions/decision-001`, `#board/task-012`). Un lien direct ouvre l'app sur
-// l'item : c'est ce qui permet de pointer quelqu'un vers une décision/tâche précise.
+// Active view + targeted item, deep-linkable via `#<view>/<item>` (e.g.
+// `#decisions/decision-001`, `#board/task-012`). A direct link opens the app on
+// the item: this is what lets you point someone to a specific decision/task.
 function parseHash(): { view: string | null; item: string | null } {
   if (typeof window === 'undefined') return { view: null, item: null }
   const raw = window.location.hash.replace(/^#\/?/, '').trim()
@@ -24,14 +24,14 @@ export function useView() {
   return {
     view,
     item,
-    /** Un hash explicite est présent (deep-link) → ne pas surcharger par la pref. */
+    /** An explicit hash is present (deep-link) → don't override with the pref. */
     hasExplicitHash: (): boolean => parseHash().view != null,
     setView: (id: string, target: string | null = null) => {
       view.value = id
       item.value = target
       if (typeof window !== 'undefined') window.history.replaceState(null, '', hashFor(id, target))
     },
-    /** Lien direct vers un item (à partager). */
+    /** Direct link to an item (shareable). */
     linkFor: (id: string, target?: string | null): string => hashFor(id, target ?? null),
   }
 }

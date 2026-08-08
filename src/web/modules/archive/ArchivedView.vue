@@ -6,9 +6,9 @@ import { shortDate } from '../../lib/task-meta'
 import MarkdownBody from '../../components/MarkdownBody.vue'
 import { useArchive } from './archive.store'
 
-// Vue « archives » : liste transverse de tout ce qui est archivé (tâches au
-// statut `archived`, décisions historiques, docs rangés dans archive/). Filtres
-// type / période / label / recherche, tri, et lecture du détail sur place.
+// "Archive" view: cross-cutting list of everything archived (tasks with
+// status `archived`, historical decisions, docs filed under archive/). Filters
+// by type / period / label / search, sorting, and in-place detail reading.
 const { entries, ensureLoaded } = useArchive()
 const { item, setView } = useView()
 onMounted(ensureLoaded)
@@ -81,9 +81,9 @@ const selected = computed(() => entries.value.find((e) => e.id === selectedId.va
 function select(id: string): void {
   setView('archive', id)
 }
-// Un item n'est ouvrable dans son reader que s'il y vit encore : une décision
-// archivée PAR STATUT (superseded/rejected) reste dans le registre ADR ; tout
-// item rangé physiquement dans archive/ n'y est pas chargé → pas de lien mort.
+// An item can open in its reader only if it still lives there: a decision
+// archived BY STATUS (superseded/rejected) stays in the ADR registry; any
+// item physically filed in archive/ is not loaded there → no dead link.
 function canOpenInReader(entry: ArchivedEntry): boolean {
   return entry.type === 'decision' && entry.reason === 'status'
 }

@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>suivre.md — nuancier sémantique</title>
+<title>suivre.md — semantic palette</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -77,28 +77,28 @@
 <body>
 <div class="bg1"></div><div class="bg2"></div>
 <div class="wrap">
-  <div class="eyebrow"><span class="dot"></span><span class="label mono">suivre.md · nuancier sémantique</span></div>
-  <h1>Couleur, à ton œil</h1>
-  <p class="lede">Base <b>monochrome</b> (opacité de blanc), la couleur <b>réservée</b> à ce qui doit se repérer d'un coup d'œil : priorité surtout, deux statuts. Pastels mid-luminance désaturés, harmonisés avec le corail déjà présent dans le système. Chaque teinte : ratio de contraste <b>calculé sur le vrai fond</b> (<span class="mono">#08080a</span>) — AA ≥ 4.5, AAA ≥ 7.</p>
+  <div class="eyebrow"><span class="dot"></span><span class="label mono">suivre.md · semantic palette</span></div>
+  <h1>Color</h1>
+  <p class="lede"><b>Monochrome</b> base (white opacity); color is <b>reserved</b> for what must be spotted at a glance: priority mostly, two statuses. Desaturated mid-luminance pastels, harmonized with the coral already in the system. Every hue's contrast ratio is <b>computed against the real background</b> (<span class="mono">#08080a</span>) — AA &ge; 4.5, AAA &ge; 7.</p>
 
-  <h2>Palette sémantique</h2>
+  <h2>Semantic palette</h2>
   <div class="swatches" id="swatches"></div>
 
-  <h2>En situation — cartes de tâche</h2>
+  <h2>In context — task cards</h2>
   <div class="cards" id="cards"></div>
 
-  <p class="note">Approche : le <b>medium</b> reste neutre (pas de teinte) — la couleur ne sert qu'à distinguer ce qui sort du lot. Si l'intensité ne te va pas, je peux monter/descendre la saturation en une passe (plus sobre ↔ plus vif) sans changer les hues. Dis-moi ce que tu gardes, ce que tu ajustes.</p>
+  <p class="note"><b>Medium</b> stays neutral (no hue) — color only marks what stands out. Saturation can move up or down without changing the hues.</p>
 </div>
 
 <script>
   const BG = '#08080a'
   const palette = [
-    { name: 'Urgent',  hex: '#F5877A', use: 'priorité — urgent' },
-    { name: 'High',    hex: '#E9B872', use: 'priorité — haute' },
-    { name: 'Medium',  hex: null,      use: 'priorité — neutre (mono)' },
-    { name: 'Low',     hex: '#8FB0D4', use: 'priorité — basse' },
-    { name: 'Done',    hex: '#83C89E', use: 'statut — terminé' },
-    { name: 'Blocked', hex: '#E08AAE', use: 'statut — bloqué' },
+    { name: 'Urgent',  hex: '#F5877A', use: 'priority — urgent' },
+    { name: 'High',    hex: '#E9B872', use: 'priority — high' },
+    { name: 'Medium',  hex: null,      use: 'priority — neutral (mono)' },
+    { name: 'Low',     hex: '#8FB0D4', use: 'priority — low' },
+    { name: 'Done',    hex: '#83C89E', use: 'status — done' },
+    { name: 'Blocked', hex: '#E08AAE', use: 'status — blocked' },
   ]
 
   function lin(c){ c/=255; return c<=0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4) }
@@ -147,9 +147,9 @@
 
   const cards = document.getElementById('cards')
   const demo = [
-    { id:'task-014', title:'Corriger la boucle de re-transcription infinie', prio:'Urgent', hex:'#F5877A', labels:['bug','capture'] },
-    { id:'task-021', title:'Board kanban — drag & drop entre colonnes', prio:'High', hex:'#E9B872', labels:['web','ui'] },
-    { id:'task-008', title:'Écrire la doc du contrat MCP', prio:'Low', hex:'#8FB0D4', labels:['docs'] },
+    { id:'task-014', title:'Fix the infinite re-transcription loop', prio:'Urgent', hex:'#F5877A', labels:['bug','capture'] },
+    { id:'task-021', title:'Kanban board — drag & drop between columns', prio:'High', hex:'#E9B872', labels:['web','ui'] },
+    { id:'task-008', title:'Write the MCP contract docs', prio:'Low', hex:'#8FB0D4', labels:['docs'] },
   ]
   for (const d of demo) {
     cards.insertAdjacentHTML('beforeend', `

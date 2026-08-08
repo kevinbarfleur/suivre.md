@@ -9,8 +9,8 @@ function byOrder(a: Task, b: Task): number {
 }
 
 /**
- * Assemble le board : range les tâches par colonne (ordre de la config), trie
- * chaque colonne par rang, et remonte en `orphans` les tâches au statut inconnu.
+ * Assembles the board: buckets tasks by column (config order), sorts each
+ * column by rank, and surfaces tasks with an unknown status as `orphans`.
  */
 export function buildBoard(config: BoardConfig, tasks: readonly Task[]): Board {
   const byStatus = new Map<string, Task[]>()
@@ -18,8 +18,8 @@ export function buildBoard(config: BoardConfig, tasks: readonly Task[]): Board {
 
   const orphans: Task[] = []
   for (const task of tasks) {
-    // Une tâche archivée quitte le board actif : ni colonne ni orphelin. Elle
-    // reste sur disque et n'apparaît que dans la vue archives.
+    // An archived task leaves the active board: no column, no orphan. It
+    // stays on disk and only shows up in the archives view.
     if (task.frontmatter.status === ARCHIVED_STATUS) continue
     const bucket = byStatus.get(task.frontmatter.status)
     if (bucket) bucket.push(task)

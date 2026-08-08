@@ -2,8 +2,8 @@ import { ref } from 'vue'
 import type { ArchivedEntry } from '../../lib/api'
 import * as api from '../../lib/api'
 
-// Store des archives : liste unifiée (tâches archivées + décisions historiques
-// + docs rangés dans archive/), lecture seule. Rechargée à la demande.
+// Archive store: unified list (archived tasks + historical decisions
+// + docs filed under archive/), read-only. Reloaded on demand.
 const entries = ref<ArchivedEntry[]>([])
 const loading = ref(false)
 const loaded = ref(false)

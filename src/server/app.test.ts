@@ -27,21 +27,21 @@ describe('server API', () => {
     await rm(root, { recursive: true, force: true })
   })
 
-  it('GET /api/board renvoie les colonnes', async () => {
+  it('GET /api/board returns the columns', async () => {
     const res = await app.request('/api/board')
     expect(res.status).toBe(200)
     const board = await res.json()
     expect(board.columns.length).toBeGreaterThan(0)
   })
 
-  it('POST /api/tasks crée une tâche', async () => {
+  it('POST /api/tasks creates a task', async () => {
     const res = await app.request('/api/tasks', jsonInit({ title: 'Nouvelle' }))
     expect(res.status).toBe(201)
     const task = await res.json()
     expect(task.frontmatter.id).toBe('task-001')
   })
 
-  it('move reflète le statut dans le board', async () => {
+  it('move reflects the status in the board', async () => {
     await app.request('/api/tasks', jsonInit({ title: 'A' }))
     const moved = await app.request('/api/tasks/task-001/move', jsonInit({ status: 'done' }))
     expect(moved.status).toBe(200)

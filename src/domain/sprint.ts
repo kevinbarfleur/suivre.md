@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import { joinFrontmatter, splitFrontmatter } from './frontmatter'
 
-// Le résolveur pur (sans zod) vit à part pour rester importable côté web sans
-// tirer zod dans le bundle SPA.
+// The pure resolver (zod-free) lives apart so the web side can import it
+// without pulling zod into the SPA bundle.
 export * from './sprint-resolve'
 
 // A sprint = an ORDERED checklist of existing tasks to ship. It does not

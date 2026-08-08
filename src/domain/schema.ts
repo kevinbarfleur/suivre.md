@@ -1,12 +1,12 @@
 import { z } from 'zod'
 
-/** Priorité d'une tâche. Seul axe qui justifie de la couleur sur le board. */
+/** Task priority. The only axis that earns color on the board. */
 export const prioritySchema = z.enum(['low', 'medium', 'high', 'urgent'])
 export type Priority = z.infer<typeof prioritySchema>
 
 /**
- * Frontmatter YAML d'un fichier de tâche. Source de vérité du modèle : tout
- * champ structuré d'une tâche vit ici, le corps markdown porte le reste.
+ * YAML frontmatter of a task file. The model's source of truth: every
+ * structured field lives here, the markdown body carries the rest.
  */
 export const taskFrontmatterSchema = z.object({
   id: z.string().min(1),
@@ -15,7 +15,7 @@ export const taskFrontmatterSchema = z.object({
   priority: prioritySchema.optional(),
   labels: z.array(z.string()).default([]),
   assignee: z.string().optional(),
-  /** Rang lexicographique (fractional index) dans la colonne. */
+  /** Lexicographic rank (fractional index) within the column. */
   order: z.string().min(1),
   parent: z.string().optional(),
   depends: z.array(z.string()).default([]),
@@ -24,7 +24,7 @@ export const taskFrontmatterSchema = z.object({
 })
 export type TaskFrontmatter = z.infer<typeof taskFrontmatterSchema>
 
-/** Une colonne du board = un statut possible. L'ordre du tableau fait l'ordre à l'écran. */
+/** A board column = one possible status. Array order is screen order. */
 export const columnSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
@@ -32,7 +32,7 @@ export const columnSchema = z.object({
 })
 export type Column = z.infer<typeof columnSchema>
 
-/** config.yml d'un backlog. */
+/** A backlog's config.yml. */
 export const boardConfigSchema = z.object({
   name: z.string().min(1),
   taskPrefix: z.string().min(1).default('task'),
@@ -40,10 +40,10 @@ export const boardConfigSchema = z.object({
 })
 export type BoardConfig = z.infer<typeof boardConfigSchema>
 
-/** Colonnes par défaut posées par `suivre init`. */
+/** Default columns created by `suivre init`. */
 export const DEFAULT_COLUMNS: Column[] = [
   { id: 'backlog', label: 'Backlog' },
-  { id: 'todo', label: 'À faire' },
-  { id: 'doing', label: 'En cours' },
-  { id: 'done', label: 'Terminé' },
+  { id: 'todo', label: 'To do' },
+  { id: 'doing', label: 'In progress' },
+  { id: 'done', label: 'Done' },
 ]

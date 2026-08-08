@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { joinFrontmatter, splitFrontmatter } from './frontmatter'
 
-// Document de connaissance (spec, note, référence), rendu en lecture dans l'app.
+// Knowledge document (spec, note, reference), rendered read-only in the app.
 export const docFrontmatterSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),

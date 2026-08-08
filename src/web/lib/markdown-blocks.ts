@@ -1,6 +1,6 @@
-// Parseur markdown minimal → blocs, pour le lecteur de docs. Pas de dépendance :
-// on ne gère que ce que le rendu terminal affiche (titres, paragraphes, listes,
-// cases à cocher, blocs de code, règles). L'inline courant est aplati en texte.
+// Minimal markdown parser → blocks, for the docs reader. No dependency:
+// we only handle what the terminal rendering displays (headings, paragraphs,
+// lists, checkboxes, code blocks, rules). Common inline is flattened to text.
 
 export type Block =
   | { type: 'h1' | 'h2' | 'h3'; text: string }
@@ -43,7 +43,7 @@ export function toBlocks(markdown: string): Block[] {
         buffer.push(lines[i] ?? '')
         i += 1
       }
-      i += 1 // saute la clôture
+      i += 1 // skip the closing fence
       blocks.push({ type: 'code', text: buffer.join('\n') })
       continue
     }

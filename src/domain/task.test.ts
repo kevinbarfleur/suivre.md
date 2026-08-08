@@ -5,15 +5,15 @@ import { boardConfigSchema } from './schema'
 const config = boardConfigSchema.parse({
   name: 'T',
   columns: [
-    { id: 'todo', label: 'À faire' },
-    { id: 'done', label: 'Fait' },
+    { id: 'todo', label: 'To do' },
+    { id: 'done', label: 'Done' },
   ],
 })
 
 describe('createTask', () => {
-  it('incrémente l’id, défaut = première colonne, nomme le fichier', () => {
+  it('increments the id, defaults to the first column, names the file', () => {
     const task = createTask(
-      { title: 'Faire le café' },
+      { title: 'Make coffee' },
       {
         config,
         existingIds: ['task-001', 'task-002'],
@@ -23,27 +23,27 @@ describe('createTask', () => {
     )
     expect(task.frontmatter.id).toBe('task-003')
     expect(task.frontmatter.status).toBe('todo')
-    expect(task.fileName).toBe('task-003-faire-le-cafe.md')
+    expect(task.fileName).toBe('task-003-make-coffee.md')
     expect(task.frontmatter.created).toBe('2026-07-20T00:00:00Z')
     expect(task.frontmatter.order.length).toBeGreaterThan(0)
   })
 })
 
 describe('editTask', () => {
-  it('bump updated et resynchronise le fichier au changement de titre', () => {
+  it('bumps updated and renames the file when the title changes', () => {
     const task = createTask(
-      { title: 'Ancien' },
+      { title: 'Old' },
       { config, existingIds: [], lastOrderInColumn: null, now: 'a' },
     )
-    const edited = editTask(task, { title: 'Nouveau nom', priority: 'high' }, 'b')
+    const edited = editTask(task, { title: 'New name', priority: 'high' }, 'b')
     expect(edited.frontmatter.updated).toBe('b')
     expect(edited.frontmatter.priority).toBe('high')
-    expect(edited.fileName).toBe('task-001-nouveau-nom.md')
+    expect(edited.fileName).toBe('task-001-new-name.md')
   })
 })
 
 describe('moveTask', () => {
-  it('change le statut et le rang', () => {
+  it('changes the status and the rank', () => {
     const task = createTask(
       { title: 'X' },
       { config, existingIds: [], lastOrderInColumn: null, now: 'a' },

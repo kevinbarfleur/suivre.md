@@ -3,8 +3,8 @@ import { resolveSprint, sprintStatusSchema } from '../../domain'
 import { compact, printJson, run, service, sprintJson, toArray } from '../context'
 
 /**
- * Commandes sprints : la "map" d'un effort (wayfinding). Un sprint référence des
- * tâches existantes dans un ordre ; son corps porte les notes de l'effort.
+ * Sprint commands: the "map" of an effort (wayfinding). A sprint references
+ * existing tasks in order; its body carries the effort's notes.
  */
 export function registerSprintCommands(cli: CAC): void {
   cli

@@ -1,8 +1,8 @@
 import { registerView } from '../shell/view-registry'
 import SettingsView from './SettingsView.vue'
 
-/** Enregistre la page Préférences (groupe « system » : hors nav tâches/ressources,
- *  atteinte par le lien en bas du rail). */
+/** Registers the Preferences page (group "system": outside tasks/resources nav,
+ *  reached via the link at the bottom of the rail). */
 export default function registerSettingsModule(): void {
   registerView({
     id: 'settings',

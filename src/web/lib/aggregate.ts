@@ -1,8 +1,8 @@
 import type { Column, Priority, Task } from '../../domain'
 import { acProgress } from './task-meta'
 
-// Agrégations pures pour l'overview et l'analyse de dépendances. Aucune I/O,
-// aucune dépendance Vue — testables isolément.
+// Pure aggregations for the overview and dependency analysis. No I/O,
+// no Vue dependency — testable in isolation.
 
 export interface Dist {
   key: string
@@ -23,7 +23,7 @@ const PRIORITIES: { key: Priority | 'none'; label: string }[] = [
   { key: 'high', label: 'high' },
   { key: 'medium', label: 'medium' },
   { key: 'low', label: 'low' },
-  { key: 'none', label: 'sans' },
+  { key: 'none', label: 'none' },
 ]
 
 export function byPriority(tasks: readonly Task[]): Dist[] {
@@ -89,7 +89,7 @@ export function acAggregate(tasks: readonly Task[]): { done: number; total: numb
   return { done, total }
 }
 
-// --- Dépendances ---
+// --- Dependencies ---
 
 export interface Blocker {
   id: string
@@ -106,7 +106,7 @@ function labelOf(columns: readonly Column[], status: string): string {
   return columns.find((c) => c.id === status)?.label ?? status
 }
 
-/** Tâches non terminées avec au moins un bloqueur non résolu. */
+/** Unfinished tasks with at least one unresolved blocker. */
 export function blockedTasks(tasks: readonly Task[], columns: readonly Column[]): BlockedTask[] {
   const byId = new Map(tasks.map((t) => [t.frontmatter.id, t]))
   const result: BlockedTask[] = []
@@ -117,7 +117,7 @@ export function blockedTasks(tasks: readonly Task[], columns: readonly Column[])
       const status = dep?.frontmatter.status
       return {
         id,
-        statusLabel: dep ? labelOf(columns, status ?? '') : 'inconnu',
+        statusLabel: dep ? labelOf(columns, status ?? '') : 'unknown',
         resolved: status === 'done',
       }
     })
@@ -134,7 +134,7 @@ export interface Impact {
   count: number
 }
 
-/** Bloqueurs à fort impact : tâches ouvertes dont dépendent d'autres tâches ouvertes. */
+/** High-impact blockers: open tasks that other open tasks depend on. */
 export function highImpact(tasks: readonly Task[], limit = 6): Impact[] {
   const dependents = new Map<string, number>()
   const open = tasks.filter((t) => t.frontmatter.status !== 'done')
@@ -193,7 +193,7 @@ export interface Cycle {
   b: string
 }
 
-/** Cycles directs (A dépend de B et B dépend de A) — signal honnête, jamais masqué. */
+/** Direct cycles (A depends on B and B depends on A) — honest signal, never hidden. */
 export function directCycles(tasks: readonly Task[]): Cycle[] {
   const deps = new Map(tasks.map((t) => [t.frontmatter.id, t.frontmatter.depends]))
   const seen = new Set<string>()

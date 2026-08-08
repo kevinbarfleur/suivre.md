@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
-// Pilule-filtre terminal : `--flag ▾`. Inactif → menu déroulant d'options ;
-// actif → pilule pleine `--flag valeur ×` (le × efface). Ferme au clic dehors.
+// Terminal filter pill: `--flag ▾`. Inactive → dropdown menu of options;
+// active → full pill `--flag value ×` (× clears). Closes on outside click.
 export interface FilterOption {
   value: string
   label: string

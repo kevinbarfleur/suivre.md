@@ -2,25 +2,25 @@ import type { BoardConfig } from './schema'
 import type { Task } from './types'
 
 /**
- * Vocabulaire "tracker" : commentaires, résolution de dépendances, frontier.
- * Opérations pures sur les tâches, pensées pour être pilotées par un agent
- * (workflows type Matt Pocock — /triage, /wayfinder, /implement).
+ * Tracker vocabulary: comments, dependency resolution, frontier. Pure
+ * operations on tasks, meant to be driven by an agent (Matt Pocock-style
+ * workflows — /triage, /wayfinder, /implement).
  */
 
-/** Section conventionnelle des commentaires, toujours en fin de corps. */
+/** Conventional comments section, always at the end of the body. */
 export const COMMENTS_HEADING = '## Comments'
 
 export interface CommentInput {
   text: string
   author?: string
-  /** Horloge injectée (ISO) pour rester pur/testable. */
+  /** Injected clock (ISO) to stay pure and testable. */
   at: string
 }
 
 /**
- * Ajoute un commentaire horodaté en fin de corps, sous `## Comments` (créé au
- * premier commentaire). La section vit en fin de fichier par convention — c'est
- * l'historique de conversation du ticket, versionné avec lui.
+ * Appends a timestamped comment at the end of the body, under `## Comments`
+ * (created on the first one). The section lives at the end of the file by
+ * convention — it is the ticket's conversation history, versioned with it.
  */
 export function appendComment(body: string, comment: CommentInput): string {
   const trimmed = body.trimEnd()
@@ -31,16 +31,16 @@ export function appendComment(body: string, comment: CommentInput): string {
   return `${prefix}\n\n${entry}\n`
 }
 
-/** Id de la colonne finale ("done") : la dernière colonne du board. */
+/** Id of the final ("done") column: the board's last column. */
 export function doneStatus(config: BoardConfig): string {
   const last = config.columns.at(-1)
-  if (!last) throw new Error('Aucune colonne définie dans la config du board')
+  if (!last) throw new Error('No column defined in the board config')
   return last.id
 }
 
 /**
- * Une dépendance est résolue si la tâche est dans la colonne finale — ou si
- * elle n'existe plus dans les tâches actives (supprimée ou archivée).
+ * A dependency is resolved when its task sits in the final column — or when
+ * it is gone from the active tasks (deleted or archived).
  */
 export function isDependencyResolved(id: string, tasks: Task[], done: string): boolean {
   const dep = tasks.find((t) => t.frontmatter.id === id)
@@ -48,9 +48,9 @@ export function isDependencyResolved(id: string, tasks: Task[], done: string): b
 }
 
 /**
- * Une tâche est "ready" (frontier) : pas dans la colonne finale, non assignée,
- * toutes ses dépendances résolues. C'est la définition qu'un agent utilise pour
- * choisir la prochaine tâche à réclamer.
+ * A task is "ready" (the frontier): not in the final column, unassigned, all
+ * its dependencies resolved. This is the definition an agent uses to pick the
+ * next task to claim.
  */
 export function isReady(task: Task, tasks: Task[], config: BoardConfig): boolean {
   const done = doneStatus(config)
@@ -64,11 +64,11 @@ export interface TaskFilter {
   status?: string
   label?: string
   assignee?: string
-  /** Ne garder que les tâches ready (voir `isReady`). */
+  /** Keep only ready tasks (see `isReady`). */
   ready?: boolean
 }
 
-/** Filtre + tri board (ordre des colonnes, puis rang dans la colonne). */
+/** Filter + board sort (column order, then rank within the column). */
 export function filterTasks(tasks: Task[], config: BoardConfig, filter: TaskFilter): Task[] {
   const columnIndex = new Map(config.columns.map((c, i) => [c.id, i]))
   return tasks
@@ -89,9 +89,9 @@ export function filterTasks(tasks: Task[], config: BoardConfig, filter: TaskFilt
 }
 
 /**
- * Prochaine tâche à prendre. Sans sprint : première tâche ready dans l'ordre du
- * board. Avec sprint : première tâche ready dans l'ordre du sprint (la "frontier
- * query" du wayfinding).
+ * Next task to take. Without a sprint: the first ready task in board order.
+ * With a sprint: the first ready task in sprint order (wayfinding's "frontier
+ * query").
  */
 export function nextReady(
   tasks: Task[],

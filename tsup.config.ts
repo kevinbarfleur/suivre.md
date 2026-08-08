@@ -1,9 +1,9 @@
 import { defineConfig } from 'tsup'
 
-// Bundles node : les chemins de sortie DOIVENT correspondre à `bin` et `exports`
-// de package.json (dist/cli/index.js, dist/mcp/index.js, dist/domain/index.js).
-// Le bundling résout les imports sans extension (le source n'est pas ESM-node
-// strict) — c'est lui qui rend le paquet exécutable hors tsx.
+// Node bundles: output paths MUST match package.json's `bin` and `exports`
+// (dist/cli/index.js, dist/mcp/index.js, dist/domain/index.js).
+// Bundling resolves extensionless imports (the source is not strict ESM-node) —
+// that is what makes the package runnable without tsx.
 export default defineConfig({
   entry: {
     'cli/index': 'src/cli/index.ts',
@@ -14,6 +14,6 @@ export default defineConfig({
   platform: 'node',
   target: 'node20',
   splitting: true,
-  // dist/web appartient au build vite — ne jamais le nettoyer d'ici.
+  // dist/web belongs to the vite build — never clean it from here.
   clean: false,
 })

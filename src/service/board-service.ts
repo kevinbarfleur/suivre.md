@@ -52,9 +52,9 @@ export interface MoveOptions {
 }
 
 /**
- * Couche applicative : orchestre le domaine (pur) et le storage (disque). C'est
- * elle que les trois surfaces (server / cli / mcp) appellent — une seule logique
- * d'orchestration, jamais dupliquée par surface.
+ * Application layer: orchestrates the domain (pure) and the storage (disk).
+ * It is what the three surfaces (server / cli / mcp) call — a single
+ * orchestration logic, never duplicated per surface.
  */
 export class BoardService {
   private readonly repo: BacklogRepository
@@ -101,9 +101,9 @@ export class BoardService {
   }
 
   /**
-   * Liste unifiée des archives : tâches (statut `archived` ou dossier
-   * `tasks/archive/`), décisions (superseded/rejected ou `decisions/archive/`),
-   * docs (`docs/archive/`). Une seule vue transverse, triée par date.
+   * Unified archive list: tasks (status `archived` or `tasks/archive/` folder),
+   * decisions (superseded/rejected or `decisions/archive/`), docs
+   * (`docs/archive/`). One cross-cutting view, sorted by date.
    */
   async getArchive(): Promise<ArchivedEntry[]> {
     const [tasks, archivedTasks, decisions, archivedDecisions, docs, archivedDocs] =
@@ -168,9 +168,9 @@ export class BoardService {
     return this.repo.deleteTask(id)
   }
 
-  // --- Vocabulaire tracker (piloté par agent : /triage, /wayfinder, /implement) ---
+  // --- Tracker vocabulary (agent-driven: /triage, /wayfinder, /implement) ---
 
-  /** Ajoute un commentaire horodaté sous `## Comments` (créée au premier). */
+  /** Appends a timestamped comment under `## Comments` (created on first use). */
   async comment(id: string, text: string, author?: string): Promise<Task> {
     const task = await this.requireTask(id)
     const body = appendComment(task.body, { text, author, at: this.now() })
@@ -180,9 +180,9 @@ export class BoardService {
   }
 
   /**
-   * Ferme une tâche : déplacement en colonne finale (fin de colonne), avec
-   * commentaire de résolution optionnel, et archivage optionnel (le fichier part
-   * dans `tasks/archive/`, hors board mais versionné).
+   * Closes a task: moves it to the final column (end of column), with an
+   * optional resolution comment and optional archiving (the file goes to
+   * `tasks/archive/`, off the board but versioned).
    */
   async close(
     id: string,
@@ -195,7 +195,7 @@ export class BoardService {
     return task
   }
 
-  /** Tâches filtrées + triées dans l'ordre du board (colonnes puis rang). */
+  /** Tasks filtered + sorted in board order (columns, then rank). */
   async queryTasks(filter: TaskFilter): Promise<Task[]> {
     const config = await this.requireConfig()
     const tasks = await this.repo.listTasks()
@@ -203,8 +203,8 @@ export class BoardService {
   }
 
   /**
-   * Prochaine tâche à prendre (ready : non finale, non assignée, dépendances
-   * résolues). Avec `sprintId`, la frontier suit l'ordre du sprint.
+   * Next task to pick up (ready: not final, unassigned, dependencies
+   * resolved). With `sprintId`, the frontier follows the sprint order.
    */
   async next(sprintId?: string): Promise<Task | null> {
     const config = await this.requireConfig()
@@ -234,7 +234,7 @@ export class BoardService {
     return next
   }
 
-  // --- Décisions (ADR) ---
+  // --- Decisions (ADR) ---
 
   listDecisions(): Promise<Decision[]> {
     return this.decisions.list()
@@ -428,7 +428,7 @@ export class BoardService {
   }
 }
 
-/** Calcule le rang cible d'un déplacement (fin de colonne, ou entre deux cartes). */
+/** Computes the target rank of a move (end of column, or between two cards). */
 function computeOrder(column: Task[], opts: MoveOptions): string {
   const indexOf = (id?: string): number =>
     id ? column.findIndex((t) => t.frontmatter.id === id) : -1

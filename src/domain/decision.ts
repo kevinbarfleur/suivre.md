@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import { joinFrontmatter, splitFrontmatter } from './frontmatter'
 
-// Décision d'architecture / produit (ADR), versionnée en markdown comme les
-// tâches. Corps conventionnel : Contexte / Décision / Conséquences.
+// Architecture / product decision (ADR), versioned in markdown like tasks.
+// Conventional body: Context / Decision / Consequences.
 export const decisionStatusSchema = z.enum(['proposed', 'accepted', 'rejected', 'superseded'])
 export type DecisionStatus = z.infer<typeof decisionStatusSchema>
 
@@ -11,9 +11,9 @@ export const decisionFrontmatterSchema = z.object({
   title: z.string().min(1),
   status: decisionStatusSchema.default('proposed'),
   date: z.string().min(1),
-  /** Décision remplacée par celle-ci. */
+  /** Decision replaced by this one. */
   supersedes: z.string().optional(),
-  /** Décision qui remplace celle-ci (rend celle-ci superseded). */
+  /** Decision replacing this one (makes this one superseded). */
   supersededBy: z.string().optional(),
   labels: z.array(z.string()).default([]),
 })

@@ -1,9 +1,9 @@
 import { registerView } from '../shell/view-registry'
 import ArchivedView from './ArchivedView.vue'
 
-// Vue « archives » : liste transverse (tâches archivées, décisions historiques,
-// docs rangés dans archive/). Groupe ressources, en fin de liste. Pas de badge :
-// le compte d'archives n'est pas porté par le Board (endpoint dédié).
+// "Archive" view: cross-cutting list (archived tasks, historical decisions,
+// docs filed under archive/). Resources group, at the end of the list. No badge:
+// the archive count is not carried by the Board (dedicated endpoint).
 export default function registerArchiveModule(): void {
   registerView({
     id: 'archive',

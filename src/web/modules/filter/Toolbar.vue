@@ -25,7 +25,7 @@ const assigneeOptions = computed<FilterOption[]>(() =>
   assignees.value.map((a) => ({ value: a, label: a })),
 )
 
-// Casts dans le script (jamais dans une expression de template).
+// Casts in the script (never in a template expression).
 function setPriority(value: string | null): void {
   priority.value = value as Priority | null
 }

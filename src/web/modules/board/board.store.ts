@@ -2,17 +2,17 @@ import { computed, ref } from 'vue'
 import type { Board, Task } from '../../../domain'
 import * as api from '../../lib/api'
 
-// Store singleton (module-level refs). Board + sélection + actions + live SSE.
-// Toute mutation écrit côté serveur → le file-watcher pousse un event SSE →
-// reload : le board reste juste quel que soit l'auteur (web, CLI ou MCP).
+// Singleton store (module-level refs). Board + selection + actions + live SSE.
+// Every mutation writes server-side → the file-watcher pushes an SSE event →
+// reload: the board stays correct whoever the author is (web, CLI or MCP).
 const board = ref<Board | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const selected = ref<Task | null>(null)
 let liveStarted = false
 
-// Toutes les tâches à plat (colonnes + orphelins) — source partagée pour le
-// bilan, les filtres et le calcul des sous-tâches.
+// All tasks flattened (columns + orphans) — shared source for the summary,
+// the filters and the subtask computation.
 const allTasks = computed<Task[]>(() =>
   board.value ? board.value.columns.flatMap((c) => c.tasks).concat(board.value.orphans) : [],
 )

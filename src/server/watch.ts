@@ -1,9 +1,9 @@
 import chokidar, { type FSWatcher } from 'chokidar'
 
 /**
- * Surveille le dossier des tâches et appelle `onChange` (debouncé) à chaque
- * add/change/unlink. C'est la source du live : que l'écriture vienne du web,
- * du CLI ou du MCP, le board se rafraîchit.
+ * Watches the tasks directory and calls `onChange` (debounced) on every
+ * add/change/unlink. This is the source of live updates: whether the write
+ * comes from the web, the CLI or MCP, the board refreshes.
  */
 export function watchTasks(tasksDir: string, onChange: () => void, debounceMs = 120): FSWatcher {
   let timer: ReturnType<typeof setTimeout> | null = null

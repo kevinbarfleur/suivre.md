@@ -1,12 +1,12 @@
 import { BoardService } from '../service/board-service'
 import type { Decision, Doc, Sprint, Task } from '../domain'
 
-/** Plomberie partagée des commandes : service, sorties, gestion d'erreur. */
+/** Shared command plumbing: service, outputs, error handling. */
 
 export const service = (): BoardService =>
   new BoardService(process.env.SUIVRE_ROOT ?? process.cwd())
 
-/** Enveloppe une action : erreur → message sur stderr + exit 1 (jamais de stack brute). */
+/** Wraps an action: error → message on stderr + exit 1 (never a raw stack). */
 export function run<A extends unknown[]>(
   fn: (...args: A) => Promise<void>,
 ): (...args: A) => Promise<void> {
@@ -20,15 +20,15 @@ export function run<A extends unknown[]>(
   }
 }
 
-/** Normalise une option répétable de cac (absente | scalaire | tableau). */
+/** Normalizes a repeatable cac option (absent | scalar | array). */
 export function toArray(value: unknown): string[] | undefined {
   if (value === undefined) return undefined
   return (Array.isArray(value) ? value : [value]).map(String)
 }
 
 /**
- * Retire les clés `undefined` d'un patch. Indispensable avant `editTask` : sa
- * fusion par spread écraserait un champ existant avec `undefined`.
+ * Strips `undefined` keys from a patch. Required before `editTask`: its
+ * spread-based merge would overwrite an existing field with `undefined`.
  */
 export function compact<T extends Record<string, unknown>>(patch: T): Partial<T> {
   return Object.fromEntries(
@@ -40,7 +40,7 @@ export function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2))
 }
 
-/** Une tâche aplatie pour la sortie JSON (frontmatter + corps, sans le rang interne). */
+/** A task flattened for JSON output (frontmatter + body, without the internal rank). */
 export function taskJson(task: Task): Record<string, unknown> {
   const { order: _order, ...fm } = task.frontmatter
   return { ...fm, body: task.body }
