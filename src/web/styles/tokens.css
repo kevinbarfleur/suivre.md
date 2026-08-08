@@ -61,6 +61,7 @@
   --sv-avatar-fg: #c4c6cd;
   --sv-selection: #26312f;
   --sv-placeholder: #4a5658;
+  --sv-focus: #8fc2ab;
 
   --sv-shadow-term: 0 40px 100px -50px rgba(0, 0, 0, 0.85);
   --sv-shadow-pop: 0 20px 40px -20px rgba(0, 0, 0, 0.9);
@@ -112,6 +113,7 @@
   --sv-avatar-fg: #c8c8c8;
   --sv-selection: #2c2c2c;
   --sv-placeholder: #565656;
+  --sv-focus: #a5d3b0;
 
   --sv-shadow-term: 0 40px 100px -50px rgba(0, 0, 0, 0.85);
   --sv-shadow-pop: 0 20px 40px -20px rgba(0, 0, 0, 0.9);
@@ -163,6 +165,7 @@
   --sv-avatar-fg: #4a4a50;
   --sv-selection: #d8e2dc;
   --sv-placeholder: #a0a0a6;
+  --sv-focus: #2f6a4a;
 
   --sv-shadow-term: 0 30px 70px -40px rgba(0, 0, 0, 0.25);
   --sv-shadow-pop: 0 16px 34px -18px rgba(0, 0, 0, 0.22);

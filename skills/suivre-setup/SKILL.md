@@ -28,19 +28,25 @@ consent for the installs it performs.
 
 2. From the repo root, run `suivre setup --yes`.
 
+   It exits 1 as soon as one line is marked `!`. That is "some items were
+   refused", never "nothing was done" — the report is printed either way, so
+   read the report, not the exit code.
+
 3. Relay the report faithfully — `✓` done, `•` skipped, `!` needs attention.
-   Two cases to handle:
+   Every `!` names the file it left untouched and what to do with it; the two
+   you will actually meet:
    - `adapter … .new`: the user hand-edited their adapter, so it was kept and the
      fresh template was written next to it. Offer to merge the two. Never run
      `--force` without asking.
    - `!` on `skills`: the plugin install failed — give the user the manual
      command from the message.
 
-4. Suggest one next step, based on where they are: new idea → `/grill-with-docs`;
-   existing backlog → `/triage`; just looking → `suivre board`.
+4. Suggest one next step: the command the report's own `Try:` line proposes, or
+   `suivre board` if they are just looking.
 
-5. macOS only, and only if `suivre.app` is in neither `/Applications` nor
-   `~/Applications`: offer the optional overlay, once —
+5. macOS only, and only if the report carries the `• overlay` line (setup looks
+   for `suivre.app` in both `/Applications` and `~/Applications`): offer the
+   optional overlay, once —
 
    > Double-tap ⌘ and the board drops over whatever you're doing. Install it?
    > It builds locally and needs the Xcode Command Line Tools.

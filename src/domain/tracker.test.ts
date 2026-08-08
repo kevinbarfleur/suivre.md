@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { appendComment, filterTasks, isReady, nextReady } from './tracker'
+import { appendComment, filterTasks, isDependencyResolved, isReady, nextReady } from './tracker'
 import { createTask } from './task'
+import { slugify, taskFileName } from './ids'
 import { boardConfigSchema } from './schema'
 import type { Task } from './types'
 
@@ -38,6 +39,18 @@ describe('appendComment', () => {
     const second = appendComment(first, { text: 'b', at: 't2' })
     expect(second).toBe('## Comments\n\n### t1\n\na\n\n### t2\n\nb\n')
   })
+
+  it('ignores a heading quoted inside a fenced block', () => {
+    const body = '## Description\n\n```md\n## Comments\n```'
+    expect(appendComment(body, { text: 'x', at: 't1' })).toBe(
+      '## Description\n\n```md\n## Comments\n```\n\n## Comments\n\n### t1\n\nx\n',
+    )
+  })
+
+  it('still sees the real heading after a closed fence', () => {
+    const body = '~~~\n## Comments\n~~~\n\n## Comments\n\n### t0\n\na'
+    expect(appendComment(body, { text: 'b', at: 't1' })).toBe(`${body}\n\n### t1\n\nb\n`)
+  })
 })
 
 describe('isReady / nextReady', () => {
@@ -67,6 +80,36 @@ describe('isReady / nextReady', () => {
     const next = nextReady(tasks, config, ['task-001', 'task-002', 'task-003'])
     expect(next?.frontmatter.id).toBe('task-003')
   })
+
+  it('never hands out an archived task', () => {
+    const archived = task('task-001', { status: 'archived' })
+    const free = task('task-002')
+    const tasks = [archived, free]
+    expect(isReady(archived, tasks, config)).toBe(false)
+    expect(nextReady(tasks, config)?.frontmatter.id).toBe('task-002')
+    expect(nextReady(tasks, config, ['task-001'])).toBeNull()
+  })
+
+  it('an archived dependency stops blocking its dependents', () => {
+    const dep = task('task-001', { status: 'archived' })
+    const t = task('task-002', { depends: ['task-001'] })
+    expect(isDependencyResolved('task-001', [dep, t], 'done')).toBe(true)
+    expect(isReady(t, [dep, t], config)).toBe(true)
+  })
+
+  it('reads the final column from the config, not from the name "done"', () => {
+    const renamed = boardConfigSchema.parse({
+      name: 'T',
+      columns: [
+        { id: 'inbox', label: 'Inbox' },
+        { id: 'shipped', label: 'Shipped' },
+      ],
+    })
+    const dep = task('task-001', { status: 'shipped' })
+    const t = task('task-002', { depends: ['task-001'], status: 'inbox' })
+    expect(isReady(dep, [dep, t], renamed)).toBe(false)
+    expect(isReady(t, [dep, t], renamed)).toBe(true)
+  })
 })
 
 describe('filterTasks', () => {
@@ -81,5 +124,44 @@ describe('filterTasks', () => {
     ])
     expect(filterTasks(tasks, config, { assignee: 'kevin' })).toHaveLength(1)
     expect(filterTasks(tasks, config, { status: 'doing' })).toHaveLength(1)
+  })
+
+  it('leaves archived tasks out unless they are asked for by status', () => {
+    const live = task('task-001', { status: 'todo' })
+    const archived = task('task-002', { status: 'archived' })
+    const tasks = [live, archived]
+    expect(filterTasks(tasks, config, {}).map((t) => t.frontmatter.id)).toEqual(['task-001'])
+    expect(filterTasks(tasks, config, { ready: true }).map((t) => t.frontmatter.id)).toEqual([
+      'task-001',
+    ])
+    expect(filterTasks(tasks, config, { status: 'archived' }).map((t) => t.frontmatter.id)).toEqual(
+      ['task-002'],
+    )
+  })
+})
+
+describe('slugify', () => {
+  it('keeps letters and digits of any script', () => {
+    expect(slugify('日本語のタスク')).toBe('日本語のタスク')
+    expect(taskFileName('task-004', '日本語のタスク')).toBe('task-004-日本語のタスク.md')
+    expect(slugify('Тестовая задача')).toBe('тестовая-задача')
+  })
+
+  it('distinguishes two non-latin titles', () => {
+    expect(slugify('タスク一')).not.toBe(slugify('タスク二'))
+  })
+
+  it('folds latin diacritics and separators', () => {
+    expect(slugify('Créer le café !')).toBe('creer-le-cafe')
+  })
+
+  it('trims after truncating, never leaving a trailing dash', () => {
+    const title = `${'a'.repeat(60)} tail`
+    expect(slugify(title)).toBe('a'.repeat(60))
+    expect(slugify(`${'b'.repeat(59)} tail`)).toBe('b'.repeat(59))
+  })
+
+  it('falls back when nothing is left', () => {
+    expect(slugify('!!! ???')).toBe('task')
   })
 })

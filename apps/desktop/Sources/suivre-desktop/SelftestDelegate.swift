@@ -4,10 +4,13 @@ import AppKit
 ///
 /// - the summon window of the double-Command detector, replayed with real
 ///   timings (no event tap, so no Input Monitoring grant and no real keyboard);
-/// - the supervisor: spawn a real server for ~/Github/relay on a throwaway port,
-///   wait for health, stop it. Proves node resolution, SUIVRE_ROOT and --port
-///   end to end. Run it with `env -i HOME=$HOME PATH=/usr/bin:/bin` to reproduce
-///   the PATH a double-clicked app inherits.
+/// - how a health response is classified, which decides whether a server is
+///   adopted or refused;
+/// - the supervisor: resolve the CLI, spawn a real server for the first
+///   registered project, wait for health, stop it. Proves node/CLI resolution,
+///   SUIVRE_ROOT and --port end to end. Run it with
+///   `env -i HOME=$HOME PATH=/usr/bin:/bin` to reproduce the PATH a
+///   double-clicked app inherits.
 final class SelftestDelegate: NSObject, NSApplicationDelegate {
     private let registry = ProjectRegistry()
     private lazy var supervisor = ServerSupervisor(registry: registry)
@@ -15,6 +18,7 @@ final class SelftestDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         checkHotkey()
+        checkHealthClassification()
         checkServer()
     }
 
@@ -63,14 +67,56 @@ final class SelftestDelegate: NSObject, NSApplicationDelegate {
         expect(fired == summons, "\(what) (summoned \(fired), expected \(summons))")
     }
 
+    // MARK: - Health
+
+    /// Only a board that names itself *and* the root we asked about is adopted.
+    /// Everything else on that port belongs to someone else.
+    private func checkHealthClassification() {
+        let root = "/tmp/board"
+        let mine = #"{"ok":true,"product":"suivre","root":"/tmp/board","name":"board"}"#
+        let elsewhere = #"{"ok":true,"product":"suivre","root":"/tmp/other","name":"other"}"#
+
+        healthCase("a board on this root is ours", body: mine, root: root) {
+            $0 == .mine(name: "board")
+        }
+        healthCase("another repo's board is foreign", body: elsewhere, root: root, isForeign)
+        healthCase("a legacy {ok:true} is not adopted", body: #"{"ok":true}"#, root: root, isForeign)
+        healthCase("another product is foreign", body: #"{"product":"vite"}"#, root: root, isForeign)
+        healthCase("a non-JSON body is foreign", body: "<html>", root: root, isForeign)
+        expect(
+            HealthProbe.classify(code: 404, body: nil, port: 1, root: root) == .down,
+            "a non-200 is down"
+        )
+    }
+
+    private func healthCase(
+        _ what: String,
+        body: String,
+        root: String,
+        _ check: (HealthStatus) -> Bool
+    ) {
+        let status = HealthProbe.classify(code: 200, body: Data(body.utf8), port: 45188, root: root)
+        expect(check(status), "\(what) (got: \(status.summary))")
+    }
+
+    private func isForeign(_ status: HealthStatus) -> Bool {
+        if case .foreign = status { return true }
+        return false
+    }
+
     // MARK: - Server
 
     private func checkServer() {
-        let relayPath = ("~/Github/relay" as NSString).expandingTildeInPath
-        let project = Project(name: "relay", path: relayPath, port: 45191)
-        log("selftest: repo=\(registry.suivreRepoPath) project=\(project.path) port=\(project.port)")
-        supervisor.ensureRunning(project) { [weak self] up in
-            self?.expect(up, "health responded on :\(project.port)")
+        guard let project = registry.projects.first else {
+            log("  skip  no project registered — add one to exercise the supervisor")
+            DispatchQueue.main.async { NSApp.terminate(nil) }
+            return
+        }
+        let lookup = supervisor.cliLookup()
+        expect(lookup.entry != nil, "found a suivre CLI (\(lookup.searched.count) places tried)")
+        log("selftest: cli=\(lookup.entry?.description ?? "-") project=\(project.path) port=\(project.port)")
+        supervisor.ensureRunning(project) { [weak self] status in
+            self?.expect(status.isMine, "health identified \(project.name) on :\(project.port) — \(status.summary)")
             self?.supervisor.stop(project)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 NSApp.terminate(nil)

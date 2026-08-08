@@ -24,4 +24,14 @@ describe('rank', () => {
     expect(keys).toHaveLength(4)
     expect([...keys].sort()).toEqual(keys)
   })
+
+  it('names both ranks when the neighbours are unusable', () => {
+    const a = rankAfter(null)
+    expect(() => rankBetween(a, a)).toThrow(/rank "a0" and rank "a0"/)
+    expect(() => rankBetween(a, a)).toThrow(/distinct, ascending order keys/)
+  })
+
+  it('names the column edge when a bound is null', () => {
+    expect(() => rankBetween(null, 'nope!')).toThrow(/the start of the column and rank "nope!"/)
+  })
 })

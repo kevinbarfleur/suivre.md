@@ -5,9 +5,15 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# Where make-app.sh may write (see there): a global npm install is often
+# read-only.
+WORK="$PWD"
+[ -w "$WORK" ] || WORK="${TMPDIR:-/tmp}/suivre-desktop"
+export SUIVRE_DESKTOP_WORK="$WORK"
+
 ./make-app.sh
 
-SRC="build/suivre.app"
+SRC="$WORK/build/suivre.app"
 DEST_DIR="/Applications"
 if [ ! -w "$DEST_DIR" ]; then
     DEST_DIR="$HOME/Applications"

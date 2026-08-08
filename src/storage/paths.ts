@@ -1,4 +1,5 @@
-import { join } from 'node:path'
+import { existsSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
 
 /** On-disk locations of a backlog, derived from a repo root. */
 export interface BacklogPaths {
@@ -26,5 +27,21 @@ export function resolvePaths(root: string, dirName = '.suivre'): BacklogPaths {
     docsDir: join(baseDir, 'docs'),
     sprintsDir: join(baseDir, 'sprints'),
     preferencesFile: join(baseDir, 'preferences.json'),
+  }
+}
+
+/**
+ * Walks up from `startDir` for the directory holding `<dirName>/config.yml`,
+ * stopping at the filesystem root; `null` if there is none. Surfaces run from
+ * a subdirectory must act on the repo's backlog instead of proposing a second,
+ * nested one. Synchronous: surfaces need the root before any async work.
+ */
+export function findRoot(startDir: string, dirName = '.suivre'): string | null {
+  let dir = resolve(startDir)
+  for (;;) {
+    if (existsSync(join(dir, dirName, 'config.yml'))) return dir
+    const parent = dirname(dir)
+    if (parent === dir) return null
+    dir = parent
   }
 }

@@ -1,6 +1,6 @@
 import type { CAC } from 'cac'
-import { resolveSprint, sprintStatusSchema } from '../../domain'
-import { compact, printJson, run, service, sprintJson, toArray } from '../context'
+import { sprintStatusSchema } from '../../domain'
+import { compact, parseEnum, printJson, requireBoard, run, sprintJson, toArray } from '../context'
 
 /**
  * Sprint commands: the "map" of an effort (wayfinding). A sprint references
@@ -15,9 +15,10 @@ export function registerSprintCommands(cli: CAC): void {
     .option('--json', 'JSON output')
     .action(
       run(async (title: string, options) => {
-        const sprint = await service().createSprint({
+        const svc = await requireBoard()
+        const sprint = await svc.createSprint({
           title,
-          goal: options.goal,
+          goal: options.goal || undefined,
           items: toArray(options.item),
           body: options.body,
         })
@@ -31,7 +32,7 @@ export function registerSprintCommands(cli: CAC): void {
     .option('--json', 'JSON output')
     .action(
       run(async (options) => {
-        const sprints = await service().listSprints()
+        const sprints = await (await requireBoard()).listSprints()
         if (options.json) {
           printJson(sprints.map(sprintJson))
           return
@@ -52,11 +53,9 @@ export function registerSprintCommands(cli: CAC): void {
     .option('--json', 'JSON output')
     .action(
       run(async (id: string, options) => {
-        const svc = service()
-        const sprint = await svc.getSprint(id)
-        if (!sprint) throw new Error(`Sprint not found: ${id}`)
-        const tasks = await svc.listTasks()
-        const resolved = resolveSprint(sprint.frontmatter.items, tasks)
+        const progress = await (await requireBoard()).sprintProgress(id)
+        if (!progress) throw new Error(`Sprint not found: ${id}`)
+        const { sprint, resolved } = progress
         if (options.json) {
           printJson({
             ...sprintJson(sprint),
@@ -79,7 +78,7 @@ export function registerSprintCommands(cli: CAC): void {
     .option('--json', 'JSON output')
     .action(
       run(async (id: string, taskIds: string[], options) => {
-        const svc = service()
+        const svc = await requireBoard()
         const sprint = await svc.getSprint(id)
         if (!sprint) throw new Error(`Sprint not found: ${id}`)
         const items = [
@@ -101,12 +100,15 @@ export function registerSprintCommands(cli: CAC): void {
     .option('--json', 'JSON output')
     .action(
       run(async (id: string, options) => {
-        const sprint = await service().editSprint(
+        const svc = await requireBoard()
+        const sprint = await svc.editSprint(
           id,
           compact({
             title: options.title,
             goal: options.goal,
-            status: options.status ? sprintStatusSchema.parse(options.status) : undefined,
+            status: options.status
+              ? parseEnum('--status', sprintStatusSchema.options, options.status)
+              : undefined,
             body: options.body,
           }),
         )
@@ -120,7 +122,7 @@ export function registerSprintCommands(cli: CAC): void {
     .option('--json', 'JSON output')
     .action(
       run(async (id: string, options) => {
-        const sprint = await service().editSprint(id, { status: 'done' })
+        const sprint = await (await requireBoard()).editSprint(id, { status: 'done' })
         if (options.json) printJson(sprintJson(sprint))
         else console.log(`${id} → done`)
       }),

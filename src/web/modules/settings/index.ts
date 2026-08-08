@@ -10,6 +10,5 @@ export default function registerSettingsModule(): void {
     group: 'system',
     order: 10,
     component: SettingsView,
-    promptCmd: 'suivre config',
   })
 }

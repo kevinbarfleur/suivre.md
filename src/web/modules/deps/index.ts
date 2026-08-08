@@ -11,7 +11,11 @@ function blockedCount(board: Board): number {
   ).length
 }
 
-/** Registers the dependencies view (execution order). */
+/**
+ * Registers the dependencies view (execution order). No task chrome: the view
+ * analyses the WHOLE graph — a blocker hidden by a filter would read as
+ * "unknown" — so it must not display a filter bar it cannot honour.
+ */
 export default function registerDepsModule(): void {
   registerView({
     id: 'deps',
@@ -19,8 +23,6 @@ export default function registerDepsModule(): void {
     group: 'tasks',
     order: 40,
     component: DepsView,
-    taskChrome: true,
-    promptCmd: 'suivre deps',
     badge: blockedCount,
   })
 }

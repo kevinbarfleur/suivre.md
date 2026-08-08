@@ -5,9 +5,15 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 // own zod schema.
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/
 
+/** Windows editors prefix files with a UTF-8 BOM; it would hide the opening fence. */
+export function stripBom(raw: string): string {
+  return raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw
+}
+
 export function splitFrontmatter(raw: string): { data: unknown; body: string } {
-  const match = raw.match(FRONTMATTER_RE)
-  if (!match) return { data: {}, body: raw.trim() }
+  const text = stripBom(raw)
+  const match = text.match(FRONTMATTER_RE)
+  if (!match) return { data: {}, body: text.trim() }
   return { data: parseYaml(match[1] ?? '') ?? {}, body: (match[2] ?? '').trim() }
 }
 

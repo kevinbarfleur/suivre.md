@@ -4,15 +4,25 @@ function escapeRegExp(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-/** ASCII slug for a readable file name (diacritics folded, capped at 60). */
+/**
+ * Slug for a readable file name (Latin diacritics folded, capped at 60).
+ * Letters and digits of every script are kept: a fully non-latin title must
+ * not collapse to the same slug as every other one.
+ */
 export function slugify(title: string): string {
-  const slug = title
+  const cleaned = title
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
+    // NFD splits Hangul into jamo; recompose so the file name stays canonical.
+    .normalize('NFC')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+  // Cap by code point (never split a surrogate pair), and trim AFTER the cap:
+  // a cut can leave a trailing dash behind.
+  const slug = [...cleaned]
     .slice(0, 60)
+    .join('')
+    .replace(/^-+|-+$/g, '')
   return slug || 'task'
 }
 

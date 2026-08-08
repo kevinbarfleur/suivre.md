@@ -12,6 +12,5 @@ export default function registerArchiveModule(): void {
     order: 50,
     component: ArchivedView,
     scroll: 'managed',
-    promptCmd: 'suivre archive list',
   })
 }

@@ -1,20 +1,21 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useBoard } from '../board/board.store'
+import { finalColumnId } from '../../lib/aggregate'
 import { meter } from '../../lib/task-meta'
 
 // Summary: progress at a glance. ASCII bar + counts per column
-// + salient indicators (to test / high priority / debt).
+// + salient indicators (high priority / debt).
 const { board, allTasks, ensureLoaded } = useBoard()
 onMounted(ensureLoaded)
 
 const cols = computed(() => board.value?.columns ?? [])
 const total = computed(() => allTasks.value.length)
-const done = computed(() => cols.value.find((c) => c.column.id === 'done')?.tasks.length ?? 0)
+const doneId = computed(() => finalColumnId(cols.value.map((c) => c.column)))
+const done = computed(() => cols.value.find((c) => c.column.id === doneId.value)?.tasks.length ?? 0)
 const pct = computed(() => (total.value ? Math.round((done.value / total.value) * 100) : 0))
 const bar = computed(() => meter(done.value, total.value || 1, 25, '█', '░'))
 
-const toTest = computed(() => cols.value.find((c) => c.column.id === 'test')?.tasks.length ?? 0)
 const prio = computed(
   () =>
     allTasks.value.filter(
@@ -41,9 +42,6 @@ const debt = computed(
         >{{ c.column.label }}<span class="bl-col-n"> {{ c.tasks.length }}</span></span
       >
       <span class="bl-chips">
-        <span class="bl-chip"
-          >to_test=<span class="bl-chip-n">{{ toTest }}</span></span
-        >
         <span class="bl-chip bl-chip--prio"
           >prio=<span class="bl-chip-n">{{ prio }}</span></span
         >

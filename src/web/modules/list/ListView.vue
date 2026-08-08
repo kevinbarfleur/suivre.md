@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import type { Task } from '../../../domain'
 import { useBoard } from '../board/board.store'
 import { useFilter } from '../filter/filter.store'
+import { finalColumnId } from '../../lib/aggregate'
 import { acProgress, blockedBy, meter, shortDate } from '../../lib/task-meta'
 
 // "List" view: all tasks in a dense, sortable table. Reuses the filter.
@@ -59,8 +60,9 @@ interface Row {
 const rows = computed<Row[]>(() => {
   if (!board.value) return []
   const columns = board.value.columns.map((c) => c.column)
+  const done = finalColumnId(columns)
   const doneById = new Map(
-    allTasks.value.map((t) => [t.frontmatter.id, t.frontmatter.status === 'done']),
+    allTasks.value.map((t) => [t.frontmatter.id, t.frontmatter.status === done]),
   )
   const statusIndex = new Map(columns.map((c, i) => [c.id, i]))
   const statusLabel = new Map(columns.map((c) => [c.id, c.label]))

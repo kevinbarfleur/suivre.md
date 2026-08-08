@@ -11,6 +11,7 @@ import {
   byLabel,
   byPriority,
   byStatus,
+  finalColumnId,
   oldestOpen,
   recentlyUpdated,
   type Dist,
@@ -25,13 +26,13 @@ const { setView } = useView()
 
 const columns = computed(() => board.value?.columns.map((c) => c.column) ?? [])
 const total = computed(() => allTasks.value.length)
-const done = computed(() => allTasks.value.filter((t) => t.frontmatter.status === 'done').length)
+const doneId = computed(() => finalColumnId(columns.value))
+const done = computed(
+  () => allTasks.value.filter((t) => t.frontmatter.status === doneId.value).length,
+)
 const pct = computed(() => (total.value ? Math.round((done.value / total.value) * 100) : 0))
 const bar = computed(() => meter(done.value, total.value || 1, 25, '█', '░'))
 
-const testingCount = computed(
-  () => allTasks.value.filter((t) => t.frontmatter.status === 'test').length,
-)
 const prioCount = computed(
   () =>
     allTasks.value.filter(
@@ -55,7 +56,7 @@ const priorityDist = computed(() => bars(byPriority(allTasks.value)))
 const labelDist = computed(() => bars(byLabel(allTasks.value)))
 const assigneeDist = computed(() => byAssignee(allTasks.value))
 const oldest = computed(() =>
-  oldestOpen(allTasks.value).map((f) => ({ ...f, dateShort: shortDate(f.date) })),
+  oldestOpen(allTasks.value, columns.value).map((f) => ({ ...f, dateShort: shortDate(f.date) })),
 )
 const recent = computed(() =>
   recentlyUpdated(allTasks.value).map((f) => ({ ...f, dateShort: shortDate(f.date) })),
@@ -104,9 +105,6 @@ function goAssignee(key: string): void {
     </div>
 
     <div class="ov-chips">
-      <span class="ov-chip ov-chip--line"
-        >to test <b>{{ testingCount }}</b></span
-      >
       <span class="ov-chip ov-chip--fill">high prio {{ prioCount }}</span>
       <span class="ov-chip ov-chip--debt">debt {{ debtCount }}</span>
       <span class="ov-chip ov-chip--blocked">blocked {{ blockedCount }}</span>

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { parseTask, serializeTask } from './markdown'
+import { parseTask, safeParseTask, serializeTask } from './markdown'
 import type { Task } from './types'
+
+const BOM = '\uFEFF'
 
 const sample: Task = {
   frontmatter: {
@@ -40,5 +42,46 @@ describe('markdown', () => {
   it('throws on invalid frontmatter (missing title)', () => {
     const bad = '---\nid: task-1\nstatus: todo\norder: a0\ncreated: x\nupdated: x\n---\n'
     expect(() => parseTask(bad, 'x.md')).toThrow()
+  })
+
+  it('names the file and the field in every failure', () => {
+    const missing = '---\nid: task-1\nstatus: todo\norder: a0\ncreated: x\nupdated: x\n---\n'
+    expect(() => parseTask(missing, 'broken.md')).toThrow(/broken\.md/)
+    expect(() => parseTask(missing, 'broken.md')).toThrow(/title/)
+    expect(() => parseTask('# just a readme', 'README.md')).toThrow(/README\.md/)
+    // A merge conflict leaves markers inside the frontmatter: invalid YAML.
+    const conflict = `---\nid: task-1\n<<<<<<< HEAD\ntitle: [a\n=======\n---\n`
+    expect(() => parseTask(conflict, 'conflict.md')).toThrow(/conflict\.md/)
+  })
+
+  it('tolerates a leading UTF-8 BOM', () => {
+    const parsed = parseTask(`${BOM}${serializeTask(sample)}`, sample.fileName)
+    expect(parsed.frontmatter).toEqual(sample.frontmatter)
+  })
+
+  it('tolerates CRLF line endings', () => {
+    const parsed = parseTask(serializeTask(sample).replace(/\n/g, '\r\n'), sample.fileName)
+    expect(parsed.frontmatter.id).toBe('task-001')
+  })
+})
+
+describe('safeParseTask', () => {
+  it('returns the task on valid input', () => {
+    const result = safeParseTask(serializeTask(sample), sample.fileName)
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.task.frontmatter.id).toBe('task-001')
+  })
+
+  it('returns the file name and a readable message on invalid input', () => {
+    const result = safeParseTask('# A stray readme', 'README.md')
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.fileName).toBe('README.md')
+      expect(result.message).toContain('README.md')
+    }
+  })
+
+  it('accepts a BOM-prefixed file', () => {
+    expect(safeParseTask(`${BOM}${serializeTask(sample)}`, sample.fileName).ok).toBe(true)
   })
 })

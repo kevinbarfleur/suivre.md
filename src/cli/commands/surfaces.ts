@@ -1,5 +1,5 @@
 import type { CAC } from 'cac'
-import { run, service } from '../context'
+import { commandRoot, initRoot, printJson, run, service } from '../context'
 
 export interface SurfaceOptions {
   /**
@@ -12,14 +12,28 @@ export interface SurfaceOptions {
   desktopDir: string
 }
 
+/** Port 0 is a legitimate request ("pick a free one"), so absence is the only default. */
+function portNumber(value: string): number {
+  const port = Number(value)
+  if (!Number.isInteger(port) || port < 0 || port > 65535) {
+    throw new Error(`--port ${value} — expected a port number between 0 and 65535`)
+  }
+  return port
+}
+
 /** Long-lived surfaces: web board, desktop overlay, MCP server. */
 export function registerSurfaceCommands(cli: CAC, opts: SurfaceOptions): void {
-  cli.command('init [name]', 'Initialize a backlog in the current repo').action(
-    run(async (name?: string) => {
-      const config = await service().init(name ?? 'Backlog')
-      console.log(`Backlog "${config.name}" ready — ${config.columns.length} columns.`)
-    }),
-  )
+  cli
+    .command('init [name]', 'Initialize a backlog in the current repo')
+    .option('--force', 'Initialize here even when an ancestor already has a backlog')
+    .option('--json', 'JSON output')
+    .action(
+      run(async (name: string | undefined, options) => {
+        const config = await service(initRoot(Boolean(options.force))).init(name || 'Backlog')
+        if (options.json) printJson(config)
+        else console.log(`Backlog "${config.name}" ready — ${config.columns.length} columns.`)
+      }),
+    )
 
   cli
     .command('board', 'Run the live web board (single process)')
@@ -27,9 +41,9 @@ export function registerSurfaceCommands(cli: CAC, opts: SurfaceOptions): void {
     .action(
       run(async (options) => {
         const { startServer } = await import('../../server/index')
-        const handle = await startServer(process.env.SUIVRE_ROOT ?? process.cwd(), {
+        const handle = await startServer(commandRoot(), {
           distDir: opts.webDistDir,
-          port: options.port ? Number(options.port) : undefined,
+          port: options.port === undefined ? undefined : portNumber(options.port),
         })
         console.log(`\n  suivre.md — board on ${handle.url}\n  Ctrl+C to stop.\n`)
       }),
@@ -38,29 +52,40 @@ export function registerSurfaceCommands(cli: CAC, opts: SurfaceOptions): void {
   cli
     .command('show [view]', 'Reveal the desktop overlay on a view/item (macOS app)')
     .option('--target <name>', 'Project or link name (default: active target)')
+    .option('--json', 'JSON output')
     .action(
       run(async (view: string | undefined, options) => {
-        if (process.platform !== 'darwin') {
-          console.log('show: the desktop overlay is macOS-only — nothing to reveal here.')
-          return
-        }
         const params = new URLSearchParams()
         if (view) params.set('view', view)
         if (options.target) params.set('target', options.target)
         const query = params.toString()
         const url = `suivre://show${query ? `?${query}` : ''}`
-        const { spawn } = await import('node:child_process')
-        const child = spawn('open', [url], { stdio: 'ignore', detached: true })
-        child.on('error', () => {})
-        child.unref()
-        console.log(`overlay -> ${url}`)
+        if (process.platform !== 'darwin') {
+          const reason = 'the desktop overlay is macOS-only — nothing to reveal here'
+          if (options.json) printJson({ url, revealed: false, reason })
+          else console.log(`show: ${reason}.`)
+          return
+        }
+        // Synchronous: `open` returns as soon as LaunchServices has dispatched,
+        // and its exit code is the only signal that the overlay is installed.
+        const { spawnSync } = await import('node:child_process')
+        const result = spawnSync('open', [url], { encoding: 'utf8' })
+        if (result.error) throw new Error(`overlay not reachable: ${result.error.message}`)
+        if (result.status !== 0) {
+          const detail = result.stderr.trim() || `open exited ${result.status}`
+          throw new Error(
+            `overlay not reachable: ${detail} — install it with \`suivre overlay install\``,
+          )
+        }
+        if (options.json) printJson({ url, revealed: true })
+        else console.log(`overlay -> ${url}`)
       }),
     )
 
   cli.command('mcp', 'Run the MCP server (stdio) for agents').action(
     run(async () => {
       const { runMcpServer } = await import('../../mcp/server')
-      await runMcpServer()
+      await runMcpServer(commandRoot())
     }),
   )
 

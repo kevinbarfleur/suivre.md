@@ -1,6 +1,6 @@
 {
   "name": "suivre",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.3",
   "description": "suivre.md — a markdown-native backlog with a live kanban board, built to be the issue tracker for Matt Pocock's agent skills. One skill: /suivre-setup wires (or updates) the current repo.",
   "author": {
     "name": "Kevin Barfleur",
@@ -8,15 +8,6 @@
   },
   "repository": "https://github.com/kevinbarfleur/suivre.md",
   "license": "MIT",
-  "keywords": [
-    "backlog",
-    "kanban",
-    "issue-tracker",
-    "markdown",
-    "agent-workflow",
-    "mcp"
-  ],
-  "skills": [
-    "./skills/suivre-setup"
-  ]
+  "keywords": ["backlog", "kanban", "issue-tracker", "markdown", "agent-workflow", "mcp"],
+  "skills": ["./skills/suivre-setup"]
 }

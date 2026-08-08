@@ -4,23 +4,31 @@ import { resolveSprint } from '../../../domain/sprint-resolve'
 import type { Sprint, SprintStep } from '../../lib/api'
 import { useBoard } from '../board/board.store'
 import { useView } from '../shell/view.store'
+import { finalColumnId } from '../../lib/aggregate'
 import { acItems, acProgress, meter } from '../../lib/task-meta'
 import { useSprints } from './sprints.store'
 
 // Sprints view: an ordered checklist of existing tasks to ship. Each step is a
 // full card — description + acceptance criteria inline, so the detail is visible
-// without opening the task. Checking a step moves the task to Done; subtasks
-// (tasks whose parent is a sprint task) nest under it.
-const { sprints, ensureLoaded, create, update, remove } = useSprints()
+// without opening the task. Checking a step moves the task to the board's final
+// column; subtasks (tasks whose parent is a sprint task) nest under it.
+const { sprints, ensureLoaded, error, reload, create, update, remove } = useSprints()
 const { board, allTasks, openTask, move } = useBoard()
 const { item, setView } = useView()
 onMounted(ensureLoaded)
+
+// Every status this view reads or writes comes from the board columns. A
+// literal would move cards into a column that does not exist on a renamed
+// board — which is how ticking a checkbox ends up kicking a card off the board.
+const columns = computed(() => board.value?.columns.map((c) => c.column) ?? [])
+const doneId = computed(() => finalColumnId(columns.value))
+const reopenId = computed(() => (columns.value.at(-2) ?? columns.value[0])?.id ?? null)
 
 const statusLabel = (id: string | null): string =>
   board.value?.columns.find((c) => c.column.id === id)?.column.label ?? id ?? ''
 
 function prog(s: Sprint): { done: number; total: number; pct: number } {
-  const r = resolveSprint(s.frontmatter.items, allTasks.value)
+  const r = resolveSprint(s.frontmatter.items, allTasks.value, doneId.value ?? undefined)
   return { done: r.done, total: r.total, pct: r.total ? Math.round((r.done / r.total) * 100) : 0 }
 }
 
@@ -42,7 +50,9 @@ const selected = computed(
 )
 
 const resolved = computed(() =>
-  selected.value ? resolveSprint(selected.value.frontmatter.items, allTasks.value) : null,
+  selected.value
+    ? resolveSprint(selected.value.frontmatter.items, allTasks.value, doneId.value ?? undefined)
+    : null,
 )
 const pct = computed(() =>
   resolved.value && resolved.value.total
@@ -114,9 +124,11 @@ function cancelCreate(): void {
 }
 
 // --- Check off (moves the task in the board) ---
+// Ticking sends the task to the final column, unticking to the one before it.
 async function toggle(step: SprintStep): Promise<void> {
-  if (!step.task) return
-  await move(step.task.frontmatter.id, { status: step.done ? 'doing' : 'done' })
+  const target = step.done ? reopenId.value : doneId.value
+  if (!step.task || !target) return
+  await move(step.task.frontmatter.id, { status: target })
 }
 
 // --- Builder (edit mode) ---
@@ -178,12 +190,17 @@ async function deleteSprint(): Promise<void> {
       <button v-else class="sp-new-btn" type="button" @click="startCreate">+ new sprint</button>
     </div>
 
-    <div v-if="sprints.length === 0 && !creating" class="sp-empty">
+    <div v-if="error" class="sp-err">
+      <span class="sp-err-t">ERR: {{ error }}</span>
+      <button class="sp-btn" type="button" @click="reload">retry</button>
+    </div>
+
+    <div v-if="!error && sprints.length === 0 && !creating" class="sp-empty">
       no sprints yet — a sprint is an ordered checklist of tasks to ship. Create one, add tasks,
       then check them off as you go.
     </div>
 
-    <div v-else class="sp-grid">
+    <div v-else-if="sprints.length > 0" class="sp-grid">
       <div class="sp-side">
         <button
           v-for="s in sorted"
@@ -445,7 +462,6 @@ async function deleteSprint(): Promise<void> {
   font-family: inherit;
   font-size: 12.5px;
   color: var(--sv-fg);
-  outline: none;
 }
 .sp-empty {
   border: 1px dashed var(--sv-line);
@@ -455,6 +471,23 @@ async function deleteSprint(): Promise<void> {
   color: var(--sv-fg-dim);
   font-size: 12px;
   line-height: 1.6;
+}
+.sp-err {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--sv-danger-line);
+  background: var(--sv-danger-bg);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+.sp-err-t {
+  flex: 1;
+  min-width: 0;
+  color: var(--sv-danger);
 }
 .sp-grid {
   flex: 1;
@@ -948,7 +981,6 @@ async function deleteSprint(): Promise<void> {
   min-width: 0;
   background: transparent;
   border: 0;
-  outline: none;
   font-family: inherit;
   font-size: 12px;
   color: var(--sv-fg);

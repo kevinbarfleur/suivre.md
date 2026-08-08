@@ -9,7 +9,7 @@ import { useArchive } from './archive.store'
 // "Archive" view: cross-cutting list of everything archived (tasks with
 // status `archived`, historical decisions, docs filed under archive/). Filters
 // by type / period / label / search, sorting, and in-place detail reading.
-const { entries, ensureLoaded } = useArchive()
+const { entries, ensureLoaded, error, reload } = useArchive()
 const { item, setView } = useView()
 onMounted(ensureLoaded)
 
@@ -166,12 +166,17 @@ function setSort(key: SortKey): void {
       </div>
     </div>
 
-    <div v-if="entries.length === 0" class="ar-empty">
+    <div v-if="error" class="ar-err">
+      <span class="ar-err-t">ERR: {{ error }}</span>
+      <button class="ar-open" type="button" @click="reload">retry</button>
+    </div>
+
+    <div v-if="!error && entries.length === 0" class="ar-empty">
       no archives — nothing statused <code>archived</code> or filed in an
       <code>archive/</code> folder
     </div>
 
-    <div v-else class="ar-grid">
+    <div v-else-if="entries.length > 0" class="ar-grid">
       <div class="ar-list">
         <div v-if="filtered.length === 0" class="ar-none">0 results — no item matches</div>
         <button
@@ -263,7 +268,6 @@ function setSort(key: SortKey): void {
   min-width: 0;
   background: transparent;
   border: 0;
-  outline: none;
   font-family: inherit;
   font-size: 12.5px;
   color: var(--sv-fg);
@@ -354,6 +358,23 @@ function setSort(key: SortKey): void {
 }
 .ar-empty code {
   color: var(--sv-fg-mid);
+}
+.ar-err {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--sv-danger-line);
+  background: var(--sv-danger-bg);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+.ar-err-t {
+  flex: 1;
+  min-width: 0;
+  color: var(--sv-danger);
 }
 .ar-grid {
   flex: 1;

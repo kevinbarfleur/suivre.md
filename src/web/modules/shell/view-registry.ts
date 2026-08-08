@@ -21,8 +21,11 @@ export interface ViewDef {
    *   (fixed header/footer, independent master-detail panes, board columns).
    */
   scroll?: 'auto' | 'managed'
-  /** Command shown on the prompt line. */
-  promptCmd: string
+  /**
+   * Command shown on the prompt line. Omitted when no CLI command opens this
+   * view: the line is read as copyable shell, so it may only carry real ones.
+   */
+  promptCmd?: string
   /** Counter shown in the navigation rail. */
   badge?: (board: Board) => string | number
 }

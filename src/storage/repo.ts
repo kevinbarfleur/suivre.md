@@ -1,11 +1,31 @@
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
-import { boardConfigSchema, buildBoard, DEFAULT_COLUMNS, parseTask, serializeTask } from '../domain'
+import {
+  boardConfigSchema,
+  buildBoard,
+  DEFAULT_COLUMNS,
+  safeParseTask,
+  serializeTask,
+} from '../domain'
 import type { Board, BoardConfig, Task } from '../domain'
 import { ARCHIVE_SUBDIR } from './collection'
 import { resolvePaths, type BacklogPaths } from './paths'
-import { atomicWrite, readFileSafe, readMarkdownDir, removeFile } from './io'
+import {
+  atomicWrite,
+  fileExists,
+  isSameFileName,
+  readFileSafe,
+  readMarkdownDir,
+  removeFile,
+  type InvalidMarkdownFile,
+} from './io'
+
+/** Parsed tasks plus the files that could not be parsed. */
+export interface TaskRead {
+  tasks: Task[]
+  invalid: InvalidMarkdownFile[]
+}
 
 /**
  * Storage repository: the only component that touches the disk. Surfaces
@@ -38,23 +58,38 @@ export class BacklogRepository {
     await atomicWrite(this.paths.configFile, stringifyYaml(config))
   }
 
+  private async readDir(dir: string): Promise<TaskRead> {
+    const files = await readMarkdownDir(dir)
+    const tasks: Task[] = []
+    const invalid: InvalidMarkdownFile[] = []
+    for (const { fileName, raw } of files) {
+      const result = safeParseTask(raw, fileName)
+      if (result.ok) tasks.push(result.task)
+      else invalid.push({ fileName: result.fileName, message: result.message })
+    }
+    return { tasks, invalid }
+  }
+
+  /**
+   * Tolerant read: a single hand-edited file must never take down the board.
+   * Callers that can report the problem use `invalid`; the rest use `listTasks`.
+   */
+  async readTasks(): Promise<TaskRead> {
+    return this.readDir(this.paths.tasksDir)
+  }
+
+  /** Tasks stored in `tasks/archive/` (archived by location), and their invalid files. */
+  async readArchivedTasks(): Promise<TaskRead> {
+    return this.readDir(join(this.paths.tasksDir, ARCHIVE_SUBDIR))
+  }
+
   async listTasks(): Promise<Task[]> {
-    const files = await readMarkdownDir(this.paths.tasksDir)
-    return files.map(({ fileName, raw }) => parseTask(raw, fileName))
+    return (await this.readTasks()).tasks
   }
 
   /** Tasks stored in `tasks/archive/` (archived by location). */
   async listArchivedTasks(): Promise<Task[]> {
-    const files = await readMarkdownDir(join(this.paths.tasksDir, ARCHIVE_SUBDIR))
-    const tasks: Task[] = []
-    for (const { fileName, raw } of files) {
-      try {
-        tasks.push(parseTask(raw, fileName))
-      } catch {
-        /* invalid archive file: skipped rather than blocking */
-      }
-    }
-    return tasks
+    return (await this.readArchivedTasks()).tasks
   }
 
   async getTask(id: string): Promise<Task | null> {
@@ -62,12 +97,16 @@ export class BacklogRepository {
     return tasks.find((task) => task.frontmatter.id === id) ?? null
   }
 
-  /** Writes a task. If the file name changed (title edited), removes the old one. */
+  /**
+   * Writes a task, then removes the old file if the title changed its name.
+   * Never the reverse: dropping the old name first loses the task whenever the
+   * write fails.
+   */
   async saveTask(task: Task, previousFileName?: string): Promise<void> {
-    if (previousFileName && previousFileName !== task.fileName) {
+    await atomicWrite(join(this.paths.tasksDir, task.fileName), serializeTask(task))
+    if (previousFileName && !isSameFileName(previousFileName, task.fileName)) {
       await removeFile(join(this.paths.tasksDir, previousFileName))
     }
-    await atomicWrite(join(this.paths.tasksDir, task.fileName), serializeTask(task))
   }
 
   async deleteTask(id: string): Promise<boolean> {
@@ -77,11 +116,19 @@ export class BacklogRepository {
     return true
   }
 
-  /** Moves a task into `tasks/archive/` (off the board, kept in the repo). */
+  /**
+   * Moves a task into `tasks/archive/` (off the board, kept in the repo).
+   * Refuses to overwrite: ids are reused after archiving, and the archive is
+   * the only remaining copy.
+   */
   async archiveTask(id: string): Promise<boolean> {
     const task = await this.getTask(id)
     if (!task) return false
-    await atomicWrite(join(this.paths.tasksDir, ARCHIVE_SUBDIR, task.fileName), serializeTask(task))
+    const target = join(this.paths.tasksDir, ARCHIVE_SUBDIR, task.fileName)
+    if (await fileExists(target)) {
+      throw new Error(`Archive entry already exists: ${target}`)
+    }
+    await atomicWrite(target, serializeTask(task))
     await removeFile(join(this.paths.tasksDir, task.fileName))
     return true
   }

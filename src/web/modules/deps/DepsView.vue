@@ -10,7 +10,7 @@ const { board, allTasks } = useBoard()
 
 const columns = computed(() => board.value?.columns.map((c) => c.column) ?? [])
 const blocked = computed(() => blockedTasks(allTasks.value, columns.value))
-const impact = computed(() => highImpact(allTasks.value))
+const impact = computed(() => highImpact(allTasks.value, columns.value))
 const parents = computed(() =>
   parentGroups(allTasks.value, columns.value).map((p) => ({
     ...p,

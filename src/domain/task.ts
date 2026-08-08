@@ -1,9 +1,30 @@
+import { formatZodError, taskFrontmatterSchema } from './schema'
 import type { BoardConfig, Priority, TaskFrontmatter } from './schema'
 import type { Task } from './types'
 import { nextTaskId, taskFileName } from './ids'
 import { rankAfter } from './rank'
 
 /** Pure operations on tasks. No I/O: persistence lives in `storage`. */
+
+/**
+ * Last line of defense before serialization. Inputs reach here already typed,
+ * but they come from a CLI parser, an MCP client or an HTTP body: a single
+ * wrong value written to disk makes the file unreadable for every command.
+ */
+function checkedFrontmatter(frontmatter: TaskFrontmatter, id: string): TaskFrontmatter {
+  const result = taskFrontmatterSchema.safeParse(frontmatter)
+  if (!result.success) {
+    throw new Error(`Invalid task ${id}: ${formatZodError(result.error)}`)
+  }
+  return result.data
+}
+
+function checkedBody(body: unknown, id: string): string {
+  if (typeof body !== 'string') {
+    throw new Error(`Invalid task ${id}: body: expected string, received ${typeof body}`)
+  }
+  return body.trim()
+}
 
 export interface CreateTaskInput {
   title: string
@@ -45,8 +66,8 @@ export function createTask(input: CreateTaskInput, ctx: CreateTaskContext): Task
     updated: ctx.now,
   }
   return {
-    frontmatter,
-    body: (input.body ?? '').trim(),
+    frontmatter: checkedFrontmatter(frontmatter, id),
+    body: checkedBody(input.body ?? '', id),
     fileName: taskFileName(id, input.title),
   }
 }
@@ -61,14 +82,15 @@ export type TaskPatch = Partial<
 /** Applies a patch, bumps `updated`, renames the file when the title changes. */
 export function editTask(task: Task, patch: TaskPatch, now: string): Task {
   const { body, ...fmPatch } = patch
-  const frontmatter: TaskFrontmatter = { ...task.frontmatter, ...fmPatch, updated: now }
+  const id = task.frontmatter.id
+  const frontmatter = checkedFrontmatter({ ...task.frontmatter, ...fmPatch, updated: now }, id)
   const fileName =
-    patch.title && patch.title !== task.frontmatter.title
-      ? taskFileName(frontmatter.id, patch.title)
+    frontmatter.title !== task.frontmatter.title
+      ? taskFileName(frontmatter.id, frontmatter.title)
       : task.fileName
   return {
     frontmatter,
-    body: body !== undefined ? body.trim() : task.body,
+    body: body !== undefined ? checkedBody(body, id) : task.body,
     fileName,
   }
 }

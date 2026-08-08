@@ -5,10 +5,20 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-swift build -c release
+# A global npm install can put these sources under a directory we cannot write
+# to, so build and stage the bundle elsewhere when that happens. install.sh
+# passes its own choice in so both scripts agree on where the .app lands.
+WORK="${SUIVRE_DESKTOP_WORK:-}"
+if [ -z "$WORK" ]; then
+    WORK="$PWD"
+    [ -w "$WORK" ] || WORK="${TMPDIR:-/tmp}/suivre-desktop"
+fi
+mkdir -p "$WORK"
 
-APP="build/suivre.app"
-BIN=".build/release/suivre-desktop"
+swift build -c release --scratch-path "$WORK/.build"
+
+APP="$WORK/build/suivre.app"
+BIN="$WORK/.build/release/suivre-desktop"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"

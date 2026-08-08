@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Board } from '../../../domain'
+// Single source of truth for the version: a literal here drifts from the
+// published package the moment it is bumped.
+import { version } from '../../../../package.json'
 import { useBoard } from '../board/board.store'
 import { useView } from './view.store'
 import { views, type ViewDef } from './view-registry'
@@ -24,7 +27,7 @@ function badge(def: ViewDef): string | number {
   <nav class="rail">
     <div class="rail-brand">
       <div class="rail-name">suivre.md</div>
-      <div class="rail-sub">{{ projectName }} · v0.1</div>
+      <div class="rail-sub">{{ projectName }} · v{{ version }}</div>
     </div>
 
     <div class="rail-group">

@@ -1,6 +1,6 @@
 import type { CAC } from 'cac'
 import { decisionStatusSchema } from '../../domain'
-import { decisionJson, docJson, printJson, run, service, toArray } from '../context'
+import { decisionJson, docJson, parseEnum, printJson, requireBoard, run, toArray } from '../context'
 
 /**
  * Knowledge commands: docs (specs, notes) and decisions (ADR). This is where a
@@ -17,7 +17,8 @@ export function registerKnowledgeCommands(cli: CAC): void {
     .option('--json', 'JSON output')
     .action(
       run(async (title: string, options) => {
-        const doc = await service().createDoc({
+        const svc = await requireBoard()
+        const doc = await svc.createDoc({
           title,
           tags: toArray(options.tag),
           body: options.body,
@@ -32,7 +33,7 @@ export function registerKnowledgeCommands(cli: CAC): void {
     .option('--json', 'JSON output')
     .action(
       run(async (options) => {
-        const docs = await service().listDocs()
+        const docs = await (await requireBoard()).listDocs()
         if (options.json) {
           printJson(docs.map(docJson))
           return
@@ -53,7 +54,7 @@ export function registerKnowledgeCommands(cli: CAC): void {
     .option('--json', 'JSON output')
     .action(
       run(async (id: string, options) => {
-        const doc = await service().getDoc(id)
+        const doc = await (await requireBoard()).getDoc(id)
         if (!doc) throw new Error(`Doc not found: ${id}`)
         if (options.json) printJson(docJson(doc))
         else {
@@ -74,10 +75,13 @@ export function registerKnowledgeCommands(cli: CAC): void {
     .option('--json', 'JSON output')
     .action(
       run(async (title: string, options) => {
-        const decision = await service().createDecision({
+        const svc = await requireBoard()
+        const decision = await svc.createDecision({
           title,
-          status: options.status ? decisionStatusSchema.parse(options.status) : undefined,
-          supersedes: options.supersedes,
+          status: options.status
+            ? parseEnum('--status', decisionStatusSchema.options, options.status)
+            : undefined,
+          supersedes: options.supersedes || undefined,
           labels: toArray(options.label),
           body: options.body,
         })
@@ -91,7 +95,7 @@ export function registerKnowledgeCommands(cli: CAC): void {
     .option('--json', 'JSON output')
     .action(
       run(async (options) => {
-        const decisions = await service().listDecisions()
+        const decisions = await (await requireBoard()).listDecisions()
         if (options.json) {
           printJson(decisions.map(decisionJson))
           return
@@ -111,7 +115,7 @@ export function registerKnowledgeCommands(cli: CAC): void {
     .option('--json', 'JSON output')
     .action(
       run(async (id: string, options) => {
-        const decision = await service().getDecision(id)
+        const decision = await (await requireBoard()).getDecision(id)
         if (!decision) throw new Error(`Decision not found: ${id}`)
         if (options.json) printJson(decisionJson(decision))
         else {

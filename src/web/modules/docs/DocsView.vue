@@ -7,7 +7,7 @@ import { useDocs } from './docs.store'
 
 // "Docs" view: documentation index + reading (rendered markdown).
 // Deep-linkable (#docs/doc-001).
-const { docs, ensureLoaded } = useDocs()
+const { docs, ensureLoaded, error, reload } = useDocs()
 const { item, setView } = useView()
 onMounted(ensureLoaded)
 
@@ -41,10 +41,16 @@ function select(id: string): void {
       <input v-model="search" class="dv-input" type="text" placeholder="search docs…" />
     </div>
 
-    <div v-if="docs.length === 0" class="dv-empty">no docs — documentation is empty</div>
+    <div v-if="error" class="dv-err">
+      <span class="dv-err-t">ERR: {{ error }}</span>
+      <button class="dv-retry" type="button" @click="reload">retry</button>
+    </div>
 
-    <div v-else class="dv-grid">
+    <div v-if="!error && docs.length === 0" class="dv-empty">no docs — documentation is empty</div>
+
+    <div v-else-if="docs.length > 0" class="dv-grid">
       <div class="dv-list">
+        <div v-if="filtered.length === 0" class="dv-none">0 results — no doc matches</div>
         <button
           v-for="d in filtered"
           :key="d.frontmatter.id"
@@ -110,6 +116,43 @@ function select(id: string): void {
   text-align: center;
   color: var(--sv-fg-dim);
   font-size: 12px;
+}
+.dv-none {
+  padding: 18px 11px;
+  font-size: 12px;
+  color: var(--sv-fg-dim);
+}
+.dv-err {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--sv-danger-line);
+  background: var(--sv-danger-bg);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+.dv-err-t {
+  flex: 1;
+  min-width: 0;
+  color: var(--sv-danger);
+}
+.dv-retry {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid var(--sv-line);
+  color: var(--sv-fg-mid);
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.dv-retry:hover {
+  border-color: var(--sv-line-strong);
+  color: var(--sv-fg);
 }
 .dv-grid {
   flex: 1;

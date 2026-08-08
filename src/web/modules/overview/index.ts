@@ -9,6 +9,5 @@ export default function registerOverviewModule(): void {
     group: 'tasks',
     order: 30,
     component: OverviewView,
-    promptCmd: 'suivre overview',
   })
 }

@@ -1,29 +1,64 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { draggable } from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
+import { draggable, dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
 import type { Task } from '../../../domain'
 import { useBoard } from './board.store'
+import { closestEdge, type Edge } from './drop'
 import { acProgress, blockedBy, meter, subtaskCount } from '../../lib/task-meta'
 
-const props = defineProps<{ task: Task; orphan?: boolean }>()
+const props = defineProps<{ task: Task; orphan?: boolean; columnId?: string }>()
 const { openTask, allTasks } = useBoard()
 
 const el = ref<HTMLElement | null>(null)
 const dragging = ref(false)
+const edge = ref<Edge | null>(null)
 let cleanup: (() => void) | undefined
 
 onMounted(() => {
-  if (!el.value) return
-  cleanup = draggable({
-    element: el.value,
-    getInitialData: () => ({ taskId: props.task.frontmatter.id }),
-    onDragStart: () => {
-      dragging.value = true
-    },
-    onDrop: () => {
-      dragging.value = false
-    },
-  })
+  const element = el.value
+  if (!element) return
+  const stop = [
+    draggable({
+      element,
+      getInitialData: () => ({ taskId: props.task.frontmatter.id }),
+      onDragStart: () => {
+        dragging.value = true
+      },
+      onDrop: () => {
+        dragging.value = false
+      },
+    }),
+  ]
+  // Cards are drop targets so a drop carries a rank (insert above/below this
+  // one). An orphan has no column to rank within: it stays drag-only.
+  if (props.columnId !== undefined) {
+    stop.push(
+      dropTargetForElements({
+        element,
+        canDrop: ({ source }) => source.data.taskId !== props.task.frontmatter.id,
+        // `getData` is re-run on every drag event, which is what keeps the
+        // edge following the pointer across the card.
+        getData: ({ input }) => ({
+          taskId: props.task.frontmatter.id,
+          columnId: props.columnId,
+          edge: closestEdge(element.getBoundingClientRect(), input.clientY),
+        }),
+        getIsSticky: () => true,
+        onDrag: ({ self }) => {
+          edge.value = (self.data.edge as Edge | undefined) ?? null
+        },
+        onDragLeave: () => {
+          edge.value = null
+        },
+        onDrop: () => {
+          edge.value = null
+        },
+      }),
+    )
+  }
+  cleanup = () => {
+    for (const fn of stop) fn()
+  }
 })
 onBeforeUnmount(() => cleanup?.())
 
@@ -45,7 +80,12 @@ const hasFoot = computed(
   <article
     ref="el"
     class="card"
-    :class="{ 'card--dragging': dragging, 'card--orphan': orphan }"
+    :class="{
+      'card--dragging': dragging,
+      'card--orphan': orphan,
+      'card--edge-top': edge === 'top',
+      'card--edge-bottom': edge === 'bottom',
+    }"
     @click="openTask(task)"
   >
     <div class="card-head">
@@ -80,6 +120,7 @@ const hasFoot = computed(
 
 <style scoped>
 .card {
+  position: relative;
   background: var(--sv-surface-2);
   border: 1px solid var(--sv-line);
   border-radius: var(--sv-r-card);
@@ -92,6 +133,23 @@ const hasFoot = computed(
   transition:
     border-color 0.15s ease,
     background-color 0.15s ease;
+}
+/* Insertion line: which side of this card the dragged one would land on. */
+.card--edge-top::before,
+.card--edge-bottom::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--sv-accent);
+}
+.card--edge-top::before {
+  top: -6px;
+}
+.card--edge-bottom::after {
+  bottom: -6px;
 }
 .card:hover {
   border-color: var(--sv-line-strong);

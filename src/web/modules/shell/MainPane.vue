@@ -7,39 +7,68 @@ import { slug } from '../../lib/task-meta'
 import StatsPanel from '../stats/StatsPanel.vue'
 import Toolbar from '../filter/Toolbar.vue'
 import TaskDetailDialog from '../board/TaskDetailDialog.vue'
+import UnknownView from './UnknownView.vue'
 
 // Main pane: FIXED frame (prompt line + Summary + toolbar for task views)
 // above a BOUNDED content area that never exceeds the screen.
 // The content scrolls, not the page — `auto` scrolls the whole view,
 // `managed` lets the view manage its own internal scroll (master-detail, board, list).
-const { board, allTasks, loading, error, ensureLoaded, selected, openTask } = useBoard()
-const { view, item } = useView()
+const { board, allTasks, loading, error, ensureLoaded, selected, openTask, closeTask } = useBoard()
+const { view, item, setView } = useView()
 
 const def = computed(() => viewById(view.value))
 const host = computed(() => slug(board.value?.config.name ?? 'backlog'))
-const promptCmd = computed(() => def.value?.promptCmd ?? 'suivre')
+// An unregistered id must not render nothing: a typo in the hash or a stale
+// `defaultView` preference would otherwise mean a permanently blank page.
+const component = computed(() => def.value?.component ?? UnknownView)
+const prompt = computed(() => (def.value?.promptCmd ? `$ ${def.value.promptCmd}` : '$'))
 const showChrome = computed(() => def.value?.taskChrome === true && board.value != null)
 const isManaged = computed(() => def.value?.scroll === 'managed')
 
-// Deep link to a task: `#board/task-012` opens its detail directly.
+// Deep link to a task: `#board/task-012` opens its detail directly. The link is
+// consumed ONCE — every board reload (any agent write) re-runs this watcher, and
+// a card the user closed must not come back.
 const TASK_VIEWS = new Set(['board', 'list', 'deps', 'overview'])
+let consumed: string | null = null
+
 watch(
-  [view, item, board],
+  [view, item, allTasks],
   () => {
-    if (!board.value || !item.value || !TASK_VIEWS.has(view.value)) return
-    const task = allTasks.value.find((t) => t.frontmatter.id === item.value)
-    if (task && selected.value?.frontmatter.id !== task.frontmatter.id) openTask(task)
+    const id = item.value
+    if (!id || !TASK_VIEWS.has(view.value)) {
+      consumed = null
+      return
+    }
+    if (id === consumed) return
+    const task = allTasks.value.find((t) => t.frontmatter.id === id)
+    if (!task) return
+    consumed = id
+    openTask(task)
   },
   { immediate: true },
 )
+
+// The open card owns the item segment of the hash on task views: opening one
+// makes it shareable, closing it has to drop the link that would reopen it.
+watch(selected, (task) => {
+  if (!TASK_VIEWS.has(view.value)) return
+  const id = task?.frontmatter.id ?? null
+  consumed = id
+  if (item.value !== id) setView(view.value, id)
+})
+
+// The dialog belongs to the view that opened it.
+watch(view, () => {
+  if (selected.value) closeTask()
+})
 </script>
 
 <template>
   <main class="main">
     <div class="main-prompt">
-      <span class="main-prompt-user">kevin@{{ host }}</span
+      <span class="main-prompt-user">suivre@{{ host }}</span
       ><span class="main-prompt-sep">:</span><span class="main-prompt-path">~/.suivre</span
-      ><span class="main-prompt-cmd">$ {{ promptCmd }}</span>
+      ><span class="main-prompt-cmd">{{ prompt }}</span>
     </div>
 
     <div v-if="error" class="main-state main-state--err">
@@ -50,11 +79,11 @@ watch(
     <div v-else-if="!board" class="main-state">Backlog not initialized.</div>
     <template v-else>
       <template v-if="showChrome">
-        <div class="main-chrome-bilan"><StatsPanel /></div>
+        <div class="main-chrome-stats"><StatsPanel /></div>
         <div class="main-chrome-tb"><Toolbar /></div>
       </template>
       <div class="main-body" :class="isManaged ? 'main-body--managed' : 'main-body--auto'">
-        <component :is="def?.component" />
+        <component :is="component" />
       </div>
     </template>
 
@@ -91,7 +120,7 @@ watch(
 .main-prompt-cmd {
   color: var(--sv-fg-dim);
 }
-.main-chrome-bilan {
+.main-chrome-stats {
   flex: 0 0 auto;
   margin-bottom: 16px;
 }

@@ -11,7 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let hotKey = DoubleTapCommand()
 
     private var statusItem: NSStatusItem?
-    private var statusCache: [String: Bool] = [:]
+    private var statusCache: [String: HealthStatus] = [:]
 
     init(showOnLaunch: Bool) {
         self.showOnLaunch = showOnLaunch
@@ -113,6 +113,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(addURLItem)
 
         menu.addItem(sizeMenu())
+        menu.addItem(cliMenu())
 
         menu.addItem(.separator())
         menu.addItem(
@@ -125,15 +126,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func sectionHeader(_ title: String) -> NSMenuItem {
-        let header = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        header.isEnabled = false
-        return header
+        disabledItem(title)
     }
 
     private func projectItem(_ project: Project) -> NSMenuItem {
-        let up = statusCache[project.path] ?? false
+        let status = statusCache[project.path] ?? .down
         let item = NSMenuItem(title: "\(project.name)   :\(project.port)", action: nil, keyEquivalent: "")
-        item.image = statusImage(up: up)
+        item.image = statusImage(status)
         item.representedObject = project  // lets a live status refresh find this item
 
         let submenu = NSMenu()
@@ -143,12 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         open.representedObject = project
         submenu.addItem(open)
 
-        let toggleTitle = up ? "Stop server" : "Start server"
-        let toggleAction = up ? #selector(stopServerItem(_:)) : #selector(startServerItem(_:))
-        let toggle = NSMenuItem(title: toggleTitle, action: toggleAction, keyEquivalent: "")
-        toggle.target = self
-        toggle.representedObject = project
-        submenu.addItem(toggle)
+        submenu.addItem(serverItem(project, status: status))
 
         submenu.addItem(.separator())
 
@@ -162,6 +156,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         submenu.addItem(remove)
 
         item.submenu = submenu
+        return item
+    }
+
+    /// Start / stop / neither. A server we didn't spawn can't be stopped from
+    /// here, and a port held by something else can't be started into — both say
+    /// so instead of offering an action that does nothing.
+    private func serverItem(_ project: Project, status: HealthStatus) -> NSMenuItem {
+        switch status {
+        case .mine where supervisor.owns(project):
+            let stop = NSMenuItem(title: "Stop server", action: #selector(stopServerItem(_:)), keyEquivalent: "")
+            stop.target = self
+            stop.representedObject = project
+            return stop
+        case .mine:
+            return disabledItem("Running \u{2014} started outside the overlay")
+        case .foreign(let reason):
+            return disabledItem(reason)
+        case .down:
+            let start = NSMenuItem(title: "Start server", action: #selector(startServerItem(_:)), keyEquivalent: "")
+            start.target = self
+            start.representedObject = project
+            return start
+        }
+    }
+
+    private func disabledItem(_ title: String) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.isEnabled = false
         return item
     }
 
@@ -202,10 +224,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return item
     }
 
-    private func statusImage(up: Bool) -> NSImage? {
-        let color: NSColor = up ? .systemGreen : .tertiaryLabelColor
+    /// The CLI that starts the servers: which one was found, and a way to say
+    /// otherwise. Without this, an install the app can't find is only fixable by
+    /// hand-editing JSON.
+    private func cliMenu() -> NSMenuItem {
+        let item = NSMenuItem(title: "suivre CLI", action: nil, keyEquivalent: "")
+        let submenu = NSMenu()
+
+        let lookup = supervisor.cliLookup()
+        if let entry = lookup.entry {
+            submenu.addItem(disabledItem(entry.description))
+        } else {
+            submenu.addItem(disabledItem("Not found \u{2014} servers can't be started"))
+            for place in lookup.searched.prefix(8) {
+                submenu.addItem(disabledItem("   \(place)"))
+            }
+        }
+
+        submenu.addItem(.separator())
+
+        let choose = NSMenuItem(title: "Choose\u{2026}", action: #selector(chooseCLI), keyEquivalent: "")
+        choose.target = self
+        submenu.addItem(choose)
+
+        if registry.cliPath != nil {
+            let auto = NSMenuItem(title: "Find it automatically", action: #selector(clearCLI), keyEquivalent: "")
+            auto.target = self
+            submenu.addItem(auto)
+        }
+
+        item.submenu = submenu
+        return item
+    }
+
+    /// Green only for this project's own board — orange when the port is held by
+    /// something else, which is precisely the case that used to read as green.
+    private func statusImage(_ status: HealthStatus) -> NSImage? {
+        let color: NSColor
+        let label: String
+        switch status {
+        case .mine: (color, label) = (.systemGreen, "running")
+        case .foreign: (color, label) = (.systemOrange, "port taken")
+        case .down: (color, label) = (.tertiaryLabelColor, "stopped")
+        }
         let config = NSImage.SymbolConfiguration(paletteColors: [color])
-        return NSImage(systemSymbolName: "circle.fill", accessibilityDescription: up ? "running" : "stopped")?
+        return NSImage(systemSymbolName: "circle.fill", accessibilityDescription: label)?
             .withSymbolConfiguration(config)
     }
 
@@ -220,12 +283,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// When a menu is passed, its project items are updated live as pings return.
     private func refreshStatuses(in menu: NSMenu?) {
         for project in registry.projects {
-            supervisor.status(project) { [weak self, weak menu] up in
+            supervisor.status(project) { [weak self, weak menu] status in
                 guard let self else { return }
-                self.statusCache[project.path] = up
+                self.statusCache[project.path] = status
                 guard let menu else { return }
                 let item = menu.items.first { ($0.representedObject as? Project)?.path == project.path }
-                item?.image = self.statusImage(up: up)
+                item?.image = self.statusImage(status)
             }
         }
     }
@@ -251,20 +314,19 @@ extension AppDelegate {
 
     @objc private func startServerItem(_ sender: NSMenuItem) {
         guard let project = sender.representedObject as? Project else { return }
-        supervisor.ensureRunning(project) { [weak self] up in
+        supervisor.ensureRunning(project) { [weak self] status in
             guard let self else { return }
-            self.statusCache[project.path] = up
-            if !up { self.reportFailedStart(project) }
+            self.statusCache[project.path] = status
+            if !status.isMine { self.reportFailedStart(project, status) }
         }
     }
 
     /// A failed start is otherwise silent: the menu is closed by then, so the
     /// dot just stays grey the next time it's opened.
-    private func reportFailedStart(_ project: Project) {
+    private func reportFailedStart(_ project: Project, _ status: HealthStatus) {
         let alert = NSAlert()
         alert.messageText = "\(project.name) didn't start"
-        alert.informativeText =
-            "Nothing answered on port \(project.port). The server log says why."
+        alert.informativeText = "\(status.summary). The server log says more."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Reveal logs")
         alert.addButton(withTitle: "Close")
@@ -276,8 +338,14 @@ extension AppDelegate {
 
     @objc private func stopServerItem(_ sender: NSMenuItem) {
         guard let project = sender.representedObject as? Project else { return }
-        supervisor.stop(project)
-        statusCache[project.path] = false
+        guard supervisor.stop(project) else {
+            warn(
+                title: "\(project.name) wasn't started here",
+                message: "Its server is running outside the overlay, so it stays up."
+            )
+            return
+        }
+        statusCache[project.path] = .down
     }
 
     @objc private func removeProjectItem(_ sender: NSMenuItem) {
@@ -294,6 +362,32 @@ extension AppDelegate {
     @objc private func setSize(_ sender: NSMenuItem) {
         guard let preset = sender.representedObject as? String else { return }
         registry.setOverlaySize(preset)
+    }
+
+    @objc private func chooseCLI() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.showsHiddenFiles = true  // global bins live under dot-directories
+        panel.prompt = "Use"
+        panel.message = "Choose the `suivre` command, or the folder it's installed in."
+        NSApp.activate(ignoringOtherApps: true)
+        panel.begin { [weak self] response in
+            guard response == .OK, let url = panel.url, let self else { return }
+            guard CLILocator.entry(atPath: url.path) != nil else {
+                self.warn(
+                    title: "Not a suivre CLI",
+                    message: "\(url.path)\n\nExpected the `suivre` command, or a folder holding dist/cli/index.js."
+                )
+                return
+            }
+            self.registry.setCLIPath(url.path)
+        }
+    }
+
+    @objc private func clearCLI() {
+        registry.setCLIPath(nil)
     }
 
     @objc private func openInputMonitoringSettings() {
@@ -368,14 +462,25 @@ extension AppDelegate {
         let view = items.first { $0.name == "view" }?.value
         let targetName = items.first { $0.name == "target" }?.value
 
-        let target: OverlayTarget?
-        if let targetName, let named = registry.target(named: targetName) {
-            target = named
-        } else {
-            target = registry.activeTarget
+        // A name that resolves to nothing is not the same as no name at all:
+        // falling back to the active target would reveal a *different* project
+        // than the one the agent asked for.
+        if let targetName {
+            guard let named = registry.target(named: targetName) else {
+                logScheme(url: url.absoluteString, resolved: "no target named \(targetName)", view: view)
+                overlay.showMessage("No target named \u{201C}\(targetName)\u{201D}. Add it from the menu bar (suivre).")
+                return
+            }
+            logScheme(url: url.absoluteString, resolved: named.id, view: view)
+            overlay.reveal(named, deepLink: view)
+            return
         }
-        guard let target else { return }
 
+        guard let target = registry.activeTarget else {
+            logScheme(url: url.absoluteString, resolved: "no active target", view: view)
+            overlay.showMessage("Nothing to reveal yet. Add a project or a URL from the menu bar (suivre).")
+            return
+        }
         logScheme(url: url.absoluteString, resolved: target.id, view: view)
         overlay.reveal(target, deepLink: view)
     }

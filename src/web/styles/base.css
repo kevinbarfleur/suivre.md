@@ -29,11 +29,20 @@ button,
 select {
   font: inherit;
   color: inherit;
-  outline: none;
 }
 input::placeholder,
 textarea::placeholder {
   color: var(--sv-placeholder);
+}
+
+/* Every control here is custom-styled: without this ring a keyboard user has
+   no way to tell what is focused. Pointer focus stays ringless. */
+:focus-visible {
+  outline: 2px solid var(--sv-focus);
+  outline-offset: 2px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
 ::-webkit-scrollbar {

@@ -6,9 +6,26 @@ import { generateKeyBetween, generateNKeysBetween } from 'fractional-indexing'
  * two neighbors. Comparison = plain `<` on strings.
  */
 
+/** Names a bound in an error message (`null` = the column's edge). */
+function boundLabel(rank: string | null, edge: 'start' | 'end'): string {
+  return rank === null ? `the ${edge} of the column` : `rank "${rank}"`
+}
+
 /** Key strictly between `a` and `b` (`null` bounds = start/end of column). */
 export function rankBetween(a: string | null, b: string | null): string {
-  return generateKeyBetween(a, b)
+  try {
+    return generateKeyBetween(a, b)
+  } catch (cause) {
+    // fractional-indexing reports unusable bounds as `<a> >= <b>`, which is
+    // the bare string " >= " when both ranks are equal — this message is what
+    // an agent reads back from MCP, so it has to say what happened.
+    throw new Error(
+      `Cannot rank between ${boundLabel(a, 'start')} and ${boundLabel(b, 'end')}: ` +
+        'the two neighbours must have distinct, ascending order keys ' +
+        '(duplicate ranks usually come from a git merge — reorder the column to repair it)',
+      { cause },
+    )
+  }
 }
 
 /** Key placed after `a` (end of column if `a` is the last rank). */

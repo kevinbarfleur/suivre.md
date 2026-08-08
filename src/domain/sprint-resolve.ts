@@ -4,7 +4,9 @@ import type { Task } from './types'
 // web view imports it directly, so zod stays out of the SPA bundle. The schema
 // and parser (with zod) live in `sprint.ts`.
 
-const DONE_STATUS = 'done'
+// The final column is board-configurable (`doneStatus(config)`); this is only
+// the fallback for callers that have no config at hand.
+const DEFAULT_DONE_STATUS = 'done'
 
 export interface SprintStep {
   id: string
@@ -24,7 +26,12 @@ export interface ResolvedSprint {
   currentIndex: number
 }
 
-function stepFor(id: string, byId: Map<string, Task>, tasks: readonly Task[]): SprintStep {
+function stepFor(
+  id: string,
+  byId: Map<string, Task>,
+  tasks: readonly Task[],
+  done: string,
+): SprintStep {
   const task = byId.get(id) ?? null
   const subtasks = tasks
     .filter((t) => t.frontmatter.parent === id)
@@ -32,24 +39,31 @@ function stepFor(id: string, byId: Map<string, Task>, tasks: readonly Task[]): S
       id: t.frontmatter.id,
       task: t,
       status: t.frontmatter.status,
-      done: t.frontmatter.status === DONE_STATUS,
+      done: t.frontmatter.status === done,
       subtasks: [],
     }))
   return {
     id,
     task,
     status: task?.frontmatter.status ?? null,
-    done: task?.frontmatter.status === DONE_STATUS,
+    done: task?.frontmatter.status === done,
     subtasks,
   }
 }
 
-/** Resolves a sprint's ordered ids against the live task set. Pure/testable. */
-export function resolveSprint(items: readonly string[], tasks: readonly Task[]): ResolvedSprint {
+/**
+ * Resolves a sprint's ordered ids against the live task set. Pure/testable.
+ * `done` is the board's final column id — pass `doneStatus(config)`, or a
+ * board with renamed columns reports zero progress forever.
+ */
+export function resolveSprint(
+  items: readonly string[],
+  tasks: readonly Task[],
+  done: string = DEFAULT_DONE_STATUS,
+): ResolvedSprint {
   const byId = new Map(tasks.map((t) => [t.frontmatter.id, t]))
-  const steps = items.map((id) => stepFor(id, byId, tasks))
+  const steps = items.map((id) => stepFor(id, byId, tasks, done))
   const total = steps.length
-  const done = steps.filter((s) => s.done).length
   const currentIndex = steps.findIndex((s) => !s.done)
-  return { steps, done, total, currentIndex }
+  return { steps, done: steps.filter((s) => s.done).length, total, currentIndex }
 }

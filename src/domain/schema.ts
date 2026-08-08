@@ -1,4 +1,18 @@
 import { z } from 'zod'
+import { ARCHIVED_STATUS } from './archive'
+
+/**
+ * Renders a ZodError as `field: reason` pairs. The raw ZodError message is a
+ * JSON dump: unreadable in a CLI, and it never names the offending field.
+ */
+export function formatZodError(error: z.ZodError): string {
+  return error.issues
+    .map((issue) => {
+      const path = issue.path.join('.')
+      return path ? `${path}: ${issue.message}` : issue.message
+    })
+    .join('; ')
+}
 
 /** Task priority. The only axis that earns color on the board. */
 export const prioritySchema = z.enum(['low', 'medium', 'high', 'urgent'])
@@ -33,11 +47,35 @@ export const columnSchema = z.object({
 export type Column = z.infer<typeof columnSchema>
 
 /** A backlog's config.yml. */
-export const boardConfigSchema = z.object({
-  name: z.string().min(1),
-  taskPrefix: z.string().min(1).default('task'),
-  columns: z.array(columnSchema).min(1),
-})
+export const boardConfigSchema = z
+  .object({
+    name: z.string().min(1),
+    taskPrefix: z.string().min(1).default('task'),
+    columns: z.array(columnSchema).min(1),
+  })
+  // Two column ids the board cannot render: a duplicate makes both columns
+  // share one task list, and `archived` is reserved (its tickets leave the
+  // board for the archives view).
+  .superRefine((config, ctx) => {
+    const seen = new Set<string>()
+    config.columns.forEach((column, index) => {
+      if (column.id === ARCHIVED_STATUS) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['columns', index, 'id'],
+          message: `Column id "${ARCHIVED_STATUS}" is reserved for archived tasks`,
+        })
+      }
+      if (seen.has(column.id)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['columns', index, 'id'],
+          message: `Duplicate column id: ${column.id}`,
+        })
+      }
+      seen.add(column.id)
+    })
+  })
 export type BoardConfig = z.infer<typeof boardConfigSchema>
 
 /** Default columns created by `suivre init`. */

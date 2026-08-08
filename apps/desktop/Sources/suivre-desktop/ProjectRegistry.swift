@@ -41,19 +41,25 @@ enum OverlayTarget {
 }
 
 /// Persisted state for the desktop app: registered projects and URL targets, the
-/// active target, the overlay size, and where the suivre.md checkout lives.
+/// active target, the overlay size, and where the `suivre` CLI lives.
 /// Stored at `~/.config/suivre/desktop.json`, next to the machine preferences.
 final class ProjectRegistry {
     private struct State: Codable {
-        var suivreRepoPath: String
+        /// Explicit override for the CLI the servers are started with. Absent
+        /// means "find it" (see CLILocator).
+        var cliPath: String?
+        /// A suivre.md checkout, from before the CLI was looked up where it is
+        /// installed. Still honoured as the last resort.
+        var suivreRepoPath: String?
         var projects: [Project]
         var links: [Link]
         var activeTargetID: String?
         var overlaySize: String?
         var activePath: String?  // legacy; migrated to activeTargetID
 
-        init(suivreRepoPath: String) {
-            self.suivreRepoPath = suivreRepoPath
+        init() {
+            self.cliPath = nil
+            self.suivreRepoPath = nil
             self.projects = []
             self.links = []
             self.activeTargetID = nil
@@ -63,7 +69,8 @@ final class ProjectRegistry {
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            suivreRepoPath = try container.decode(String.self, forKey: .suivreRepoPath)
+            cliPath = try container.decodeIfPresent(String.self, forKey: .cliPath)
+            suivreRepoPath = try container.decodeIfPresent(String.self, forKey: .suivreRepoPath)
             projects = try container.decodeIfPresent([Project].self, forKey: .projects) ?? []
             links = try container.decodeIfPresent([Link].self, forKey: .links) ?? []
             activeTargetID = try container.decodeIfPresent(String.self, forKey: .activeTargetID)
@@ -79,16 +86,15 @@ final class ProjectRegistry {
         let configDir = ProjectRegistry.configDirectory
         fileURL = configDir.appendingPathComponent("desktop.json")
         try? FileManager.default.createDirectory(at: configDir, withIntermediateDirectories: true)
-        state =
-            ProjectRegistry.load(from: fileURL)
-            ?? State(suivreRepoPath: ProjectRegistry.defaultRepoPath())
+        state = ProjectRegistry.load(from: fileURL) ?? State()
         migrateLegacyActive()
         persist()
     }
 
     var projects: [Project] { state.projects }
     var links: [Link] { state.links }
-    var suivreRepoPath: String { state.suivreRepoPath }
+    var cliPath: String? { state.cliPath }
+    var suivreRepoPath: String? { state.suivreRepoPath }
     var overlaySizePreset: String { state.overlaySize ?? "medium" }
 
     var logsDirectory: URL {
@@ -135,6 +141,12 @@ final class ProjectRegistry {
 
     func setOverlaySize(_ preset: String) {
         state.overlaySize = preset
+        persist()
+    }
+
+    /// Pins the CLI the board servers are started with; nil restores the search.
+    func setCLIPath(_ path: String?) {
+        state.cliPath = path
         persist()
     }
 
@@ -238,11 +250,5 @@ final class ProjectRegistry {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".config")
             .appendingPathComponent("suivre")
-    }
-
-    private static func defaultRepoPath() -> String {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Github/suivre.md")
-            .path
     }
 }

@@ -7,7 +7,7 @@ import { useDecisions } from './decisions.store'
 
 // "Decisions" view: ADR registry. List filterable by status + detail
 // (context / decision / consequences). Deep-linkable (#decisions/decision-001).
-const { decisions, ensureLoaded } = useDecisions()
+const { decisions, ensureLoaded, error, reload } = useDecisions()
 const { item, setView } = useView()
 onMounted(ensureLoaded)
 
@@ -51,10 +51,20 @@ function select(id: string): void {
       </button>
     </div>
 
-    <div v-if="decisions.length === 0" class="dc-empty">no decisions — the ADR log is empty</div>
+    <div v-if="error" class="dc-err">
+      <span class="dc-err-t">ERR: {{ error }}</span>
+      <button class="dc-retry" type="button" @click="reload">retry</button>
+    </div>
 
-    <div v-else class="dc-grid">
+    <div v-if="!error && decisions.length === 0" class="dc-empty">
+      no decisions — the ADR log is empty
+    </div>
+
+    <div v-else-if="decisions.length > 0" class="dc-grid">
       <div class="dc-list">
+        <div v-if="filtered.length === 0" class="dc-none">
+          0 results — no {{ statusFilter }} decision
+        </div>
         <button
           v-for="d in filtered"
           :key="d.frontmatter.id"
@@ -140,6 +150,44 @@ function select(id: string): void {
   text-align: center;
   color: var(--sv-fg-dim);
   font-size: 12px;
+}
+.dc-none {
+  padding: 22px 15px;
+  font-size: 12px;
+  color: var(--sv-fg-dim);
+  text-align: center;
+}
+.dc-err {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--sv-danger-line);
+  background: var(--sv-danger-bg);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+.dc-err-t {
+  flex: 1;
+  min-width: 0;
+  color: var(--sv-danger);
+}
+.dc-retry {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid var(--sv-line);
+  color: var(--sv-fg-mid);
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.dc-retry:hover {
+  border-color: var(--sv-line-strong);
+  color: var(--sv-fg);
 }
 .dc-grid {
   flex: 1;

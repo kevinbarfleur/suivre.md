@@ -1,4 +1,5 @@
-import { mkdir, readdir, readFile, rename, unlink, writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
+import { mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 
 /** Tolerant read: `null` if the file does not exist / is unreadable. */
@@ -13,6 +14,31 @@ export async function readFileSafe(path: string): Promise<string | null> {
 export interface MarkdownFile {
   fileName: string
   raw: string
+}
+
+/** A file that could not be parsed — surfaced to the caller, never silently dropped. */
+export interface InvalidMarkdownFile {
+  fileName: string
+  message: string
+}
+
+/** `true` if anything exists at `path`. */
+export async function fileExists(path: string): Promise<boolean> {
+  try {
+    await stat(path)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Case-insensitive filesystems (APFS, NTFS) map `Fix-Bug.md` and `fix-bug.md`
+ * to the same file: a title-case edit is a rename to the *same* path, and
+ * deleting the "previous" name would delete the freshly written content.
+ */
+export function isSameFileName(a: string, b: string): boolean {
+  return a.normalize('NFC').toLowerCase() === b.normalize('NFC').toLowerCase()
 }
 
 /**
@@ -44,7 +70,9 @@ export async function readMarkdownDir(dir: string): Promise<MarkdownFile[]> {
  */
 export async function atomicWrite(path: string, content: string): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
-  const tmp = `${path}.${process.pid}.${Date.now()}.tmp`
+  // The temp name must be unique per call: pid+timestamp collides between two
+  // writes to the same path in the same millisecond, which splices their bytes.
+  const tmp = `${path}.${randomUUID()}.tmp`
   try {
     await writeFile(tmp, content, 'utf8')
     await rename(tmp, path)
@@ -54,11 +82,14 @@ export async function atomicWrite(path: string, content: string): Promise<void> 
   }
 }
 
-/** Tolerant delete (no-op if already gone). */
+/**
+ * Delete that tolerates an already-missing file. Any other failure propagates:
+ * callers report "Deleted." to the user, which must not be a lie.
+ */
 export async function removeFile(path: string): Promise<void> {
   try {
     await unlink(path)
-  } catch {
-    /* already deleted */
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
   }
 }

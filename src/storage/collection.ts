@@ -1,5 +1,12 @@
 import { join } from 'node:path'
-import { atomicWrite, readMarkdownDir, removeFile } from './io'
+import {
+  atomicWrite,
+  isSameFileName,
+  readMarkdownDir,
+  removeFile,
+  type InvalidMarkdownFile,
+  type MarkdownFile,
+} from './io'
 
 /** Conventional subfolder for archived items (`<collection>/archive/`). */
 export const ARCHIVE_SUBDIR = 'archive'
@@ -9,10 +16,16 @@ export interface CollectionItem {
   fileName: string
 }
 
+/** Parsed items plus the files that could not be parsed. */
+export interface CollectionRead<T> {
+  items: T[]
+  invalid: InvalidMarkdownFile[]
+}
+
 /**
  * Generic collection of `.md` files (frontmatter + body) in a directory.
  * Reuses the task logic for decisions and docs. Atomic writes; an invalid
- * file is skipped on read (never blocking).
+ * file never blocks a read — it is reported through `invalid`.
  */
 export class MarkdownCollection<T extends CollectionItem> {
   constructor(
@@ -21,26 +34,37 @@ export class MarkdownCollection<T extends CollectionItem> {
     private readonly serialize: (item: T) => string,
   ) {}
 
-  private parseAll(files: { fileName: string; raw: string }[]): T[] {
+  private parseAll(files: MarkdownFile[]): CollectionRead<T> {
     const items: T[] = []
+    const invalid: InvalidMarkdownFile[] = []
     for (const { fileName, raw } of files) {
       try {
         items.push(this.parse(raw, fileName))
-      } catch {
-        /* invalid file: skip it rather than break the list */
+      } catch (error) {
+        invalid.push({ fileName, message: error instanceof Error ? error.message : String(error) })
       }
     }
-    return items
+    return { items, invalid }
+  }
+
+  /** Active items and unparseable files (top level, excluding archive/). */
+  async read(): Promise<CollectionRead<T>> {
+    return this.parseAll(await readMarkdownDir(this.dir))
+  }
+
+  /** Items and unparseable files in `<collection>/archive/`. */
+  async readArchived(): Promise<CollectionRead<T>> {
+    return this.parseAll(await readMarkdownDir(join(this.dir, ARCHIVE_SUBDIR)))
   }
 
   /** Active items (top level of the directory, excluding the archive/ subfolder). */
   async list(): Promise<T[]> {
-    return this.parseAll(await readMarkdownDir(this.dir))
+    return (await this.read()).items
   }
 
   /** Items stored in `<collection>/archive/` (archived by location). */
   async listArchived(): Promise<T[]> {
-    return this.parseAll(await readMarkdownDir(join(this.dir, ARCHIVE_SUBDIR)))
+    return (await this.readArchived()).items
   }
 
   async get(id: string): Promise<T | null> {
@@ -48,11 +72,12 @@ export class MarkdownCollection<T extends CollectionItem> {
     return items.find((item) => item.frontmatter.id === id) ?? null
   }
 
+  /** Write first, then drop the old name: a failed write must never lose the item. */
   async save(item: T, previousFileName?: string): Promise<void> {
-    if (previousFileName && previousFileName !== item.fileName) {
+    await atomicWrite(join(this.dir, item.fileName), this.serialize(item))
+    if (previousFileName && !isSameFileName(previousFileName, item.fileName)) {
       await removeFile(join(this.dir, previousFileName))
     }
-    await atomicWrite(join(this.dir, item.fileName), this.serialize(item))
   }
 
   async remove(id: string): Promise<boolean> {

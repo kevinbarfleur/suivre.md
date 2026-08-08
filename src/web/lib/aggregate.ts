@@ -1,8 +1,21 @@
 import type { Column, Priority, Task } from '../../domain'
+// Deep import on purpose: the domain barrel re-exports the markdown/YAML
+// layer, which has no business in the browser bundle.
+import { ARCHIVED_STATUS } from '../../domain/archive'
 import { acProgress } from './task-meta'
 
 // Pure aggregations for the overview and dependency analysis. No I/O,
 // no Vue dependency — testable in isolation.
+
+/**
+ * Id of the final column — the board's own "done", whatever it is named. Every
+ * aggregate that tells finished work apart takes the board columns for this:
+ * a literal 'done' is wrong on any renamed board. `null` when the board has no
+ * column, and then nothing counts as finished.
+ */
+export function finalColumnId(columns: readonly Column[]): string | null {
+  return columns.at(-1)?.id ?? null
+}
 
 export interface Dist {
   key: string
@@ -61,9 +74,10 @@ export interface Fresh {
   date: string
 }
 
-export function oldestOpen(tasks: readonly Task[], doneId = 'done', limit = 4): Fresh[] {
+export function oldestOpen(tasks: readonly Task[], columns: readonly Column[], limit = 4): Fresh[] {
+  const done = finalColumnId(columns)
   return tasks
-    .filter((t) => t.frontmatter.status !== doneId)
+    .filter((t) => t.frontmatter.status !== done)
     .slice()
     .sort((a, b) => a.frontmatter.created.localeCompare(b.frontmatter.created))
     .slice(0, limit)
@@ -106,19 +120,31 @@ function labelOf(columns: readonly Column[], status: string): string {
   return columns.find((c) => c.id === status)?.label ?? status
 }
 
+/**
+ * Same rule as the domain's `isDependencyResolved`: a dependency stops blocking
+ * once it reaches the final column, is archived, or is simply gone from the
+ * board (deleted, or archived out of the payload). Calling a missing dependency
+ * "blocking" would contradict `suivre next`, which already reports the task ready.
+ */
+function isResolved(dep: Task | undefined, done: string | null): boolean {
+  if (dep === undefined) return true
+  const { status } = dep.frontmatter
+  return status === done || status === ARCHIVED_STATUS
+}
+
 /** Unfinished tasks with at least one unresolved blocker. */
 export function blockedTasks(tasks: readonly Task[], columns: readonly Column[]): BlockedTask[] {
+  const done = finalColumnId(columns)
   const byId = new Map(tasks.map((t) => [t.frontmatter.id, t]))
   const result: BlockedTask[] = []
   for (const t of tasks) {
-    if (t.frontmatter.status === 'done' || t.frontmatter.depends.length === 0) continue
+    if (t.frontmatter.status === done || t.frontmatter.depends.length === 0) continue
     const blockers = t.frontmatter.depends.map((id) => {
       const dep = byId.get(id)
-      const status = dep?.frontmatter.status
       return {
         id,
-        statusLabel: dep ? labelOf(columns, status ?? '') : 'unknown',
-        resolved: status === 'done',
+        statusLabel: dep ? labelOf(columns, dep.frontmatter.status) : 'gone',
+        resolved: isResolved(dep, done),
       }
     })
     if (blockers.some((b) => !b.resolved)) {
@@ -135,9 +161,14 @@ export interface Impact {
 }
 
 /** High-impact blockers: open tasks that other open tasks depend on. */
-export function highImpact(tasks: readonly Task[], limit = 6): Impact[] {
+export function highImpact(
+  tasks: readonly Task[],
+  columns: readonly Column[],
+  limit = 6,
+): Impact[] {
+  const done = finalColumnId(columns)
   const dependents = new Map<string, number>()
-  const open = tasks.filter((t) => t.frontmatter.status !== 'done')
+  const open = tasks.filter((t) => t.frontmatter.status !== done)
   for (const t of open)
     for (const d of t.frontmatter.depends) dependents.set(d, (dependents.get(d) ?? 0) + 1)
   return open
@@ -160,6 +191,7 @@ export interface ParentGroup {
 }
 
 export function parentGroups(tasks: readonly Task[], columns: readonly Column[]): ParentGroup[] {
+  const done = finalColumnId(columns)
   const byId = new Map(tasks.map((t) => [t.frontmatter.id, t]))
   const groups = new Map<string, Task[]>()
   for (const t of tasks) {
@@ -171,17 +203,16 @@ export function parentGroups(tasks: readonly Task[], columns: readonly Column[])
   }
   const result: ParentGroup[] = []
   for (const [pid, children] of groups) {
-    const done = children.filter((c) => c.frontmatter.status === 'done').length
     result.push({
       id: pid,
       title: byId.get(pid)?.frontmatter.title ?? pid,
-      done,
+      done: children.filter((c) => c.frontmatter.status === done).length,
       total: children.length,
       children: children.map((c) => ({
         id: c.frontmatter.id,
         title: c.frontmatter.title,
         statusLabel: labelOf(columns, c.frontmatter.status),
-        done: c.frontmatter.status === 'done',
+        done: c.frontmatter.status === done,
       })),
     })
   }

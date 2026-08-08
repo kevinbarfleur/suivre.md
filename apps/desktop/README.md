@@ -18,20 +18,22 @@ on. Tap again and it's gone. No tab, no dock icon, no window juggling.
 Then it grew two more jobs, because they were the same itch:
 
 - It **starts the board's server** for me in one click when my coding agent forgot
-  to — or adopts the one that's already running.
+  to — or adopts the one already running, once it has checked that it really is
+  *this* project's board.
 - It's a **hook my agents can pull** to *show* me something: a task, a sprint, a
   decision, the roadmap — the overlay pops open on exactly that view.
 
-Nothing here is generalized or configurable beyond what I actually needed. That's
-the point. If you're reading this and you're not me: hi. It'll still work, but it
-was cut to fit one hand.
+Nothing here is generalized beyond what I actually needed. That's the point. If
+you're reading this and you're not me: hi — it works from a plain `npm i -g
+suivre.md` too, but it was cut to fit one hand.
 
 ## What it does
 
 - **Overlay** — a borderless panel on any Space, above full-screen apps, hosting a
   live `WKWebView` of the active target (a project's local dashboard, or any URL).
-- **Control-plane** — a menu-bar list of registered projects with server status
-  and one-click start/stop, plus arbitrary URL targets and an overlay-size toggle.
+- **Control-plane** — a menu-bar list of registered projects with server status and
+  one-click start (and stop, for the servers it started), plus arbitrary URL
+  targets, an overlay-size toggle and the CLI it launches servers with.
 - **Agent hook** — a `suivre://show` URL scheme (+ CLI + MCP tool) so agents can
   reveal a specific view/item on demand.
 
@@ -69,27 +71,45 @@ wake and on session unlock, which the system disables it across without telling
 anyone.
 
 The panel centers on whichever screen the cursor is on, so it lands where you're
-looking. `Esc`, a second ⌘⌘, or clicking away hides it.
+looking. `Esc`, a second ⌘⌘, or clicking away hides it — and `Esc` is claimed only
+while the panel is the key window, so it still dismisses the app's own dialogs.
 
 ### The control-plane
 
 Registered projects and URL targets live in `~/.config/suivre/desktop.json`. Each
 project is a folder with a `.suivre/` board, pinned to a port (from 45188 up).
 
-Servers are launched one per project by running `node node_modules/.bin/tsx
-src/cli/index.ts board --port <p>` **directly** — no shell in between. A
-double-clicked app inherits launchd's minimal PATH, and a login shell doesn't fix
-it: `zsh -lc` is non-interactive, so it skips `.zshrc`, which is where nvm lives.
-So `node` is resolved by hand (`NodeLocator`): nvm's `default` alias first, then
-the newest installed nvm version, then Homebrew and the system prefixes. If none
-is found, the reason is written to the project's server log.
+Servers are launched one per project by running the **installed** CLI —
+`node <…>/dist/cli/index.js board --port <p>`, with `cwd` and `SUIVRE_ROOT` set to
+the project — **directly**, no shell in between. Two things get resolved by hand,
+because a double-clicked app inherits launchd's minimal PATH and a login shell
+doesn't rescue it (`zsh -lc` is non-interactive, so it skips `.zshrc`, which is
+where nvm lives):
 
-The important rule: **health is the source of truth.** Before spawning, the app
-checks `/api/health` on the port. If something already answers — your agent started
-it, or you did by hand — it's **adopted**, not duplicated. And only servers the app
-itself spawned are stopped on quit; it never kills a server it didn't start. Status
-in the menu is that same health check, run only when the menu opens (never in the
-background — see below).
+- **`node`** (`NodeLocator`) — PATH first, then nvm's `default` alias and its
+  newest version, then fnm / volta / mise / asdf, then Homebrew and the system
+  prefixes.
+- **the CLI** (`CLILocator`) — an explicit `cliPath` from the config first, then
+  the `suivre` command on disk (looked for next to the resolved `node`, which is
+  where every version manager puts global bins, then along PATH, then Homebrew and
+  `/usr/local/bin`), then — last resort — a suivre.md checkout: its `dist/`, or its
+  own `tsx` against `src/cli/index.ts` if it was never built.
+
+Whichever one is found is shown under **menu bar → suivre CLI**, and can be
+overridden there with **Choose…** (that's what writes `cliPath`). If nothing is
+found, the failure names every place it looked, both in the menu and in the
+project's server log.
+
+The important rule: **health is the source of truth — and health is an
+identity check.** Before spawning, the app asks `/api/health` on the port, which
+answers `{ ok, product, root, name }`. It adopts that server only when
+`product` is `suivre` **and** `root` is this project's folder (compared through
+symlinks). Anything else — another repo's board, another app, or a suivre too old
+to say what it is — is **foreign**: the dot goes orange, the reason is spelled
+out, and nothing is adopted, started or written. Only servers the app itself
+spawned are stopped on quit, or stoppable at all; an adopted one says so instead
+of offering a "Stop server" that does nothing. Status in the menu is that same
+check, run only when the menu opens (never in the background — see below).
 
 ### The overlay web view
 
@@ -108,8 +128,8 @@ already on keeps the live view untouched (instant, keeps your scroll).
 ### The agent hook
 
 The app registers a `suivre://` URL scheme. `suivre://show?view=<deep-link>&target=<name>`
-resolves the target (by name, or the active one), makes sure its server is up, and
-reveals the view. Three ways in, all the same mechanism:
+resolves the target (by name, or the active one), makes sure its own server is up,
+and reveals the view. Three ways in, all the same mechanism:
 
 ```
 open "suivre://show?view=sprints/sprint-001&target=relay"   # any shell
@@ -117,9 +137,14 @@ suivre show sprints/sprint-001 --target relay               # CLI wrapper
 reveal_overlay { view, target }                             # MCP tool
 ```
 
-`target` is optional (defaults to the active target). `view` is a dashboard
-deep-link without the hash — `board`, `board/task-013`, `sprints/sprint-001`,
+`target` is optional (defaults to the active target). A `target` that names
+nothing is **not** the same as no target: rather than reveal some other project,
+the overlay opens saying there's no such target. `view` is a dashboard deep-link
+without the hash — `board`, `board/task-013`, `sprints/sprint-001`,
 `docs/doc-003`, `decisions/decision-001`, `overview`, `archive`, …
+
+Every reveal is traced in `~/.config/suivre/logs/overlay.log`, resolved target
+included.
 
 ## Built to stay open for days
 
@@ -167,6 +192,10 @@ cd apps/desktop
 Now Spotlight, Raycast, Launchpad and Finder can launch `suivre` like any app. To
 build without installing: `./make-app.sh` → `build/suivre.app`.
 
+Both scripts build in place, except when the sources sit somewhere unwritable — a
+global `node_modules` under `/usr/local`, say — in which case they build and stage
+the bundle under `$TMPDIR` instead and print where the `.app` ended up.
+
 ## First launch — one permission
 
 The double-⌘ hotkey needs **Input Monitoring**. On first launch macOS prompts for
@@ -180,26 +209,39 @@ menu-bar item opens the overlay.
 ## Use
 
 - **Double-tap ⌘** → overlay for the active target. ⌘⌘ / `Esc` / click-away → hide.
-- **Menu bar → PROJECTS** → status dot + Open overlay · Start/Stop server ·
-  Reveal logs · Remove.
+  (`Esc` only while the overlay itself is focused — it stays yours everywhere else.)
+- **Menu bar → PROJECTS** → status dot + Open overlay · Start server / Stop server ·
+  Reveal logs · Remove. Green is this project's own board; orange is *something
+  else* on its port, and says what.
 - **Menu bar → LINKS** → any URL you added.
 - **Add project… / Add URL…** → register a `.suivre/` folder, or any page.
 - **Overlay size** → Small / Medium / Large (proportional to the current screen).
+- **suivre CLI** → the CLI servers are started from; **Choose…** to point at
+  another install, **Find it automatically** to drop the override.
 
 ## Dev modes
 
 ```
 swift run suivre-desktop            # run from source (menu-bar agent)
 swift run suivre-desktop --show     # also open the overlay on launch
-swift run suivre-desktop --selftest # headless: summon timings + spawn a server, check health, quit
-swift run suivre-desktop --snapshot out.png   # headless render of the dashboard
+swift run suivre-desktop --selftest # headless: summon timings, health classification,
+                                    # then start the first registered project, quit
+swift run suivre-desktop --snapshot out.png   # headless render of the dashboard on :45188
 ```
+
+`--selftest` is worth running as `env -i HOME=$HOME PATH=/usr/bin:/bin swift run
+suivre-desktop --selftest`: that's the PATH a double-clicked app actually gets, so
+it proves node and CLI resolution rather than borrowing your shell's.
 
 ## Config
 
-`~/.config/suivre/desktop.json` — `suivreRepoPath`, `projects` (name/path/port),
-`links` (name/url), `activeTargetID`, `overlaySize`. Server output goes to
-`~/.config/suivre/logs/server-<port>.log`; reveals are traced in `overlay.log`.
+`~/.config/suivre/desktop.json` — `projects` (name/path/port), `links` (name/url),
+`activeTargetID`, `overlaySize`, and optionally `cliPath` (written by **suivre CLI
+→ Choose…**; absent means "find it"). `suivreRepoPath` is still read, as the
+last-resort suivre.md checkout, for configs written before the CLI was looked up
+where it's installed. Server output goes to
+`~/.config/suivre/logs/server-<port>.log` — including the reason a start never
+happened; reveals are traced in `overlay.log`.
 
 ## Trade-offs I chose
 

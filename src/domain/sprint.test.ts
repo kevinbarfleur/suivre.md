@@ -58,4 +58,15 @@ describe('sprint', () => {
     expect(r.currentIndex).toBe(-1)
     expect(r.done).toBe(1)
   })
+
+  it('reads progress from the final column it is given', () => {
+    const tasks = [task('t1', 'shipped'), task('sub', 'shipped', 't1'), task('t2', 'building')]
+    const renamed = resolveSprint(['t1', 't2'], tasks, 'shipped')
+    expect(renamed.done).toBe(1)
+    expect(renamed.currentIndex).toBe(1)
+    expect(renamed.steps[0]!.done).toBe(true)
+    expect(renamed.steps[0]!.subtasks[0]!.done).toBe(true)
+    // Without the board's column id, a renamed board reports zero progress.
+    expect(resolveSprint(['t1', 't2'], tasks).done).toBe(0)
+  })
 })

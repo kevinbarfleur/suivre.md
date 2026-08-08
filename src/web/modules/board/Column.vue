@@ -35,6 +35,7 @@ const overWip = computed(() => wip.value != null && props.col.tasks.length > wip
 
 const draft = ref('')
 const adding = ref(false)
+const busy = ref(false)
 const input = ref<HTMLInputElement | null>(null)
 
 async function openAdd(): Promise<void> {
@@ -47,14 +48,18 @@ function cancelAdd(): void {
   draft.value = ''
 }
 function onBlur(): void {
-  if (!draft.value.trim()) cancelAdd()
+  if (!busy.value && !draft.value.trim()) cancelAdd()
 }
+/** The typed title survives a failed create: the field closes only once written. */
 async function submit(): Promise<void> {
   const title = draft.value.trim()
-  if (!title) return
-  draft.value = ''
-  adding.value = false
-  await create({ title, status: props.col.column.id })
+  if (!title || busy.value) return
+  busy.value = true
+  try {
+    if (await create({ title, status: props.col.column.id })) cancelAdd()
+  } finally {
+    busy.value = false
+  }
 }
 </script>
 
@@ -69,7 +74,12 @@ async function submit(): Promise<void> {
     </header>
 
     <div class="col-list">
-      <TaskCard v-for="task in col.tasks" :key="task.frontmatter.id" :task="task" />
+      <TaskCard
+        v-for="task in col.tasks"
+        :key="task.frontmatter.id"
+        :task="task"
+        :column-id="col.column.id"
+      />
       <div v-if="col.tasks.length === 0" class="col-empty">
         column empty<br /><span class="col-empty-hint">drop task here</span>
       </div>
@@ -82,6 +92,7 @@ async function submit(): Promise<void> {
         class="col-add-input"
         type="text"
         placeholder="task title…"
+        :disabled="busy"
         @keydown.enter="submit"
         @keydown.esc="cancelAdd"
         @blur="onBlur"

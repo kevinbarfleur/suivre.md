@@ -1,17 +1,22 @@
 #!/usr/bin/env node
+import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { cac } from 'cac'
 import { registerTaskCommands } from './commands/tasks'
 import { registerSprintCommands } from './commands/sprints'
 import { registerKnowledgeCommands } from './commands/knowledge'
 import { registerSurfaceCommands } from './commands/surfaces'
-import { run } from './context'
+import { run, runCli } from './context'
 
 const cli = cac('suivre')
 
 // Resolved here (entry): valid from src/ as well as from dist/.
 const webDistDir = fileURLToPath(new URL('../../dist/web', import.meta.url))
 const desktopDir = fileURLToPath(new URL('../../apps/desktop', import.meta.url))
+
+// package.json sits two levels above both src/cli/ and dist/cli/; `createRequire`
+// keeps the path relative to the emitted file rather than to a bundled chunk.
+const { version } = createRequire(import.meta.url)('../../package.json') as { version: string }
 
 registerTaskCommands(cli)
 registerSprintCommands(cli)
@@ -40,24 +45,7 @@ cli
   )
 
 cli.help()
+cli.version(version)
 
-// cac only matches a command name against the FIRST argv token: two-word names
-// ("sprint create") would never match — silently. So we merge `sprint create …`
-// into a single token before parsing; help output is unchanged.
-const GROUPS = new Set(['sprint', 'doc', 'decision', 'overlay'])
-const argv = [...process.argv]
-if (argv[2] && GROUPS.has(argv[2]) && argv[3] && !argv[3].startsWith('-')) {
-  argv.splice(2, 2, `${argv[2]} ${argv[3]}`)
-}
-
-cli.parse(argv)
-
-// cac is silent on an unknown command — we prefer to fail loudly.
-if (!cli.matchedCommand && !cli.options['help']) {
-  if (cli.args.length === 0) {
-    cli.outputHelp()
-  } else {
-    console.error(`error: unknown command "${cli.args.join(' ')}"`)
-    process.exit(1)
-  }
-}
+// Every failure path inside exits the process, so this only settles on success.
+void runCli(cli, process.argv)

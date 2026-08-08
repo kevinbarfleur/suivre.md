@@ -16,7 +16,7 @@ export default function registerListModule(): void {
     component: ListView,
     taskChrome: true,
     scroll: 'managed',
-    promptCmd: 'suivre task list',
+    promptCmd: 'suivre list',
     badge: totalTasks,
   })
 }

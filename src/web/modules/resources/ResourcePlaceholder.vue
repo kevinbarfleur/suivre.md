@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import { useView } from '../shell/view.store'
 
-// Honest state for resource views: their backend (milestones / docs /
-// drafts / decisions stores) is the next piece of work. We don't simulate data.
+// Honest state for the resource views that still have no backend (milestones,
+// drafts). Docs and decisions have theirs and render their own view.
 const { view } = useView()
 
 const INFO: Record<string, { title: string; blurb: string }> = {
@@ -11,9 +11,7 @@ const INFO: Record<string, { title: string; blurb: string }> = {
     title: 'Milestones',
     blurb: 'Group work into milestones and track their progress.',
   },
-  docs: { title: 'Docs', blurb: 'Project markdown documentation, rendered for reading.' },
   drafts: { title: 'Drafts', blurb: 'Unpromoted ideas — off the board until promoted.' },
-  decisions: { title: 'Decisions', blurb: 'ADR log: context, decision, consequences, status.' },
 }
 const info = computed(() => INFO[view.value] ?? { title: view.value, blurb: '' })
 </script>

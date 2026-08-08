@@ -1,6 +1,6 @@
 {
   "name": "suivre.md",
-  "version": "1.0.0-alpha.2",
+  "version": "1.0.0-alpha.3",
   "description": "Markdown-native backlog with a live kanban board, CLI and MCP — built to be the issue tracker agent workflows act on. Tasks, sprints, docs and ADRs as plain .md files in your repo.",
   "type": "module",
   "license": "MIT",
@@ -22,11 +22,8 @@
     "cli"
   ],
   "bin": {
-    "suivre": "dist/cli/index.js"
-  },
-  "exports": {
-    ".": "./dist/domain/index.js",
-    "./mcp": "./dist/mcp/index.js"
+    "suivre": "dist/cli/index.js",
+    "suivre-mcp": "dist/mcp/index.js"
   },
   "files": [
     "dist",
@@ -37,7 +34,7 @@
     "apps/desktop/README.md"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19"
   },
   "scripts": {
     "dev": "concurrently -k -n web,api -c magenta,cyan \"npm:dev:web\" \"npm:dev:api\"",
@@ -50,22 +47,22 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "prepublishOnly": "node -e \"const{execFileSync}=require('node:child_process');const p=require('./package.json');const g=require('./.claude-plugin/plugin.json');if(p.version!==g.version){console.error('Version drift: package.json '+p.version+', .claude-plugin/plugin.json '+g.version);process.exit(1)}let out='';try{out=execFileSync('npm',['view',p.name+'@'+p.version,'version'],{encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim()}catch{}if(out){console.error(p.name+'@'+p.version+' is already on the registry, bump the version first');process.exit(1)}\""
   },
   "devDependencies": {
-    "@ark-ui/vue": "^5.37.2",
     "@atlaskit/pragmatic-drag-and-drop": "^2.0.1",
     "@types/node": "^26.1.1",
     "@vitejs/plugin-vue": "^6.0.8",
+    "concurrently": "^9.2.1",
+    "prettier": "^3.6.2",
     "tsup": "^8.5.1",
     "tsx": "^4.23.1",
     "typescript": "^7.0.2",
     "unocss": "^66.7.5",
     "vite": "^8.1.5",
     "vitest": "^4.1.10",
-    "vue": "^3.5.40",
-    "vue-tsc": "^3.3.7"
+    "vue": "^3.5.40"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.10",

@@ -17,9 +17,24 @@ import type {
 export type { ArchivedEntry, ArchivedType } from '../../domain'
 export type { Sprint, SprintStatus, SprintStep, ResolvedSprint } from '../../domain'
 
+/**
+ * Every API error is `{ error, message }` and the message is the only useful
+ * half ("Unknown status: nope — valid statuses: …"); a bare status code sends
+ * the user hunting through a server log they cannot see.
+ */
+async function failure(res: Response, fallback: string): Promise<Error> {
+  const body = (await res.json().catch(() => null)) as { message?: unknown } | null
+  const message = body?.message
+  return new Error(typeof message === 'string' ? message : `${fallback} (${res.status})`)
+}
+
 async function json<T>(res: Response): Promise<T> {
-  if (!res.ok) throw new Error(`Request failed (${res.status})`)
+  if (!res.ok) throw await failure(res, 'Request failed')
   return (await res.json()) as T
+}
+
+async function ok(res: Response): Promise<void> {
+  if (!res.ok) throw await failure(res, 'Delete failed')
 }
 
 export async function fetchBoard(): Promise<Board> {
@@ -79,8 +94,7 @@ export async function moveTask(id: string, body: MoveInput): Promise<Task> {
 }
 
 export async function deleteTask(id: string): Promise<void> {
-  const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error(`Delete failed (${res.status})`)
+  await ok(await fetch(`/api/tasks/${id}`, { method: 'DELETE' }))
 }
 
 // --- Preferences (machine + project) ---
@@ -156,8 +170,7 @@ export async function updateSprint(id: string, patch: SprintPatch): Promise<Spri
   )
 }
 export async function deleteSprint(id: string): Promise<void> {
-  const res = await fetch(`/api/sprints/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error(`Delete failed (${res.status})`)
+  await ok(await fetch(`/api/sprints/${id}`, { method: 'DELETE' }))
 }
 
 // --- Decisions (ADR) ---
@@ -184,8 +197,7 @@ export async function updateDecision(id: string, patch: DecisionPatch): Promise<
   )
 }
 export async function deleteDecision(id: string): Promise<void> {
-  const res = await fetch(`/api/decisions/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error(`Delete failed (${res.status})`)
+  await ok(await fetch(`/api/decisions/${id}`, { method: 'DELETE' }))
 }
 
 // --- Docs ---
@@ -212,6 +224,5 @@ export async function updateDoc(id: string, patch: DocPatch): Promise<Doc> {
   )
 }
 export async function deleteDoc(id: string): Promise<void> {
-  const res = await fetch(`/api/docs/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error(`Delete failed (${res.status})`)
+  await ok(await fetch(`/api/docs/${id}`, { method: 'DELETE' }))
 }

@@ -43,12 +43,19 @@ final class OverlayController: NSObject, WKUIDelegate {
     /// Summons the overlay on the active target.
     func showActive() {
         guard let target = registry.activeTarget else {
-            presentPanel()
-            loadPlaceholder(message: "Nothing yet. Add a project or a URL from the menu bar (suivre).")
-            currentTargetID = nil
+            showMessage("Nothing yet. Add a project or a URL from the menu bar (suivre).")
             return
         }
         open(target)
+    }
+
+    /// Summons the overlay on a message instead of a target. The `suivre://show`
+    /// hook has no other surface: without this a bad reveal is silent, or worse,
+    /// shows whatever was active instead.
+    func showMessage(_ message: String) {
+        presentPanel()
+        loadPlaceholder(message: message)
+        currentTargetID = nil
     }
 
     /// Switches the overlay to a target and summons it (keeps the live web view
@@ -98,11 +105,14 @@ final class OverlayController: NSObject, WKUIDelegate {
         switch target {
         case .project(let project):
             loadPlaceholder(message: "Opening \(project.name)\u{2026}")
-            supervisor.ensureRunning(project) { [weak self] up in
+            supervisor.ensureRunning(project) { [weak self] status in
                 guard let self else { return }
-                if up {
+                switch status {
+                case .mine:
                     self.loadTarget(target, deepLink: deepLink)
-                } else {
+                case .foreign(let reason):
+                    self.loadPlaceholder(message: "Not showing \(project.name): \(reason).")
+                case .down:
                     self.loadPlaceholder(
                         message: "Couldn't start \(project.name). See ~/.config/suivre/logs."
                     )
@@ -132,6 +142,12 @@ final class OverlayController: NSObject, WKUIDelegate {
     }
 
     private func loadPlaceholder(message: String) {
+        // A message can quote whatever answered on the port, so it is not markup.
+        let safe =
+            message
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
         let html = """
             <!doctype html><html><head><meta charset="utf-8">
             <style>
@@ -140,7 +156,7 @@ final class OverlayController: NSObject, WKUIDelegate {
                 justify-content:center;font:14px ui-monospace,SFMono-Regular,Menlo,monospace}
               .msg{opacity:.8;letter-spacing:.02em}
             </style></head>
-            <body><div class="msg">\(message)</div></body></html>
+            <body><div class="msg">\(safe)</div></body></html>
             """
         webView?.loadHTMLString(html, baseURL: nil)
     }
@@ -239,14 +255,16 @@ final class OverlayController: NSObject, WKUIDelegate {
         return panel
     }
 
+    /// Escape dismisses the overlay only while the overlay is what you're typing
+    /// into. The monitor is app-wide, so an unconditional one also swallowed
+    /// Escape in "Add project", "Add URL" and every alert once the panel existed.
     private func installEscMonitor() {
         escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            // Escape key
-            if event.keyCode == 53 {
-                self?.hide()
-                return nil
+            guard event.keyCode == 53, let self, self.panel?.isKeyWindow == true else {
+                return event
             }
-            return event
+            self.hide()
+            return nil
         }
     }
 
