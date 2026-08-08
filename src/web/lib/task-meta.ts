@@ -61,7 +61,7 @@ export function blockedBy(task: Task): string | null {
   return task.frontmatter.depends[0] ?? null
 }
 
-/** Terminal prompt slug from the project name (kevin@<slug>). */
+/** Terminal prompt slug from the project name (suivre@<slug>). */
 export function slug(name: string): string {
   const cleaned = name
     .toLowerCase()
