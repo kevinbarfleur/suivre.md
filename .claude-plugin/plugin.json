@@ -1,6 +1,6 @@
 {
   "name": "suivre",
-  "version": "0.1.0",
+  "version": "1.0.0-alpha.1",
   "description": "suivre.md — a markdown-native backlog with a live kanban board, built to be the issue tracker for Matt Pocock's agent skills. One skill: /suivre-setup wires (or updates) the current repo.",
   "author": {
     "name": "Kevin Barfleur",

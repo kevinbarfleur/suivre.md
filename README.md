@@ -23,10 +23,10 @@ and the live board updates on screen.
 ## Quick start
 
 ```bash
-# Install the `suivre` bin once (builds on install):
-npm install -g github:kevinbarfleur/suivre.md
+# Install the `suivre` bin once (prebuilt, from npm):
+npm install -g suivre.md
 
-# In your project: board + agent workflow + tracker adapter, one command
+# In your project: create the board and wire the agent workflow
 cd /path/to/your/repo
 suivre setup
 
@@ -35,8 +35,8 @@ suivre board
 # → http://localhost:45188
 ```
 
-In Claude Code? Skip the terminal: install the `suivre` plugin and run
-`/suivre-setup` (see [the workflow section](#the-workflow-layer-matt-pococks-skills)).
+In Claude Code you can do all of this without a terminal — see
+[Works with Matt Pocock's skills](#works-with-matt-pococks-skills).
 
 From a clone instead: `npm install && npm run build`, then
 `SUIVRE_ROOT=/path/to/your/repo npx tsx src/cli/index.ts board`.
@@ -61,25 +61,37 @@ refreshes the board live over SSE.
 
 ---
 
-## The workflow layer: Matt Pocock's skills
+## Works with Matt Pocock's skills
 
-suivre deliberately ships **no process of its own**. No grilling prompts, no spec
-templates, no triage ceremony — that layer already exists, is excellent, and is
-maintained by someone else: [**Matt Pocock's skills**](https://www.aihero.dev/skills)
-(`/grill-with-docs`, `/to-spec`, `/to-tickets`, `/triage`, `/wayfinder`, `/tdd`, …).
+suivre has no workflow of its own. It is built to be the issue tracker for
+[Matt Pocock's skills](https://www.aihero.dev/skills): `/grill-with-docs` writes
+specs, `/to-tickets` turns them into tasks, `/triage` labels the backlog,
+`/wayfinder` plans a fuzzy effort as a sprint. The skills stay his — installed
+through his plugin, never copied here.
 
-suivre is built to be the **state those skills act on**: their issue tracker, their
-spec store, their ADR log, their effort map — plain markdown in your repo, with a
-live board and a summonable overlay on top. His flow, your state.
-
-One command wires a repo:
+Wire a repo once:
 
 ```bash
 suivre setup
 ```
 
-Or entirely from inside Claude Code, no terminal needed — the repo is its own
-plugin marketplace:
+What it does:
+
+- creates the `.suivre/` board, or adopts an existing one (data untouched)
+- installs the skills plugin: `claude plugins install mattpocock-skills`
+- writes `docs/agents/issue-tracker.md` — the file the skills read to know how to
+  create, triage and close tickets here (and when to pop the overlay)
+- points `AGENTS.md` at it, and adds the MCP server to `.mcp.json`
+
+Safe to re-run anytime: it updates what's stale and repairs what's missing —
+that's also how you update after a new suivre version. If you edited
+`docs/agents/issue-tracker.md` by hand, your version stays; the new template is
+written next to it as `.new`.
+
+Flags: `--yes` (no prompts), `--force` (overwrite the adapter),
+`--skip-skills`, `--skip-mcp`.
+
+From Claude Code, without a terminal:
 
 ```
 /plugin marketplace add kevinbarfleur/suivre.md
@@ -87,30 +99,8 @@ plugin marketplace:
 /suivre-setup
 ```
 
-`/suivre-setup` has the agent do everything below (installing the CLI first if
-needed) and report back — invoking it is the consent.
-
-It **converges** — idempotent, so re-run it anytime to update or repair:
-
-1. `.suivre/` board initialized (or adopted if already there).
-2. Matt's skills installed **via his official channel** (`claude plugins install
-   mattpocock-skills`) — never copied, never forked; updates flow from him.
-3. `docs/agents/issue-tracker.md` written: the adapter his skills read to speak
-   suivre — create/read/triage/close tickets, specs, ADRs, wayfinding on sprints,
-   and *reveal moments* (the overlay pops open on what the agent just changed).
-   A hand-edited adapter is never clobbered: the fresh template lands beside it
-   as `.new` (or use `--force`).
-4. `AGENTS.md` pointer + `.mcp.json` so agents get the board as native MCP tools.
-
-Day to day that reads: `/grill-with-docs` → spec in `.suivre/docs/` → `/to-tickets`
-→ tickets land on the board and the overlay shows them → `/triage` → labels →
-implementation claims `suivre next`, comments as it works, closes with `suivre done`.
-After updating suivre itself, re-run `suivre setup` to converge the adapter to the
-newest contract.
-
-All credit for the workflow goes to **Matt Pocock** — his skills are the reference
-for agent-driven engineering, and suivre *assumes* them rather than imitating them.
-Not using them? Everything here still works standalone (`suivre setup --skip-skills`).
+A typical run after that: `/grill-with-docs` → `/to-tickets` → `/triage`, with
+`suivre board` open to watch the agent work.
 
 ---
 
@@ -145,7 +135,7 @@ Reachable from the nav rail; each is deep-linkable by URL hash (`#<view>/<item>`
 | **archive** | Everything archived, all types in one list (see below). |
 | **settings** | Theme and default-view preferences (machine + project level). |
 
-`milestones` and `drafts` are placeholders — their backend is the next chantier.
+`milestones` and `drafts` are placeholders — no backend yet.
 
 ### Archive
 
@@ -204,7 +194,7 @@ Every read/write command takes `--json` for machine-readable output; multi-line
 bodies ride a shell heredoc.
 
 ```
-# tasks — the tracker contract
+# tasks
 suivre add <title> [--status --priority --label --assignee --parent --depends --body]
 suivre list [--status --label --assignee --ready]     board order; --ready = unblocked+unassigned+not done
 suivre get <id>                                       full ticket, body and ## Comments included
