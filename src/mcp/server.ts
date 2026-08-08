@@ -18,7 +18,7 @@ const asText = (value: unknown) => ({
 
 export async function runMcpServer(root = process.env.SUIVRE_ROOT ?? process.cwd()): Promise<void> {
   const service = new BoardService(root)
-  const server = new McpServer({ name: 'suivre', version: '1.0.0-alpha.1' })
+  const server = new McpServer({ name: 'suivre', version: '1.0.0-alpha.2' })
 
   // --- Board & tâches ---
 

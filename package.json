@@ -1,6 +1,6 @@
 {
   "name": "suivre.md",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "description": "Markdown-native backlog with a live kanban board, CLI and MCP — built to be the issue tracker agent workflows act on. Tasks, sprints, docs and ADRs as plain .md files in your repo.",
   "type": "module",
   "license": "MIT",
@@ -54,6 +54,8 @@
     "format": "prettier --write ."
   },
   "devDependencies": {
+    "@ark-ui/vue": "^5.37.2",
+    "@atlaskit/pragmatic-drag-and-drop": "^2.0.1",
     "@types/node": "^26.1.1",
     "@vitejs/plugin-vue": "^6.0.8",
     "tsup": "^8.5.1",
@@ -62,18 +64,16 @@
     "unocss": "^66.7.5",
     "vite": "^8.1.5",
     "vitest": "^4.1.10",
+    "vue": "^3.5.40",
     "vue-tsc": "^3.3.7"
   },
   "dependencies": {
-    "@ark-ui/vue": "^5.37.2",
-    "@atlaskit/pragmatic-drag-and-drop": "^2.0.1",
     "@hono/node-server": "^2.0.10",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "cac": "^7.0.0",
     "chokidar": "^5.0.0",
     "fractional-indexing": "^4.0.0",
     "hono": "^4.12.30",
-    "vue": "^3.5.40",
     "yaml": "^2.9.0",
     "zod": "^4.4.3"
   }
