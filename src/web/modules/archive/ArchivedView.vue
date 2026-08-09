@@ -3,13 +3,19 @@ import { computed, onMounted, ref } from 'vue'
 import type { ArchivedEntry, ArchivedType } from '../../lib/api'
 import { useView } from '../shell/view.store'
 import { shortDate } from '../../lib/task-meta'
+import { toBlocks } from '../../lib/markdown-blocks'
+import ErrorBanner from '../../components/ErrorBanner.vue'
+import LoadingBlock from '../../components/LoadingBlock.vue'
 import MarkdownBody from '../../components/MarkdownBody.vue'
+import NoResults from '../../components/NoResults.vue'
+import SearchField from '../../components/SearchField.vue'
+import StateBlock from '../../components/StateBlock.vue'
 import { useArchive } from './archive.store'
 
 // "Archive" view: cross-cutting list of everything archived (tasks with
 // status `archived`, historical decisions, docs filed under archive/). Filters
 // by type / period / label / search, sorting, and in-place detail reading.
-const { entries, ensureLoaded, error, reload } = useArchive()
+const { entries, ensureLoaded, error, loading, reload } = useArchive()
 const { item, setView } = useView()
 onMounted(ensureLoaded)
 
@@ -18,6 +24,12 @@ type Period = 'all' | '30d' | 'year' | 'old'
 type SortKey = 'date' | 'title' | 'type'
 
 const TYPE_LABEL: Record<ArchivedType, string> = { task: 'task', decision: 'decision', doc: 'doc' }
+const PERIOD_LABEL: Record<Period, string> = {
+  all: 'all dates',
+  '30d': '30d',
+  year: 'this year',
+  old: 'older',
+}
 
 const search = ref('')
 const typeFilter = ref<TypeChoice>('all')
@@ -72,11 +84,28 @@ const filtered = computed<ArchivedEntry[]>(() => {
   return list
 })
 
+const activeFilters = computed<string[]>(() => {
+  const out: string[] = []
+  const q = search.value.trim()
+  if (q) out.push(`/${q}`)
+  if (typeFilter.value !== 'all') out.push(`--type=${typeFilter.value}`)
+  if (period.value !== 'all') out.push(`--period=${PERIOD_LABEL[period.value]}`)
+  if (labelFilter.value) out.push(`--label=${labelFilter.value}`)
+  return out
+})
+
 const selectedId = computed(() => {
   if (item.value && entries.value.some((e) => e.id === item.value)) return item.value
   return filtered.value[0]?.id ?? null
 })
 const selected = computed(() => entries.value.find((e) => e.id === selectedId.value) ?? null)
+
+// The reader's own h1 is the item title. A body carrying one anywhere (archived
+// snapshots open on a banner quote, then their h1) already prints it, so the
+// frontmatter title is rendered only for the bodies that have none — never both.
+const titleInBody = computed(
+  () => selected.value != null && toBlocks(selected.value.body).some((b) => b.type === 'h1'),
+)
 
 function select(id: string): void {
   setView('archive', id)
@@ -97,21 +126,18 @@ function setSort(key: SortKey): void {
     sortDir.value = key === 'title' ? 'asc' : 'desc'
   }
 }
+function clearFilters(): void {
+  search.value = ''
+  typeFilter.value = 'all'
+  period.value = 'all'
+  labelFilter.value = ''
+}
 </script>
 
 <template>
   <div class="ar">
     <div class="ar-bar">
-      <div class="ar-search">
-        <span class="ar-search-i">/</span>
-        <input
-          v-model="search"
-          class="ar-search-in"
-          type="text"
-          placeholder="search archived items…"
-          spellcheck="false"
-        />
-      </div>
+      <SearchField v-model="search" placeholder="grep archived…" />
 
       <div class="ar-seg">
         <button
@@ -129,19 +155,14 @@ function setSort(key: SortKey): void {
 
       <div class="ar-seg">
         <button
-          v-for="p in [
-            ['all', 'all dates'],
-            ['30d', '30d'],
-            ['year', 'this year'],
-            ['old', 'older'],
-          ] as [Period, string][]"
-          :key="p[0]"
+          v-for="p in ['all', '30d', 'year', 'old'] as Period[]"
+          :key="p"
           class="ar-opt"
-          :class="{ 'ar-opt--on': period === p[0] }"
+          :class="{ 'ar-opt--on': period === p }"
           type="button"
-          @click="period = p[0]"
+          @click="period = p"
         >
-          {{ p[1] }}
+          {{ PERIOD_LABEL[p] }}
         </button>
       </div>
 
@@ -166,19 +187,43 @@ function setSort(key: SortKey): void {
       </div>
     </div>
 
-    <div v-if="error" class="ar-err">
-      <span class="ar-err-t">ERR: {{ error }}</span>
-      <button class="ar-open" type="button" @click="reload">retry</button>
-    </div>
+    <ErrorBanner
+      v-if="error"
+      class="ar-err"
+      message="The archive could not be read."
+      :detail="error"
+      @retry="reload"
+    />
 
-    <div v-if="!error && entries.length === 0" class="ar-empty">
-      no archives — nothing statused <code>archived</code> or filed in an
-      <code>archive/</code> folder
-    </div>
+    <LoadingBlock
+      v-if="loading && entries.length === 0"
+      label="archive"
+      message="reading tasks/, decisions/ and docs/…"
+    />
+
+    <StateBlock
+      v-else-if="!error && entries.length === 0"
+      class="ar-empty"
+      label="archive"
+      message="Nothing archived yet."
+    >
+      <template #hint>
+        Closed work lands here when you file it away —
+        <span class="sb-prompt">$</span><span class="sb-cmd">suivre done task-013 --archive</span>
+        — along with superseded or rejected decisions, and anything moved into an
+        <span class="sb-cmd">archive/</span> folder.
+      </template>
+    </StateBlock>
 
     <div v-else-if="entries.length > 0" class="ar-grid">
       <div class="ar-list">
-        <div v-if="filtered.length === 0" class="ar-none">0 results — no item matches</div>
+        <div v-if="filtered.length === 0" class="ar-none">
+          <NoResults
+            message="0 results — no archived item matches"
+            :filters="activeFilters"
+            @clear="clearFilters"
+          />
+        </div>
         <button
           v-for="e in filtered"
           :key="e.id"
@@ -204,7 +249,7 @@ function setSort(key: SortKey): void {
           <span v-if="selected.status" class="ar-detail-status">{{ selected.status }}</span>
           <span class="ar-detail-date">{{ shortDate(selected.date) }}</span>
         </div>
-        <div class="ar-detail-title">{{ selected.title }}</div>
+        <h1 v-if="!titleInBody" class="ar-detail-title">{{ selected.title }}</h1>
         <div class="ar-detail-meta">
           <span class="ar-reason">{{
             selected.reason === 'folder' ? 'in archive/ folder' : 'archived by status'
@@ -248,33 +293,6 @@ function setSort(key: SortKey): void {
   flex-wrap: wrap;
   margin-bottom: 18px;
 }
-.ar-search {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid var(--sv-line);
-  border-radius: 8px;
-  padding: 0 11px;
-  height: 32px;
-  background: var(--sv-raised);
-  min-width: 240px;
-  flex: 1 1 240px;
-}
-.ar-search-i {
-  color: var(--sv-prompt);
-}
-.ar-search-in {
-  flex: 1;
-  min-width: 0;
-  background: transparent;
-  border: 0;
-  font-family: inherit;
-  font-size: 12.5px;
-  color: var(--sv-fg);
-}
-.ar-search-in::placeholder {
-  color: var(--sv-placeholder);
-}
 .ar-seg {
   display: flex;
   gap: 6px;
@@ -312,7 +330,7 @@ function setSort(key: SortKey): void {
   height: 32px;
   background: var(--sv-raised);
   border: 1px solid var(--sv-line);
-  border-radius: 8px;
+  border-radius: var(--sv-r);
   color: var(--sv-fg-mid);
   font-family: inherit;
   font-size: 11px;
@@ -348,33 +366,12 @@ function setSort(key: SortKey): void {
 .ar-arrow {
   margin-left: 2px;
 }
-.ar-empty {
-  border: 1px dashed var(--sv-line);
-  border-radius: 8px;
-  padding: 28px;
-  text-align: center;
-  color: var(--sv-fg-dim);
-  font-size: 12px;
-}
-.ar-empty code {
-  color: var(--sv-fg-mid);
-}
 .ar-err {
   flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  border: 1px solid var(--sv-danger-line);
-  background: var(--sv-danger-bg);
-  border-radius: 8px;
-  padding: 12px 16px;
   margin-bottom: 16px;
-  font-size: 12px;
 }
-.ar-err-t {
-  flex: 1;
-  min-width: 0;
-  color: var(--sv-danger);
+.ar-empty {
+  max-width: var(--sv-measure);
 }
 .ar-grid {
   flex: 1;
@@ -389,13 +386,10 @@ function setSort(key: SortKey): void {
   min-height: 0;
   overflow-y: auto;
   border: 1px solid var(--sv-line);
-  border-radius: 10px;
+  border-radius: var(--sv-r-box);
 }
 .ar-none {
-  padding: 22px 15px;
-  font-size: 12px;
-  color: var(--sv-fg-dim);
-  text-align: center;
+  padding: 4px 15px;
 }
 .ar-row {
   display: flex;
@@ -425,7 +419,7 @@ function setSort(key: SortKey): void {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 2px 7px;
-  border-radius: 3px;
+  border-radius: var(--sv-r-badge);
   border: 1px solid var(--sv-line);
   color: var(--sv-fg-dim);
   text-align: center;
@@ -483,8 +477,8 @@ function setSort(key: SortKey): void {
   min-height: 0;
   overflow-y: auto;
   border: 1px solid var(--sv-line);
-  border-radius: 10px;
-  padding: 20px 22px;
+  border-radius: var(--sv-r-box);
+  padding: 24px 26px;
   background: var(--sv-raised);
 }
 .ar-detail-head {
@@ -502,7 +496,7 @@ function setSort(key: SortKey): void {
   font-size: 9.5px;
   letter-spacing: 0.06em;
   padding: 1px 7px;
-  border-radius: 3px;
+  border-radius: var(--sv-r-badge);
   border: 1px solid var(--sv-line);
   color: var(--sv-fg-dim);
 }
@@ -510,10 +504,16 @@ function setSort(key: SortKey): void {
   margin-left: auto;
   font-variant-numeric: tabular-nums;
 }
+/* Same type as the reader's own h1 (MarkdownBody `.mkd-h1`): an item reads
+   identically here and in the view it was archived from. */
 .ar-detail-title {
-  font-size: 17px;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
   color: var(--sv-bright);
-  margin-bottom: 12px;
+  margin: 4px 0 12px;
+  max-width: var(--sv-measure);
 }
 .ar-detail-meta {
   display: flex;
@@ -536,7 +536,7 @@ function setSort(key: SortKey): void {
   font-family: inherit;
   font-size: 11px;
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: var(--sv-r-card);
   cursor: pointer;
 }
 .ar-open:hover {

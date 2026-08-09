@@ -1,62 +1,108 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useView } from '../shell/view.store'
+import StateBlock from '../../components/StateBlock.vue'
 
-// Honest state for the resource views that still have no backend (milestones,
-// drafts). Docs and decisions have theirs and render their own view.
+// Honest state for the two resource views that still have no backend.
+// Docs and decisions DO have one and render their own view — they are not here.
 const { view } = useView()
 
-const INFO: Record<string, { title: string; blurb: string }> = {
-  milestones: {
-    title: 'Milestones',
-    blurb: 'Group work into milestones and track their progress.',
-  },
-  drafts: { title: 'Drafts', blurb: 'Unpromoted ideas — off the board until promoted.' },
+interface Suggestion {
+  cmd: string
+  why: string
 }
-const info = computed(() => INFO[view.value] ?? { title: view.value, blurb: '' })
+interface Placeholder {
+  message: string
+  domain: string
+  meanwhile: readonly Suggestion[]
+}
+
+const INFO: Record<string, Placeholder> = {
+  milestones: {
+    message: 'Group work into milestones and track their progress.',
+    domain: 'milestone',
+    meanwhile: [
+      {
+        cmd: 'suivre sprint create "…"',
+        why: 'a sprint already does the work of a short milestone',
+      },
+      {
+        cmd: 'suivre edit <id> --add-label milestone/v1',
+        why: 'or a label, to group tasks by hand',
+      },
+    ],
+  },
+  drafts: {
+    message: 'Unpromoted ideas — off the board until they are worth a task.',
+    domain: 'draft',
+    meanwhile: [
+      { cmd: 'suivre add "…" --label draft', why: 'a labelled task the toolbar can filter out' },
+      { cmd: 'suivre doc create "…"', why: 'or a doc, when the idea outgrows a task' },
+    ],
+  },
+}
+
+const info = computed<Placeholder>(
+  () => INFO[view.value] ?? { message: '', domain: view.value, meanwhile: [] },
+)
 </script>
 
 <template>
   <div class="rp">
-    <div class="rp-title"><span class="rp-hash">#</span> {{ info.title }}</div>
-    <div class="rp-blurb">{{ info.blurb }}</div>
-    <div class="rp-note">
-      <span class="rp-mark">$</span> backend coming — <span class="rp-code">{{ view }}</span> domain
-      (<span class="rp-code">.md</span> store + endpoints + MCP). Next up.
+    <div class="rp-lead">
+      <StateBlock :label="view" :message="info.message">
+        <template #hint>
+          No backend yet. The <span class="rp-code">{{ info.domain }}</span> domain —
+          <span class="rp-code">.md</span> store, endpoints, MCP — is the next step.
+        </template>
+      </StateBlock>
+    </div>
+
+    <div v-if="info.meanwhile.length" class="rp-next">
+      <div class="rp-l">meanwhile</div>
+      <div v-for="s in info.meanwhile" :key="s.cmd" class="rp-cmd">
+        <span class="rp-mark">$</span> {{ s.cmd }} <span class="rp-why">— {{ s.why }}</span>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+/* The prose keeps the narrow measure; the suggestions are shell lines and are
+   only allowed to wrap where a terminal would wrap them. */
 .rp {
-  border: 1px dashed var(--sv-line);
-  border-radius: 10px;
-  padding: 34px 30px;
-  max-width: 560px;
+  max-width: 84ch;
 }
-.rp-title {
-  font-size: 15px;
-  color: var(--sv-fg);
-  margin-bottom: 8px;
+.rp-lead {
+  max-width: 56ch;
 }
-.rp-hash {
-  color: var(--sv-fg-dim);
+.rp-code {
+  background: var(--sv-code-bg);
+  border: 1px solid var(--sv-line-soft);
+  border-radius: var(--sv-r-badge);
+  padding: 0 5px;
+  color: var(--sv-fg-card);
+  font-size: 0.92em;
 }
-.rp-blurb {
+.rp-next {
+  margin-top: 22px;
+}
+.rp-l {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sv-faint);
+  margin-bottom: 10px;
+}
+.rp-cmd {
   font-size: 12.5px;
+  line-height: 1.8;
   color: var(--sv-fg-mid);
-  line-height: 1.6;
-  margin-bottom: 18px;
-}
-.rp-note {
-  font-size: 11.5px;
-  color: var(--sv-fg-dim);
-  line-height: 1.7;
 }
 .rp-mark {
   color: var(--sv-prompt);
 }
-.rp-code {
-  color: var(--sv-fg-mid);
+.rp-why {
+  color: var(--sv-fg-dim);
 }
 </style>

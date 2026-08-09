@@ -77,7 +77,7 @@ const hasFoot = computed(
 </script>
 
 <template>
-  <article
+  <button
     ref="el"
     class="card"
     :class="{
@@ -86,39 +86,42 @@ const hasFoot = computed(
       'card--edge-top': edge === 'top',
       'card--edge-bottom': edge === 'bottom',
     }"
+    type="button"
     @click="openTask(task)"
   >
-    <div class="card-head">
+    <span class="card-head">
       <span class="card-id">{{ fm.id }}</span>
       <span v-if="prio === 'urgent'" class="card-prio card-prio--urgent">URGENT</span>
       <span v-else-if="prio === 'high'" class="card-prio card-prio--high">HIGH</span>
       <span v-else-if="prio === 'low'" class="card-prio card-prio--low">[low]</span>
-    </div>
+    </span>
 
-    <div class="card-title">{{ fm.title }}</div>
+    <span class="card-title">{{ fm.title }}</span>
 
-    <div v-if="ac.total > 0" class="card-ac">
+    <span v-if="ac.total > 0" class="card-ac">
       <span class="card-meter"
         ><span class="card-meter-on">{{ acMeter.filled }}</span
         >{{ acMeter.empty }}</span
       >
       <span class="card-ac-n">{{ ac.done }}/{{ ac.total }} criteria</span>
-    </div>
+    </span>
 
-    <div v-if="hasLinks" class="card-links">
+    <span v-if="hasLinks" class="card-links">
       <span v-if="subs > 0">⊞ {{ subs }} subtask{{ subs > 1 ? 's' : '' }}</span>
       <span v-if="blocked" class="card-blocked">⤳ blocked by {{ blocked }}</span>
-    </div>
+    </span>
 
-    <div v-if="hasFoot" class="card-foot">
+    <span v-if="hasFoot" class="card-foot">
       <span v-for="l in labels" :key="l" class="card-label">#{{ l }}</span>
       <span v-if="hasDebt" class="card-debt">#debt</span>
       <span v-if="fm.assignee" class="card-assignee">@{{ fm.assignee }}</span>
-    </div>
-  </article>
+    </span>
+  </button>
 </template>
 
 <style scoped>
+/* A button, not an <article @click>: the kanban is the only way to reach a
+   task from the board, so it has to answer Tab and Enter. */
 .card {
   position: relative;
   background: var(--sv-surface-2);
@@ -127,7 +130,9 @@ const hasFoot = computed(
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 7px;
+  text-align: left;
   cursor: pointer;
   animation: sv-fade 0.24s ease both;
   transition:

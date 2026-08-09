@@ -40,6 +40,7 @@ const viewOptions = computed(() =>
             class="st-opt"
             :class="{ 'st-opt--on': global.theme === t.value }"
             type="button"
+            :aria-pressed="global.theme === t.value"
             @click="setTheme(t.value)"
           >
             {{ t.label }}
@@ -59,6 +60,7 @@ const viewOptions = computed(() =>
             class="st-opt"
             :class="{ 'st-opt--on': global.defaultView === v.value }"
             type="button"
+            :aria-pressed="global.defaultView === v.value"
             @click="setGlobalDefaultView(v.value)"
           >
             {{ v.label }}
@@ -81,6 +83,7 @@ const viewOptions = computed(() =>
             class="st-opt"
             :class="{ 'st-opt--on': project.defaultView === null }"
             type="button"
+            :aria-pressed="project.defaultView === null"
             @click="setProjectDefaultView(null)"
           >
             (global)
@@ -91,6 +94,7 @@ const viewOptions = computed(() =>
             class="st-opt"
             :class="{ 'st-opt--on': project.defaultView === v.value }"
             type="button"
+            :aria-pressed="project.defaultView === v.value"
             @click="setProjectDefaultView(v.value)"
           >
             {{ v.label }}
@@ -124,19 +128,21 @@ const viewOptions = computed(() =>
 }
 .st-section {
   border: 1px solid var(--sv-line);
-  border-radius: 10px;
+  border-radius: var(--sv-r-box);
   padding: 8px 18px 18px;
   margin-bottom: 16px;
 }
 .st-scope {
   display: inline-block;
   font-size: 9px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   padding: 3px 9px;
   border-radius: 20px;
   margin: 14px 0 4px;
 }
+/* The scope badges keep their colour: "project" in green is a real semantic
+   distinction from "machine", not decoration. */
 .st-scope--machine {
   color: var(--sv-fg-mid);
   border: 1px solid var(--sv-line-strong);
@@ -192,34 +198,40 @@ const viewOptions = computed(() =>
     border-color 0.15s ease,
     color 0.15s ease;
 }
+/* Hover stops one rung short of the selected treatment, otherwise pointing at
+   an option would look exactly like having chosen it. */
 .st-opt:hover {
-  border-color: var(--sv-line-strong);
-  color: var(--sv-fg);
+  border-color: var(--sv-chip-line);
+  color: var(--sv-fg-card);
 }
+/* Selection is an outline, not a fill: the solid accent belongs to ONE thing
+   in the app (the primary action), and a settings option is not it. */
 .st-opt--on,
 .st-opt--on:hover {
-  background: var(--sv-accent);
-  border-color: var(--sv-accent);
-  color: var(--sv-on-accent);
+  background: transparent;
+  border-color: var(--sv-line-strong);
+  color: var(--sv-fg);
 }
 .st-store {
   margin-top: 8px;
   font-size: 11px;
+  line-height: 1.9;
   color: var(--sv-fg-dim);
 }
 .st-store-l {
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  font-size: 9.5px;
-  margin-bottom: 8px;
+  font-size: 9px;
+  color: var(--sv-faint);
+  margin-bottom: 9px;
 }
 .st-store-row {
-  margin-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
 }
 .st-store-tag {
-  display: inline-block;
-  width: 64px;
-  color: var(--sv-fg-mid);
+  color: var(--sv-faint);
 }
 .st-store-path {
   color: var(--sv-fg-mid);

@@ -30,7 +30,7 @@ const debt = computed(
 <template>
   <section v-if="board" class="bl">
     <div class="bl-head">
-      <span class="bl-name">Summary</span>
+      <span class="bl-name">summary</span>
       <span class="bl-sub">{{ done }}/{{ total }} · {{ pct }}%</span>
     </div>
     <div class="bl-bar">
@@ -57,18 +57,22 @@ const debt = computed(
 .bl {
   border: 1px solid var(--sv-line);
   border-radius: var(--sv-r-box);
-  padding: 18px 20px;
+  padding: 16px 20px;
 }
 .bl-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
+/* An eyebrow, not a heading: this block is only numbers, so the numbers have
+   to be the largest thing in it. */
 .bl-name {
-  font-size: 16px;
-  color: var(--sv-fg);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sv-faint);
 }
 .bl-sub {
   font-size: 12px;
@@ -79,7 +83,7 @@ const debt = computed(
   font-size: 12px;
   letter-spacing: 0.02em;
   color: var(--sv-fg-mid);
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   white-space: nowrap;
   overflow-x: auto;
   font-variant-numeric: tabular-nums;
@@ -97,7 +101,11 @@ const debt = computed(
   border-top: 1px solid var(--sv-line);
   padding-top: 12px;
 }
+/* The gap is a margin, not a text node: whitespace between an interpolation
+   and its label does not survive the template compiler reliably, and `Backlog11`
+   is what that looks like. */
 .bl-col-n {
+  margin-left: 0.5ch;
   color: var(--sv-fg);
   font-variant-numeric: tabular-nums;
 }
@@ -110,20 +118,20 @@ const debt = computed(
 .bl-chip {
   border: 1px solid var(--sv-line-strong);
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--sv-r-badge);
   color: var(--sv-fg-mid);
   font-variant-numeric: tabular-nums;
 }
 .bl-chip-n {
   color: inherit;
 }
-.bl-chip--prio {
-  background: var(--sv-accent);
-  color: var(--sv-on-accent);
-  border-color: var(--sv-accent);
+/* No flat --sv-accent here: that fill is reserved for maximum priority. */
+.bl-chip--prio .bl-chip-n {
+  color: var(--sv-fg);
 }
 .bl-chip--debt {
   border-color: var(--sv-warn-line);
+  background: var(--sv-warn-bg-2);
   color: var(--sv-warn);
 }
 </style>

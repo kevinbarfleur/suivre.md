@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { resolveSprint } from '../../../domain/sprint-resolve'
-import type { Sprint, SprintStep } from '../../lib/api'
+import type { SprintStep } from '../../lib/api'
+import ErrorBanner from '../../components/ErrorBanner.vue'
+import LoadingBlock from '../../components/LoadingBlock.vue'
+import MarkdownBody from '../../components/MarkdownBody.vue'
+import SearchField from '../../components/SearchField.vue'
+import StateBlock from '../../components/StateBlock.vue'
 import { useBoard } from '../board/board.store'
 import { useView } from '../shell/view.store'
 import { finalColumnId } from '../../lib/aggregate'
@@ -12,10 +17,16 @@ import { useSprints } from './sprints.store'
 // full card — description + acceptance criteria inline, so the detail is visible
 // without opening the task. Checking a step moves the task to the board's final
 // column; subtasks (tasks whose parent is a sprint task) nest under it.
-const { sprints, ensureLoaded, error, reload, create, update, remove } = useSprints()
+const { sprints, loading, error, ensureLoaded, reload, create, update, remove } = useSprints()
 const { board, allTasks, openTask, move } = useBoard()
 const { item, setView } = useView()
 onMounted(ensureLoaded)
+
+// Gauge widths. 25 is what the overview and the stats panel already print for a
+// headline ratio; 6 is the compact card gauge; 14 fits the sprint list column.
+const HERO_WIDTH = 25
+const SIDE_WIDTH = 14
+const AC_WIDTH = 6
 
 // Every status this view reads or writes comes from the board columns. A
 // literal would move cards into a column that does not exist on a renamed
@@ -27,17 +38,29 @@ const reopenId = computed(() => (columns.value.at(-2) ?? columns.value[0])?.id ?
 const statusLabel = (id: string | null): string =>
   board.value?.columns.find((c) => c.column.id === id)?.column.label ?? id ?? ''
 
-function prog(s: Sprint): { done: number; total: number; pct: number } {
-  const r = resolveSprint(s.frontmatter.items, allTasks.value, doneId.value ?? undefined)
-  return { done: r.done, total: r.total, pct: r.total ? Math.round((r.done / r.total) * 100) : 0 }
-}
-
 const sorted = computed(() =>
   [...sprints.value].sort((a, b) => {
     const av = a.frontmatter.status === 'done' ? 1 : 0
     const bv = b.frontmatter.status === 'done' ? 1 : 0
     if (av !== bv) return av - bv
     return b.frontmatter.id.localeCompare(a.frontmatter.id)
+  }),
+)
+
+// One resolution per sprint: the list read its progress helper three times per
+// row, and each read re-resolved the sprint against every task on the board.
+const listed = computed(() =>
+  sorted.value.map((s) => {
+    const r = resolveSprint(s.frontmatter.items, allTasks.value, doneId.value ?? undefined)
+    const m = meter(r.done, r.total, SIDE_WIDTH)
+    return {
+      id: s.frontmatter.id,
+      title: s.frontmatter.title,
+      done: r.done,
+      total: r.total,
+      filled: m.filled,
+      empty: m.empty,
+    }
   }),
 )
 
@@ -59,16 +82,26 @@ const pct = computed(() =>
     ? Math.round((resolved.value.done / resolved.value.total) * 100)
     : 0,
 )
+const hero = computed(() =>
+  meter(resolved.value?.done ?? 0, resolved.value?.total ?? 0, HERO_WIDTH, '█', '░'),
+)
 
-// First non-heading, non-list line of a task body = its one-line description.
-function lead(body: string): string {
-  for (const raw of body.split('\n')) {
-    const l = raw.trim()
-    if (!l || l.startsWith('#') || l.startsWith('- ') || l.startsWith('* ') || l.startsWith('>'))
-      continue
-    return l
-  }
-  return ''
+// Anything that opens a markdown block: a heading, a bullet, an ordered item,
+// a quote, a fence. Used to find where the prose starts and stops, never to
+// render it — the reader does that.
+const BLOCK_RE = /^\s*(#|[-*+][ \t]|\d+\.[ \t]|>|```)/
+const isProse = (line: string): boolean => line.trim() !== '' && !BLOCK_RE.test(line)
+
+// A step shows the task's opening paragraph — the criteria are already listed
+// below it and the rest belongs to the task. Slicing the body is data, the
+// paragraph itself goes to the shared reader as markdown.
+function description(body: string): string {
+  const lines = body.split('\n')
+  const start = lines.findIndex(isProse)
+  if (start < 0) return ''
+  let end = start
+  while (end < lines.length && isProse(lines[end]!)) end += 1
+  return lines.slice(start, end).join('\n')
 }
 
 // Pre-resolve everything each card needs to render its detail inline.
@@ -79,7 +112,7 @@ const cards = computed(() => {
     const t = step.task
     const body = t?.body ?? ''
     const p = acProgress(body)
-    const m = meter(p.done, p.total, 6)
+    const m = meter(p.done, p.total, AC_WIDTH)
     return {
       step,
       i,
@@ -87,7 +120,7 @@ const cards = computed(() => {
       title: t ? t.frontmatter.title : '(missing — task deleted)',
       priority: t?.frontmatter.priority ?? null,
       labels: t ? t.frontmatter.labels : [],
-      lead: lead(body),
+      description: description(body),
       ac: acItems(body),
       acDone: p.done,
       acTotal: p.total,
@@ -190,35 +223,41 @@ async function deleteSprint(): Promise<void> {
       <button v-else class="sp-new-btn" type="button" @click="startCreate">+ new sprint</button>
     </div>
 
-    <div v-if="error" class="sp-err">
-      <span class="sp-err-t">ERR: {{ error }}</span>
-      <button class="sp-btn" type="button" @click="reload">retry</button>
-    </div>
+    <ErrorBanner v-if="error" class="sp-err" :message="error" @retry="reload" />
 
-    <div v-if="!error && sprints.length === 0 && !creating" class="sp-empty">
-      no sprints yet — a sprint is an ordered checklist of tasks to ship. Create one, add tasks,
-      then check them off as you go.
-    </div>
+    <LoadingBlock
+      v-if="loading && sprints.length === 0"
+      label="sprints"
+      message="reading the sprint files…"
+    />
+
+    <StateBlock
+      v-else-if="!error && sprints.length === 0 && !creating"
+      label="no sprints"
+      message="A sprint is an ordered checklist of tasks to ship. Create one, add tasks, then check them off as you go."
+    >
+      <template #hint>
+        <span class="sb-prompt">$</span> <span class="sb-cmd">suivre sprint create "…"</span>
+      </template>
+    </StateBlock>
 
     <div v-else-if="sprints.length > 0" class="sp-grid">
       <div class="sp-side">
         <button
-          v-for="s in sorted"
-          :key="s.frontmatter.id"
+          v-for="s in listed"
+          :key="s.id"
           class="sp-item"
-          :class="{ 'sp-item--on': s.frontmatter.id === selectedId }"
+          :class="{ 'sp-item--on': s.id === selectedId }"
           type="button"
-          @click="select(s.frontmatter.id)"
+          @click="select(s.id)"
         >
           <div class="sp-item-head">
-            <span class="sp-item-title"
-              ><span v-if="s.frontmatter.id === selectedId" class="sp-caret">›</span
-              >{{ s.frontmatter.title }}</span
-            >
-            <span class="sp-item-n">{{ prog(s).done }}/{{ prog(s).total }}</span>
+            <span class="sp-item-title">{{ s.title }}</span>
+            <span class="sp-item-n">{{ s.done }}/{{ s.total }}</span>
           </div>
-          <div class="sp-item-bar">
-            <span class="sp-item-on" :style="{ width: prog(s).pct + '%' }"></span>
+          <div class="sp-item-meter">
+            <span class="sp-item-on">{{ s.filled }}</span
+            >{{ s.empty }}
           </div>
         </button>
       </div>
@@ -238,29 +277,32 @@ async function deleteSprint(): Promise<void> {
           </div>
           <p v-if="selected.frontmatter.goal" class="sp-goal">{{ selected.frontmatter.goal }}</p>
           <div class="sp-hbar">
-            <div class="sp-hbar-track">
-              <span class="sp-hbar-on" :style="{ width: pct + '%' }"></span>
-            </div>
-            <div class="sp-hbar-meta">
-              <span class="sp-hbar-pct">{{ pct }}%</span>
+            <span class="sp-hbar-gauge"
+              >[<span class="sp-hbar-on">{{ hero.filled }}</span
+              >{{ hero.empty }}]</span
+            >
+            <span class="sp-hbar-pct">{{ pct }}%</span>
+            <span class="sp-hbar-sep">·</span>
+            <span>{{ resolved.done }}/{{ resolved.total }} done</span>
+            <template v-if="resolved.currentIndex >= 0">
               <span class="sp-hbar-sep">·</span>
-              <span>{{ resolved.done }}/{{ resolved.total }} done</span>
-              <template v-if="resolved.currentIndex >= 0">
-                <span class="sp-hbar-sep">·</span>
-                <span class="sp-hbar-step"
-                  >step {{ resolved.currentIndex + 1 }}/{{ resolved.total }}</span
-                >
-              </template>
-              <template v-else-if="resolved.total > 0">
-                <span class="sp-hbar-sep">·</span><span class="sp-hbar-ship">shipped ✓</span>
-              </template>
-            </div>
+              <span>step {{ resolved.currentIndex + 1 }}/{{ resolved.total }}</span>
+            </template>
+            <template v-else-if="resolved.total > 0">
+              <span class="sp-hbar-sep">·</span><span class="sp-hbar-ship">shipped ✓</span>
+            </template>
           </div>
         </header>
 
-        <div v-if="resolved.total === 0" class="sp-none">
-          no tasks yet — {{ editing ? 'add some below' : 'hit edit to add tasks' }}
-        </div>
+        <StateBlock
+          v-if="resolved.total === 0"
+          label="no tasks"
+          :message="
+            editing
+              ? 'Pick the tasks to ship from the list below, in the order you mean to ship them.'
+              : 'This sprint is still empty — hit edit to add the tasks it should ship.'
+          "
+        />
 
         <div class="sp-steps">
           <article
@@ -334,7 +376,9 @@ async function deleteSprint(): Promise<void> {
 
               <div class="sp-sub-id">{{ card.step.id }}</div>
 
-              <p v-if="card.lead" class="sp-lead">{{ card.lead }}</p>
+              <div v-if="card.description" class="sp-desc">
+                <MarkdownBody :source="card.description" />
+              </div>
 
               <div v-if="card.acTotal > 0" class="sp-ac">
                 <div class="sp-ac-head">
@@ -391,16 +435,11 @@ async function deleteSprint(): Promise<void> {
 
         <div v-if="editing" class="sp-picker">
           <div class="sp-picker-l">add task</div>
-          <div class="sp-picker-search">
-            <span class="sp-prompt">/</span>
-            <input
-              v-model="pickerQuery"
-              class="sp-picker-in"
-              type="text"
-              placeholder="search tasks to add…"
-              spellcheck="false"
-            />
-          </div>
+          <SearchField
+            v-model="pickerQuery"
+            class="sp-picker-search"
+            placeholder="search tasks to add…"
+          />
           <div class="sp-picker-list">
             <button
               v-for="t in pickerResults"
@@ -443,7 +482,7 @@ async function deleteSprint(): Promise<void> {
   border: 1px dashed var(--sv-line);
   color: var(--sv-fg-mid);
   padding: 7px 13px;
-  border-radius: 8px;
+  border-radius: var(--sv-r);
   font-family: inherit;
   font-size: 12px;
   cursor: pointer;
@@ -457,37 +496,15 @@ async function deleteSprint(): Promise<void> {
   max-width: 320px;
   background: var(--sv-raised);
   border: 1px solid var(--sv-line);
-  border-radius: 8px;
+  border-radius: var(--sv-r);
   padding: 7px 11px;
   font-family: inherit;
   font-size: 12.5px;
   color: var(--sv-fg);
 }
-.sp-empty {
-  border: 1px dashed var(--sv-line);
-  border-radius: 8px;
-  padding: 28px;
-  text-align: center;
-  color: var(--sv-fg-dim);
-  font-size: 12px;
-  line-height: 1.6;
-}
 .sp-err {
   flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  border: 1px solid var(--sv-danger-line);
-  background: var(--sv-danger-bg);
-  border-radius: 8px;
-  padding: 12px 16px;
   margin-bottom: 16px;
-  font-size: 12px;
-}
-.sp-err-t {
-  flex: 1;
-  min-width: 0;
-  color: var(--sv-danger);
 }
 .sp-grid {
   flex: 1;
@@ -496,38 +513,44 @@ async function deleteSprint(): Promise<void> {
   gap: 18px;
   align-items: stretch;
 }
+/* Every progress reading in this view is the app's ASCII gauge. The filled
+   half — and the number that repeats it — is the one bright note; the empty
+   half stays in whatever colour its line already had. */
+.sp-item-on,
+.sp-hbar-on,
+.sp-hbar-pct,
+.sp-ac-on {
+  color: var(--sv-fg);
+}
 
 /* --- Sprint list (left) --- */
 .sp-side {
-  flex: 0 0 240px;
+  flex: 0 0 260px;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 .sp-item {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 5px;
   width: 100%;
   text-align: left;
   background: transparent;
-  border: 1px solid var(--sv-line);
-  border-radius: 9px;
-  padding: 12px 14px;
+  border: 0;
+  border-radius: var(--sv-r-card);
+  padding: 11px 12px;
   font-family: inherit;
   cursor: pointer;
-  transition:
-    border-color 0.12s ease,
-    background-color 0.12s ease;
+  transition: background-color 0.12s ease;
 }
 .sp-item:hover {
-  border-color: var(--sv-line-strong);
+  background: var(--sv-surface-2);
 }
 .sp-item--on {
-  background: var(--sv-raised);
-  border-color: var(--sv-line-strong);
+  background: var(--sv-surface-3);
 }
 .sp-item-head {
   display: flex;
@@ -537,33 +560,25 @@ async function deleteSprint(): Promise<void> {
 }
 .sp-item-title {
   font-size: 12.5px;
-  color: var(--sv-fg);
+  color: var(--sv-fg-mid);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.sp-caret {
-  color: var(--sv-prompt);
-  margin-right: 4px;
+.sp-item--on .sp-item-title {
+  color: var(--sv-bright);
 }
 .sp-item-n {
   flex: 0 0 auto;
-  font-size: 10.5px;
+  font-size: 10px;
   color: var(--sv-fg-dim);
   font-variant-numeric: tabular-nums;
 }
-.sp-item-bar {
-  height: 3px;
-  border-radius: 3px;
-  background: var(--sv-line);
-  overflow: hidden;
-}
-.sp-item-on {
-  display: block;
-  height: 100%;
-  background: var(--sv-prompt);
-  transition: width 0.2s ease;
+.sp-item-meter {
+  font-size: 10px;
+  letter-spacing: -0.05em;
+  color: var(--sv-fg-dim);
 }
 
 /* --- Detail (right) --- */
@@ -573,12 +588,12 @@ async function deleteSprint(): Promise<void> {
   min-height: 0;
   overflow-y: auto;
   border: 1px solid var(--sv-line);
-  border-radius: 12px;
-  padding: 26px 30px 30px;
+  border-radius: var(--sv-r-box);
+  padding: 24px 26px;
   background: var(--sv-raised);
 }
 .sp-hero {
-  padding-bottom: 22px;
+  padding-bottom: 18px;
   border-bottom: 1px solid var(--sv-line);
 }
 .sp-hero-top {
@@ -589,14 +604,14 @@ async function deleteSprint(): Promise<void> {
 }
 .sp-title {
   margin: 0;
-  font-size: 21px;
+  font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--sv-bright);
 }
 .sp-actions {
   display: flex;
-  gap: 7px;
+  gap: 9px;
   flex: 0 0 auto;
 }
 .sp-btn {
@@ -604,7 +619,7 @@ async function deleteSprint(): Promise<void> {
   border: 1px solid var(--sv-line);
   color: var(--sv-fg-mid);
   padding: 5px 12px;
-  border-radius: 6px;
+  border-radius: var(--sv-r);
   font-family: inherit;
   font-size: 11.5px;
   cursor: pointer;
@@ -623,45 +638,30 @@ async function deleteSprint(): Promise<void> {
   border-color: var(--sv-danger-line);
 }
 .sp-goal {
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   font-size: 13px;
-  color: var(--sv-fg-mid);
-  line-height: 1.5;
-  max-width: 62ch;
+  color: var(--sv-fg-body);
+  line-height: 1.65;
+  max-width: var(--sv-measure);
 }
 .sp-hbar {
-  margin-top: 20px;
-}
-.sp-hbar-track {
-  height: 6px;
-  border-radius: 6px;
-  background: var(--sv-line);
-  overflow: hidden;
-}
-.sp-hbar-on {
-  display: block;
-  height: 100%;
-  background: var(--sv-prompt);
-  border-radius: 6px;
-  transition: width 0.25s ease;
-}
-.sp-hbar-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 9px;
-  font-size: 11.5px;
-  color: var(--sv-fg-dim);
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--sv-fg-mid);
   font-variant-numeric: tabular-nums;
 }
-.sp-hbar-pct {
-  color: var(--sv-fg);
+/* the gauge is 25 glyphs wide: it wraps as a whole rather than being cut */
+.sp-hbar-gauge {
+  flex: 0 0 auto;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 .sp-hbar-sep {
-  color: var(--sv-faint);
-}
-.sp-hbar-step {
-  color: var(--sv-prompt);
+  color: var(--sv-fg-dim);
 }
 .sp-hbar-ship {
   color: var(--sv-ok);
@@ -802,7 +802,7 @@ async function deleteSprint(): Promise<void> {
   font-size: 9px;
   letter-spacing: 0.06em;
   padding: 1px 6px;
-  border-radius: 3px;
+  border-radius: var(--sv-r-badge);
 }
 .sp-prio--urgent {
   background: var(--sv-accent);
@@ -829,13 +829,14 @@ async function deleteSprint(): Promise<void> {
   color: var(--sv-fg-dim);
   margin-top: 3px;
 }
-.sp-lead {
-  margin: 9px 0 0;
-  font-size: 12.5px;
-  color: var(--sv-fg-mid);
-  line-height: 1.55;
+.sp-desc {
+  margin-top: 9px;
 }
-.sp-card--done .sp-lead {
+/* the reader ends its last paragraph on a margin meant for a document */
+.sp-desc :deep(.mkd-p:last-child) {
+  margin-bottom: 0;
+}
+.sp-card--done .sp-desc :deep(.mkd) {
   color: var(--sv-fg-dim);
 }
 .sp-ac {
@@ -846,15 +847,11 @@ async function deleteSprint(): Promise<void> {
   align-items: center;
   gap: 9px;
   font-size: 10.5px;
-  color: var(--sv-fg-dim);
+  color: var(--sv-fg-mid);
   margin-bottom: 7px;
 }
 .sp-ac-meter {
   letter-spacing: -0.05em;
-  color: var(--sv-line-strong);
-}
-.sp-ac-on {
-  color: var(--sv-ok);
 }
 .sp-ac-n {
   font-variant-numeric: tabular-nums;
@@ -935,7 +932,7 @@ async function deleteSprint(): Promise<void> {
   color: var(--sv-fg-dim);
   width: 22px;
   height: 22px;
-  border-radius: 5px;
+  border-radius: var(--sv-r-card);
   font-family: inherit;
   font-size: 11px;
   cursor: pointer;
@@ -967,23 +964,8 @@ async function deleteSprint(): Promise<void> {
   margin-bottom: 10px;
 }
 .sp-picker-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--sv-line);
-  border-radius: 8px;
-  padding: 8px 11px;
-  background: var(--sv-surface-2);
   margin-bottom: 8px;
-}
-.sp-picker-in {
-  flex: 1;
-  min-width: 0;
-  background: transparent;
-  border: 0;
-  font-family: inherit;
-  font-size: 12px;
-  color: var(--sv-fg);
+  max-width: 100%;
 }
 .sp-picker-list {
   display: flex;
@@ -999,7 +981,7 @@ async function deleteSprint(): Promise<void> {
   background: transparent;
   border: 0;
   padding: 8px 9px;
-  border-radius: 6px;
+  border-radius: var(--sv-r-card);
   font-family: inherit;
   cursor: pointer;
 }

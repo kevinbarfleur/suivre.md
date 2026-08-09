@@ -94,17 +94,19 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDoc))
   border-color: var(--sv-line-strong);
   color: var(--sv-fg);
 }
+/* Outline, not a flat --sv-accent: that fill already means URGENT and
+   ACCEPTED, and one fill cannot carry three meanings. */
 .fm-pill--active,
 .fm-pill--active:hover {
-  background: var(--sv-accent);
-  border-color: var(--sv-accent);
-  color: var(--sv-on-accent);
+  background: transparent;
+  border-color: var(--sv-line-strong);
+  color: var(--sv-fg);
 }
 .fm-caret {
   color: var(--sv-fg-dim);
 }
 .fm-pill--active .fm-caret {
-  color: var(--sv-on-accent);
+  color: var(--sv-fg-mid);
 }
 .fm-menu {
   position: absolute;

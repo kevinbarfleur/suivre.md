@@ -2,21 +2,27 @@
 import { computed } from 'vue'
 import { useView } from './view.store'
 import { views } from './view-registry'
+import StateBlock from '../../components/StateBlock.vue'
 
-// Fallback for a view id nothing registered: a typo in the hash, a link to a
-// view that never existed, or a stale `defaultView` preference — which would
-// otherwise open the app on a blank page, every time, with no way out.
+// Fallback for a view id nothing registered: a typo in the hash, `suivre show
+// <view>` on a name that never existed, or a stale `defaultView` preference —
+// which would otherwise open the app on a blank page, every time, with no way out.
 const { view, setView } = useView()
 const known = computed(() => views().filter((v) => v.group !== 'system'))
+const message = computed(() => `Nothing is registered under ${view.value}.`)
 </script>
 
 <template>
   <div class="uv">
-    <div class="uv-title"><span class="uv-mark">?</span> Unknown view</div>
-    <p class="uv-blurb">
-      Nothing is registered under <span class="uv-code">{{ view }}</span> — the link or the saved
-      default view points at a view that does not exist.
-    </p>
+    <div class="uv-lead">
+      <StateBlock label="unknown view" tone="warn" :message="message">
+        <template #hint>
+          The link, the <span class="uv-code">suivre show {{ view }}</span> command or the saved
+          default view points at a view that does not exist.
+        </template>
+      </StateBlock>
+    </div>
+
     <div class="uv-l">go to</div>
     <div class="uv-list">
       <button v-for="v in known" :key="v.id" class="uv-opt" type="button" @click="setView(v.id)">
@@ -28,34 +34,25 @@ const known = computed(() => views().filter((v) => v.group !== 'system'))
 
 <style scoped>
 .uv {
-  border: 1px dashed var(--sv-line);
-  border-radius: var(--sv-r-box);
-  padding: 34px 30px;
-  max-width: 560px;
+  max-width: 84ch;
 }
-.uv-title {
-  font-size: 15px;
-  color: var(--sv-fg);
-  margin-bottom: 8px;
-}
-.uv-mark {
-  color: var(--sv-warn);
-}
-.uv-blurb {
-  margin: 0 0 20px;
-  font-size: 12.5px;
-  color: var(--sv-fg-mid);
-  line-height: 1.6;
+.uv-lead {
+  max-width: 56ch;
 }
 .uv-code {
-  color: var(--sv-fg);
+  background: var(--sv-code-bg);
+  border: 1px solid var(--sv-line-soft);
+  border-radius: var(--sv-r-badge);
+  padding: 0 5px;
+  color: var(--sv-fg-card);
+  font-size: 0.92em;
 }
 .uv-l {
-  font-size: 9.5px;
-  letter-spacing: 0.12em;
+  font-size: 9px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--sv-faint);
-  margin-bottom: 10px;
+  margin: 22px 0 10px;
 }
 .uv-list {
   display: flex;
@@ -71,6 +68,9 @@ const known = computed(() => views().filter((v) => v.group !== 'system'))
   font-family: inherit;
   font-size: 11.5px;
   cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 .uv-opt:hover {
   border-color: var(--sv-line-strong);

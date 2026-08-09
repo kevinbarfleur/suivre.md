@@ -5,10 +5,11 @@ import { useBoard } from '../board/board.store'
 import { useFilter } from '../filter/filter.store'
 import { finalColumnId } from '../../lib/aggregate'
 import { acProgress, blockedBy, meter, shortDate } from '../../lib/task-meta'
+import NoResults from '../../components/NoResults.vue'
 
 // "List" view: all tasks in a dense, sortable table. Reuses the filter.
 const { board, allTasks, openTask } = useBoard()
-const { matches } = useFilter()
+const { text, status, priority, label, assignee, matches, clear } = useFilter()
 
 const PRIO_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 }
 
@@ -57,6 +58,22 @@ interface Row {
   updatedShort: string
 }
 
+const statusLabels = computed(
+  () => new Map((board.value?.columns ?? []).map((c) => [c.column.id, c.column.label])),
+)
+
+// Named the way the toolbar names them, so the chips read as the flags you set.
+const activeFilters = computed<string[]>(() => {
+  const out: string[] = []
+  const query = text.value.trim()
+  if (query) out.push(`/${query}`)
+  if (status.value) out.push(`--status=${statusLabels.value.get(status.value) ?? status.value}`)
+  if (priority.value) out.push(`--priority=${priority.value}`)
+  if (label.value) out.push(`--label=${label.value}`)
+  if (assignee.value) out.push(`--assignee=${assignee.value}`)
+  return out
+})
+
 const rows = computed<Row[]>(() => {
   if (!board.value) return []
   const columns = board.value.columns.map((c) => c.column)
@@ -65,7 +82,7 @@ const rows = computed<Row[]>(() => {
     allTasks.value.map((t) => [t.frontmatter.id, t.frontmatter.status === done]),
   )
   const statusIndex = new Map(columns.map((c, i) => [c.id, i]))
-  const statusLabel = new Map(columns.map((c) => [c.id, c.label]))
+  const statusLabel = statusLabels.value
 
   const list = allTasks.value.filter(matches).map<Row>((task) => {
     const fm = task.frontmatter
@@ -146,7 +163,13 @@ const sortLabel = computed(() => `${sortKey.value} ${sortDir.value === 'asc' ? '
     </div>
 
     <div class="lv-body">
-      <div v-if="rows.length === 0" class="lv-empty">0 results — no task matches</div>
+      <div v-if="rows.length === 0" class="lv-none">
+        <NoResults
+          message="0 results — no task matches"
+          :filters="activeFilters"
+          @clear="clear()"
+        />
+      </div>
 
       <button v-for="r in rows" :key="r.id" class="lv-row" type="button" @click="openTask(r.task)">
         <span class="c-id" :class="{ 'c-id--orphan': r.isOrphan }">{{ r.id }}</span>
@@ -186,7 +209,7 @@ const sortLabel = computed(() => `${sortKey.value} ${sortDir.value === 'asc' ? '
 <style scoped>
 .lv {
   border: 1px solid var(--sv-line);
-  border-radius: 10px;
+  border-radius: var(--sv-r-box);
   overflow: hidden;
   height: 100%;
   display: flex;
@@ -206,14 +229,16 @@ const sortLabel = computed(() => `${sortKey.value} ${sortDir.value === 'asc' ? '
   background: var(--sv-raised);
   border-bottom: 1px solid var(--sv-line);
 }
+/* A column name is a marker: the app's one eyebrow template, shared with the
+   markdown table headers and the rail groups. */
 .lv-h {
   background: transparent;
   border: 0;
   padding: 0;
   text-align: left;
   font-family: inherit;
-  font-size: 10px;
-  letter-spacing: 0.06em;
+  font-size: 9px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--sv-fg-dim);
   cursor: pointer;
@@ -247,6 +272,9 @@ const sortLabel = computed(() => `${sortKey.value} ${sortDir.value === 'asc' ? '
 }
 .lv-row:hover {
   background: var(--sv-raised);
+}
+.lv-row:hover .c-title {
+  color: var(--sv-bright);
 }
 /* Columns — widths shared between header and rows */
 .c-id {
@@ -356,18 +384,19 @@ const sortLabel = computed(() => `${sortKey.value} ${sortDir.value === 'asc' ? '
 .lv-blocked {
   color: var(--sv-blocked);
 }
-.lv-empty {
-  padding: 22px 14px;
-  font-size: 12px;
-  color: var(--sv-fg-dim);
-  text-align: center;
+.lv-none {
+  padding: 0 14px;
 }
+/* Header and footer frame the list on --sv-raised: --sv-rail-bg is the left
+   column's identity and reads as a stray fragment of rail anywhere else. */
 .lv-foot {
   flex: 0 0 auto;
   padding: 9px 14px;
   font-size: 11px;
   color: var(--sv-fg-dim);
-  background: var(--sv-rail-bg);
+  background: var(--sv-raised);
+  border-top: 1px solid var(--sv-line);
+  font-variant-numeric: tabular-nums;
 }
 @media (max-width: 860px) {
   .lv {

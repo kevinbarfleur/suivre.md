@@ -17,6 +17,7 @@ import {
   type Dist,
 } from '../../lib/aggregate'
 import { meter, shortDate } from '../../lib/task-meta'
+import StateBlock from '../../components/StateBlock.vue'
 
 // "Overview" view: the project's state in depth. Clickable aggregates →
 // apply the matching filter and switch to the list.
@@ -67,6 +68,8 @@ function goStatus(key: string): void {
   setView('list')
 }
 function goPriority(key: string): void {
+  // No filter value expresses "has no priority", so the `none` row can only
+  // land on an unfiltered list. Fixing it belongs to the filter model.
   if (key !== 'none') priority.value = key as Priority
   setView('list')
 }
@@ -81,7 +84,18 @@ function goAssignee(key: string): void {
 </script>
 
 <template>
-  <div class="ov">
+  <StateBlock
+    v-if="total === 0"
+    label="overview"
+    message="No task on this board — there is nothing to summarise yet."
+  >
+    <template #hint>
+      Start with <span class="sb-prompt">$</span>
+      <span class="sb-cmd">suivre add "First task"</span>
+    </template>
+  </StateBlock>
+
+  <div v-else class="ov">
     <div class="ov-top">
       <div class="ov-stat">
         <div class="ov-stat-n">{{ total }}</div>
@@ -105,12 +119,20 @@ function goAssignee(key: string): void {
     </div>
 
     <div class="ov-chips">
-      <span class="ov-chip ov-chip--fill">high prio {{ prioCount }}</span>
-      <span class="ov-chip ov-chip--debt">debt {{ debtCount }}</span>
-      <span class="ov-chip ov-chip--blocked">blocked {{ blockedCount }}</span>
-      <span class="ov-chip ov-chip--warn">orphans {{ orphanCount }}</span>
-      <span class="ov-chip ov-chip--line"
-        >criteria <b>{{ acAgg.done }}/{{ acAgg.total }}</b></span
+      <span class="ov-chip"
+        >high prio <span class="ov-chip-n">{{ prioCount }}</span></span
+      >
+      <span class="ov-chip ov-chip--debt"
+        >debt <span class="ov-chip-n">{{ debtCount }}</span></span
+      >
+      <span class="ov-chip ov-chip--blocked"
+        >blocked <span class="ov-chip-n">{{ blockedCount }}</span></span
+      >
+      <span class="ov-chip ov-chip--warn"
+        >orphans <span class="ov-chip-n">{{ orphanCount }}</span></span
+      >
+      <span class="ov-chip"
+        >criteria <span class="ov-chip-n">{{ acAgg.done }}/{{ acAgg.total }}</span></span
       >
     </div>
 
@@ -227,11 +249,11 @@ function goAssignee(key: string): void {
   color: var(--sv-fg-dim);
 }
 .ov-stat-l {
-  font-size: 9.5px;
-  letter-spacing: 0.1em;
+  font-size: 9px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--sv-fg-dim);
-  margin-top: 5px;
+  margin-top: 6px;
 }
 .ov-adv {
   flex: 1;
@@ -240,8 +262,8 @@ function goAssignee(key: string): void {
 .ov-adv-head {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
-  letter-spacing: 0.1em;
+  font-size: 9px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--sv-fg-dim);
   margin-bottom: 7px;
@@ -266,51 +288,55 @@ function goAssignee(key: string): void {
   margin-bottom: 24px;
   font-size: 11px;
 }
+/* Outline only: a solid fill reads as a state (URGENT, ACCEPTED), and none of
+   these chips is one. The count carries the weight, and the three semantic
+   notes keep their colour on the border and on that count. */
 .ov-chip {
   padding: 3px 10px;
-  border-radius: 20px;
+  border-radius: var(--sv-r);
+  border: 1px solid var(--sv-chip-line);
+  color: var(--sv-fg-mid);
   font-variant-numeric: tabular-nums;
 }
-.ov-chip b {
+.ov-chip-n {
   color: var(--sv-fg);
-  font-weight: 400;
-}
-.ov-chip--line {
-  border: 1px solid var(--sv-line-strong);
-  color: var(--sv-fg-mid);
-}
-.ov-chip--fill {
-  background: var(--sv-accent);
-  color: var(--sv-on-accent);
 }
 .ov-chip--debt {
-  border: 1px solid var(--sv-warn-line);
-  background: var(--sv-warn-bg);
+  border-color: var(--sv-warn-line);
+}
+.ov-chip--debt .ov-chip-n {
   color: var(--sv-warn);
 }
 .ov-chip--blocked {
-  border: 1px solid var(--sv-danger-line);
+  border-color: var(--sv-danger-line);
+}
+.ov-chip--blocked .ov-chip-n {
   color: var(--sv-blocked);
 }
 .ov-chip--warn {
-  border: 1px solid var(--sv-warn-line);
+  border-color: var(--sv-warn-line);
+}
+.ov-chip--warn .ov-chip-n {
   color: var(--sv-warn);
 }
+/* 240px, not 300px: the macOS overlay opens narrow and the rail breakpoint
+   never reaches this grid. */
 .ov-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 14px;
 }
 .ov-card {
   border: 1px solid var(--sv-line);
-  border-radius: 10px;
+  border-radius: var(--sv-r-box);
   padding: 16px 18px;
+  min-width: 0;
 }
 .ov-card-l {
-  font-size: 10px;
-  letter-spacing: 0.12em;
+  font-size: 9px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--sv-fg-dim);
+  color: var(--sv-faint);
   margin-bottom: 14px;
 }
 .ov-none {
@@ -387,15 +413,21 @@ function goAssignee(key: string): void {
 }
 .ov-arow-l {
   flex: 1;
+  min-width: 0;
   color: var(--sv-fg-mid);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .ov-fresh-l {
-  font-size: 10px;
-  color: var(--sv-fg-dim);
-  margin-bottom: 6px;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sv-faint);
+  margin-bottom: 8px;
 }
 .ov-fresh-l--mt {
-  margin-top: 12px;
+  margin-top: 14px;
 }
 .ov-fresh {
   display: flex;

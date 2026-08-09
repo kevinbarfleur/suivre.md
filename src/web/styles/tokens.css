@@ -14,6 +14,9 @@
   --sv-r-box: 10px;
   --sv-r-panel: 12px;
   --sv-r-term: 16px;
+
+  /* Reading measure for long-form markdown. A role, like the radii. */
+  --sv-measure: 68ch;
 }
 
 /* ============================ TERMINAL (blue-green) ====================== */
@@ -62,6 +65,10 @@
   --sv-selection: #26312f;
   --sv-placeholder: #4a5658;
   --sv-focus: #8fc2ab;
+  /* Inline code ground, and the drop-target tint (was a hard-coded rgba). */
+  --sv-code-bg: #141a1d;
+  --sv-drop-bg: #101614;
+  --sv-scrim: rgba(3, 5, 6, 0.62);
 
   --sv-shadow-term: 0 40px 100px -50px rgba(0, 0, 0, 0.85);
   --sv-shadow-pop: 0 20px 40px -20px rgba(0, 0, 0, 0.9);
@@ -114,6 +121,10 @@
   --sv-selection: #2c2c2c;
   --sv-placeholder: #565656;
   --sv-focus: #a5d3b0;
+  /* Inline code ground, and the drop-target tint (was a hard-coded rgba). */
+  --sv-code-bg: #1e1e1e;
+  --sv-drop-bg: #181c19;
+  --sv-scrim: rgba(4, 4, 6, 0.62);
 
   --sv-shadow-term: 0 40px 100px -50px rgba(0, 0, 0, 0.85);
   --sv-shadow-pop: 0 20px 40px -20px rgba(0, 0, 0, 0.9);
@@ -166,6 +177,10 @@
   --sv-selection: #d8e2dc;
   --sv-placeholder: #a0a0a6;
   --sv-focus: #2f6a4a;
+  /* Inline code ground, and the drop-target tint (was a hard-coded rgba). */
+  --sv-code-bg: #eeeef0;
+  --sv-drop-bg: #eaf1ec;
+  --sv-scrim: rgba(24, 24, 28, 0.34);
 
   --sv-shadow-term: 0 30px 70px -40px rgba(0, 0, 0, 0.25);
   --sv-shadow-pop: 0 16px 34px -18px rgba(0, 0, 0, 0.22);

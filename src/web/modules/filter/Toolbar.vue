@@ -4,10 +4,21 @@ import type { Priority } from '../../../domain'
 import { useBoard } from '../board/board.store'
 import { useFilter } from './filter.store'
 import FilterMenu, { type FilterOption } from './FilterMenu.vue'
+import SearchField from '../../components/SearchField.vue'
 
 const { board } = useBoard()
-const { text, status, priority, label, assignee, labels, assignees, activeCount, resultCount } =
-  useFilter()
+const {
+  text,
+  status,
+  priority,
+  label,
+  assignee,
+  labels,
+  assignees,
+  activeCount,
+  resultCount,
+  clear,
+} = useFilter()
 
 const PRIORITIES: FilterOption[] = [
   { value: 'urgent', label: 'urgent' },
@@ -33,10 +44,7 @@ function setPriority(value: string | null): void {
 
 <template>
   <div class="tb">
-    <div class="tb-search">
-      <span class="tb-slash">/</span>
-      <input v-model="text" class="tb-input" type="text" placeholder="grep tasks…" />
-    </div>
+    <SearchField v-model="text" placeholder="grep tasks…" />
     <FilterMenu
       label="--status"
       :model-value="status"
@@ -61,10 +69,16 @@ function setPriority(value: string | null): void {
       :options="assigneeOptions"
       @update:model-value="assignee = $event"
     />
-    <span class="tb-count">
-      {{ resultCount }} results<template v-if="activeCount">
-        · {{ activeCount }} filter{{ activeCount > 1 ? 's' : '' }}</template
+    <span class="tb-tail">
+      <span class="tb-count"
+        ><span class="tb-count-n">{{ resultCount }}</span> results<template v-if="activeCount">
+          · {{ activeCount }} filter{{ activeCount > 1 ? 's' : '' }}</template
+        ></span
       >
+      <template v-if="activeCount">
+        <span class="tb-sep" aria-hidden="true">|</span>
+        <button class="tb-clear" type="button" @click="clear">clear</button>
+      </template>
     </span>
   </div>
 </template>
@@ -77,36 +91,35 @@ function setPriority(value: string | null): void {
   flex-wrap: wrap;
   font-size: 12px;
 }
-.tb-search {
-  display: flex;
+.tb-tail {
+  margin-left: auto;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  width: 250px;
-  max-width: 100%;
-  background: var(--sv-surface-2);
-  border: 1px solid var(--sv-line);
-  border-radius: 8px;
-  padding: 8px 11px;
-  transition: border-color 0.15s ease;
-}
-.tb-search:focus-within {
-  border-color: var(--sv-line-strong);
-}
-.tb-slash {
-  color: var(--sv-fg-dim);
-}
-.tb-input {
-  border: 0;
-  background: transparent;
-  flex: 1;
-  min-width: 0;
-  font-size: 12px;
-  color: var(--sv-fg);
+  gap: 10px;
+  white-space: nowrap;
 }
 .tb-count {
-  margin-left: auto;
   color: var(--sv-fg-dim);
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+}
+.tb-count-n {
+  color: var(--sv-fg);
+}
+.tb-sep {
+  color: var(--sv-line-strong);
+}
+/* The bar announced "2 filters" with no way to release them. */
+.tb-clear {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--sv-fg-mid);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+.tb-clear:hover {
+  color: var(--sv-fg);
 }
 </style>

@@ -114,7 +114,7 @@ async function submit(): Promise<void> {
   transition: background-color 0.15s ease;
 }
 .col--over {
-  background: rgba(126, 160, 143, 0.06);
+  background: var(--sv-drop-bg);
 }
 .col-head {
   flex: 0 0 auto;
@@ -147,9 +147,13 @@ async function submit(): Promise<void> {
   gap: 10px;
   padding-right: 2px;
 }
+/* Dashed now means one thing only — something can land here — so the empty
+   column, which is a real drop target, states it plainly instead of reading
+   like the empty states that just lost their box. */
 .col-empty {
-  border: 1px dashed var(--sv-line);
-  border-radius: 8px;
+  border: 1px dashed var(--sv-line-strong);
+  background: var(--sv-drop-bg);
+  border-radius: var(--sv-r-card);
   padding: 16px;
   text-align: center;
   font-size: 12px;
@@ -158,6 +162,7 @@ async function submit(): Promise<void> {
 }
 .col-empty-hint {
   font-size: 10px;
+  color: var(--sv-faint);
 }
 .col-add-btn {
   flex: 0 0 auto;

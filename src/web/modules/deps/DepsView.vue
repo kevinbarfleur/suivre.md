@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useBoard } from '../board/board.store'
 import { blockedTasks, directCycles, highImpact, parentGroups } from '../../lib/aggregate'
 import { meter } from '../../lib/task-meta'
+import StateBlock from '../../components/StateBlock.vue'
 
 // "Deps" view: execution order. Blocked tasks (resolved/unresolved blockers),
 // high-impact blockers, subtasks, and direct cycle reporting.
@@ -36,7 +37,16 @@ const empty = computed(
       </span>
     </div>
 
-    <div v-if="empty" class="dp-empty">no dependencies — nothing to order</div>
+    <StateBlock
+      v-if="empty"
+      label="deps"
+      message="No dependency in this backlog — there is no order to compute."
+    >
+      <template #hint>
+        Link a task to its blocker: <span class="sb-prompt">$</span>
+        <span class="sb-cmd">suivre edit &lt;id&gt; --depends &lt;blocker-id&gt;</span>
+      </template>
+    </StateBlock>
 
     <div v-else class="dp-grid">
       <div class="dp-col">
@@ -108,7 +118,7 @@ const empty = computed(
   gap: 9px;
   border: 1px solid var(--sv-warn-line);
   background: var(--sv-warn-bg);
-  border-radius: 9px;
+  border-radius: var(--sv-r);
   padding: 11px 14px;
   margin-bottom: 16px;
   font-size: 12px;
@@ -117,32 +127,28 @@ const empty = computed(
 .dp-cycle-pair {
   color: var(--sv-warn);
 }
-.dp-empty {
-  border: 1px dashed var(--sv-line);
-  border-radius: 8px;
-  padding: 28px;
-  text-align: center;
-  color: var(--sv-fg-dim);
-  font-size: 12px;
-}
 .dp-grid {
   display: flex;
   gap: 16px;
   align-items: flex-start;
   flex-wrap: wrap;
 }
+/* Two columns become one by flex-wrap alone, no media query: the view also
+   runs inside the macOS overlay, which opens far narrower than the rail
+   breakpoint. `min-width: 0` lets a lone column shrink under its basis
+   instead of overflowing. */
 .dp-col {
-  flex: 1;
-  min-width: 320px;
+  flex: 1 1 260px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 .dp-label {
-  font-size: 10px;
-  letter-spacing: 0.12em;
+  font-size: 9px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--sv-fg-dim);
+  color: var(--sv-faint);
 }
 .dp-label--mt {
   margin-top: 8px;
@@ -153,7 +159,7 @@ const empty = computed(
 }
 .dp-blocked {
   border: 1px solid var(--sv-line);
-  border-radius: 8px;
+  border-radius: var(--sv-r-box);
   padding: 12px 14px;
   background: var(--sv-raised);
 }
@@ -161,15 +167,19 @@ const empty = computed(
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 10px;
   margin-bottom: 9px;
 }
 .dp-blocked-title {
   font-size: 12.5px;
   color: var(--sv-fg);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .dp-blocked-id {
   font-size: 10px;
   color: var(--sv-fg-dim);
+  white-space: nowrap;
 }
 .dp-blockers {
   display: flex;
@@ -193,7 +203,7 @@ const empty = computed(
 }
 .dp-impact {
   border: 1px solid var(--sv-line);
-  border-radius: 8px;
+  border-radius: var(--sv-r-box);
   overflow: hidden;
 }
 .dp-impact-row {
@@ -226,23 +236,27 @@ const empty = computed(
 }
 .dp-parent {
   border: 1px solid var(--sv-line);
-  border-radius: 8px;
+  border-radius: var(--sv-r-box);
   padding: 12px 14px;
 }
 .dp-parent-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   margin-bottom: 9px;
 }
 .dp-parent-title {
   font-size: 12.5px;
   color: var(--sv-fg);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .dp-parent-prog {
   font-size: 10px;
   color: var(--sv-fg-mid);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .dp-meter {
   letter-spacing: -0.05em;

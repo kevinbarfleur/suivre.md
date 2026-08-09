@@ -2,12 +2,18 @@
 import { computed, onMounted, ref } from 'vue'
 import { useView } from '../shell/view.store'
 import { shortDate } from '../../lib/task-meta'
+import { toBlocks } from '../../lib/markdown-blocks'
+import ErrorBanner from '../../components/ErrorBanner.vue'
+import LoadingBlock from '../../components/LoadingBlock.vue'
 import MarkdownBody from '../../components/MarkdownBody.vue'
+import NoResults from '../../components/NoResults.vue'
+import SearchField from '../../components/SearchField.vue'
+import StateBlock from '../../components/StateBlock.vue'
 import { useDocs } from './docs.store'
 
 // "Docs" view: documentation index + reading (rendered markdown).
 // Deep-linkable (#docs/doc-001).
-const { docs, ensureLoaded, error, reload } = useDocs()
+const { docs, ensureLoaded, error, loading, reload } = useDocs()
 const { item, setView } = useView()
 onMounted(ensureLoaded)
 
@@ -20,6 +26,10 @@ const filtered = computed(() => {
   if (!q) return list
   return list.filter((d) => `${d.frontmatter.title} ${d.body}`.toLowerCase().includes(q))
 })
+const activeFilters = computed<string[]>(() => {
+  const q = search.value.trim()
+  return q ? [`/${q}`] : []
+})
 
 const selectedId = computed(() => {
   if (item.value && docs.value.some((d) => d.frontmatter.id === item.value)) return item.value
@@ -29,6 +39,12 @@ const selected = computed(
   () => docs.value.find((d) => d.frontmatter.id === selectedId.value) ?? null,
 )
 
+// The reader's own h1 is the document title, so the frontmatter title is
+// rendered only for the bodies that carry no h1 at all — never both.
+const titleInBody = computed(
+  () => selected.value != null && toBlocks(selected.value.body).some((b) => b.type === 'h1'),
+)
+
 function select(id: string): void {
   setView('docs', id)
 }
@@ -36,21 +52,40 @@ function select(id: string): void {
 
 <template>
   <div class="dv">
-    <div class="dv-search">
-      <span class="dv-slash">/</span>
-      <input v-model="search" class="dv-input" type="text" placeholder="search docs…" />
-    </div>
+    <SearchField v-model="search" class="dv-search" placeholder="grep docs…" />
 
-    <div v-if="error" class="dv-err">
-      <span class="dv-err-t">ERR: {{ error }}</span>
-      <button class="dv-retry" type="button" @click="reload">retry</button>
-    </div>
+    <ErrorBanner
+      v-if="error"
+      class="dv-err"
+      message="The docs could not be read."
+      :detail="error"
+      @retry="reload"
+    />
 
-    <div v-if="!error && docs.length === 0" class="dv-empty">no docs — documentation is empty</div>
+    <LoadingBlock v-if="loading && docs.length === 0" label="docs" message="reading docs/…" />
+
+    <StateBlock
+      v-else-if="!error && docs.length === 0"
+      class="dv-empty"
+      label="docs"
+      message="No document yet."
+    >
+      <template #hint>
+        Specs and long-form notes land here — what <span class="sb-cmd">/grill-with-docs</span>
+        writes. Start one with
+        <span class="sb-prompt">$</span><span class="sb-cmd">suivre doc create "Spec: …"</span>
+      </template>
+    </StateBlock>
 
     <div v-else-if="docs.length > 0" class="dv-grid">
       <div class="dv-list">
-        <div v-if="filtered.length === 0" class="dv-none">0 results — no doc matches</div>
+        <div v-if="filtered.length === 0" class="dv-none">
+          <NoResults
+            message="0 results — no doc matches"
+            :filters="activeFilters"
+            @clear="search = ''"
+          />
+        </div>
         <button
           v-for="d in filtered"
           :key="d.frontmatter.id"
@@ -72,6 +107,7 @@ function select(id: string): void {
           <span v-for="t in selected.frontmatter.tags" :key="t" class="dv-tag">#{{ t }}</span>
           <span class="dv-reader-date">upd {{ shortDate(selected.frontmatter.updated) }}</span>
         </div>
+        <h1 v-if="!titleInBody" class="dv-title">{{ selected.frontmatter.title }}</h1>
         <MarkdownBody :source="selected.body" />
       </div>
     </div>
@@ -87,72 +123,15 @@ function select(id: string): void {
 }
 .dv-search {
   flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 280px;
   max-width: 100%;
-  background: var(--sv-surface-2);
-  border: 1px solid var(--sv-line);
-  border-radius: 8px;
-  padding: 8px 11px;
   margin-bottom: 16px;
-}
-.dv-slash {
-  color: var(--sv-fg-dim);
-}
-.dv-input {
-  border: 0;
-  background: transparent;
-  flex: 1;
-  min-width: 0;
-  font-size: 12px;
-  color: var(--sv-fg);
-}
-.dv-empty {
-  border: 1px dashed var(--sv-line);
-  border-radius: 8px;
-  padding: 28px;
-  text-align: center;
-  color: var(--sv-fg-dim);
-  font-size: 12px;
-}
-.dv-none {
-  padding: 18px 11px;
-  font-size: 12px;
-  color: var(--sv-fg-dim);
 }
 .dv-err {
   flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  border: 1px solid var(--sv-danger-line);
-  background: var(--sv-danger-bg);
-  border-radius: 8px;
-  padding: 12px 16px;
   margin-bottom: 16px;
-  font-size: 12px;
 }
-.dv-err-t {
-  flex: 1;
-  min-width: 0;
-  color: var(--sv-danger);
-}
-.dv-retry {
-  flex: 0 0 auto;
-  background: transparent;
-  border: 1px solid var(--sv-line);
-  color: var(--sv-fg-mid);
-  padding: 5px 12px;
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 11.5px;
-  cursor: pointer;
-}
-.dv-retry:hover {
-  border-color: var(--sv-line-strong);
-  color: var(--sv-fg);
+.dv-empty {
+  max-width: var(--sv-measure);
 }
 .dv-grid {
   flex: 1;
@@ -169,6 +148,9 @@ function select(id: string): void {
   flex-direction: column;
   gap: 2px;
 }
+.dv-none {
+  padding: 0 11px;
+}
 .dv-item {
   display: flex;
   flex-direction: column;
@@ -176,7 +158,7 @@ function select(id: string): void {
   width: 100%;
   padding: 10px 11px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--sv-r-card);
   background: transparent;
   font-family: inherit;
   text-align: left;
@@ -211,8 +193,8 @@ function select(id: string): void {
   min-height: 0;
   overflow-y: auto;
   border: 1px solid var(--sv-line);
-  border-radius: 10px;
-  padding: 24px 28px;
+  border-radius: var(--sv-r-box);
+  padding: 24px 26px;
   background: var(--sv-raised);
 }
 @media (max-width: 860px) {
@@ -243,5 +225,16 @@ function select(id: string): void {
   margin-left: auto;
   color: var(--sv-fg-dim);
   font-variant-numeric: tabular-nums;
+}
+/* Same type as the reader's own h1 (MarkdownBody `.mkd-h1`): a document reads
+   identically whether its title sits in the frontmatter or in the body. */
+.dv-title {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--sv-bright);
+  margin: 4px 0 14px;
+  max-width: var(--sv-measure);
 }
 </style>

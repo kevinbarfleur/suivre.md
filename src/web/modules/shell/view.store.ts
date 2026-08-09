@@ -20,6 +20,19 @@ const initial = parseHash()
 const view = ref<string>(initial.view ?? 'board')
 const item = ref<string | null>(initial.item)
 
+// A shareable link is only shareable if it works in a tab that is already open:
+// pasting `#board/task-013` into the address bar, or a second `suivre show`
+// into the overlay, changes the hash without reloading. Without this the URL
+// moved and the app did not.
+if (typeof window !== 'undefined') {
+  window.addEventListener('hashchange', () => {
+    const next = parseHash()
+    if (next.view === null) return
+    view.value = next.view
+    item.value = next.item
+  })
+}
+
 export function useView() {
   return {
     view,

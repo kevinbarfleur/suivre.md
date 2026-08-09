@@ -2,26 +2,43 @@
 import { computed, onMounted, ref } from 'vue'
 import { useView } from '../shell/view.store'
 import { shortDate } from '../../lib/task-meta'
+import { toBlocks } from '../../lib/markdown-blocks'
+import ErrorBanner from '../../components/ErrorBanner.vue'
+import LoadingBlock from '../../components/LoadingBlock.vue'
 import MarkdownBody from '../../components/MarkdownBody.vue'
+import NoResults from '../../components/NoResults.vue'
+import SearchField from '../../components/SearchField.vue'
+import StateBlock from '../../components/StateBlock.vue'
 import { useDecisions } from './decisions.store'
 
 // "Decisions" view: ADR registry. List filterable by status + detail
 // (context / decision / consequences). Deep-linkable (#decisions/decision-001).
-const { decisions, ensureLoaded, error, reload } = useDecisions()
+const { decisions, ensureLoaded, error, loading, reload } = useDecisions()
 const { item, setView } = useView()
 onMounted(ensureLoaded)
 
 const FILTERS = ['all', 'proposed', 'accepted', 'rejected', 'superseded'] as const
 const statusFilter = ref<string>('all')
+const search = ref('')
 
 const sorted = computed(() =>
   [...decisions.value].sort((a, b) => b.frontmatter.date.localeCompare(a.frontmatter.date)),
 )
-const filtered = computed(() =>
-  statusFilter.value === 'all'
-    ? sorted.value
-    : sorted.value.filter((d) => d.frontmatter.status === statusFilter.value),
-)
+const filtered = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  return sorted.value.filter((d) => {
+    if (statusFilter.value !== 'all' && d.frontmatter.status !== statusFilter.value) return false
+    if (!q) return true
+    return `${d.frontmatter.id} ${d.frontmatter.title} ${d.body}`.toLowerCase().includes(q)
+  })
+})
+const activeFilters = computed<string[]>(() => {
+  const out: string[] = []
+  const q = search.value.trim()
+  if (q) out.push(`/${q}`)
+  if (statusFilter.value !== 'all') out.push(`--status=${statusFilter.value}`)
+  return out
+})
 
 const selectedId = computed(() => {
   if (item.value && decisions.value.some((d) => d.frontmatter.id === item.value)) return item.value
@@ -31,39 +48,74 @@ const selected = computed(
   () => decisions.value.find((d) => d.frontmatter.id === selectedId.value) ?? null,
 )
 
+// The reader's own h1 is the decision title, so the frontmatter title is
+// rendered only for the bodies that carry no h1 at all — never both.
+const titleInBody = computed(
+  () => selected.value != null && toBlocks(selected.value.body).some((b) => b.type === 'h1'),
+)
+
 function select(id: string): void {
   setView('decisions', id)
+}
+function clearFilters(): void {
+  search.value = ''
+  statusFilter.value = 'all'
 }
 </script>
 
 <template>
   <div class="dc">
-    <div class="dc-filters">
-      <button
-        v-for="f in FILTERS"
-        :key="f"
-        class="dc-filter"
-        :class="{ 'dc-filter--on': statusFilter === f }"
-        type="button"
-        @click="statusFilter = f"
-      >
-        {{ f === 'all' ? 'all' : f }}
-      </button>
+    <div class="dc-bar">
+      <SearchField v-model="search" placeholder="grep decisions…" />
+      <div class="dc-filters">
+        <button
+          v-for="f in FILTERS"
+          :key="f"
+          class="dc-filter"
+          :class="{ 'dc-filter--on': statusFilter === f }"
+          type="button"
+          @click="statusFilter = f"
+        >
+          {{ f === 'all' ? 'all' : f }}
+        </button>
+      </div>
     </div>
 
-    <div v-if="error" class="dc-err">
-      <span class="dc-err-t">ERR: {{ error }}</span>
-      <button class="dc-retry" type="button" @click="reload">retry</button>
-    </div>
+    <ErrorBanner
+      v-if="error"
+      class="dc-err"
+      message="The decisions could not be read."
+      :detail="error"
+      @retry="reload"
+    />
 
-    <div v-if="!error && decisions.length === 0" class="dc-empty">
-      no decisions — the ADR log is empty
-    </div>
+    <LoadingBlock
+      v-if="loading && decisions.length === 0"
+      label="decisions"
+      message="reading decisions/…"
+    />
+
+    <StateBlock
+      v-else-if="!error && decisions.length === 0"
+      class="dc-empty"
+      label="decisions"
+      message="No decision recorded yet."
+    >
+      <template #hint>
+        An ADR — context, decision, consequences — lands here the moment a choice is worth
+        remembering. Record one with <span class="sb-prompt">$</span
+        ><span class="sb-cmd">suivre decision create "…" --status accepted</span>
+      </template>
+    </StateBlock>
 
     <div v-else-if="decisions.length > 0" class="dc-grid">
       <div class="dc-list">
         <div v-if="filtered.length === 0" class="dc-none">
-          0 results — no {{ statusFilter }} decision
+          <NoResults
+            message="0 results — no decision matches"
+            :filters="activeFilters"
+            @clear="clearFilters"
+          />
         </div>
         <button
           v-for="d in filtered"
@@ -90,7 +142,7 @@ function select(id: string): void {
           }}</span>
           <span class="dc-detail-date">{{ shortDate(selected.frontmatter.date) }}</span>
         </div>
-        <div class="dc-detail-title">{{ selected.frontmatter.title }}</div>
+        <h1 v-if="!titleInBody" class="dc-detail-title">{{ selected.frontmatter.title }}</h1>
         <div v-if="selected.frontmatter.supersedes" class="dc-link dc-link--sup">
           supersedes
           <button type="button" @click="select(selected.frontmatter.supersedes!)">
@@ -116,12 +168,18 @@ function select(id: string): void {
   display: flex;
   flex-direction: column;
 }
-.dc-filters {
+.dc-bar {
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.dc-filters {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 18px;
 }
 .dc-filter {
   background: transparent;
@@ -143,51 +201,15 @@ function select(id: string): void {
   color: var(--sv-fg);
   border-color: var(--sv-line-strong);
 }
-.dc-empty {
-  border: 1px dashed var(--sv-line);
-  border-radius: 8px;
-  padding: 28px;
-  text-align: center;
-  color: var(--sv-fg-dim);
-  font-size: 12px;
-}
-.dc-none {
-  padding: 22px 15px;
-  font-size: 12px;
-  color: var(--sv-fg-dim);
-  text-align: center;
-}
 .dc-err {
   flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  border: 1px solid var(--sv-danger-line);
-  background: var(--sv-danger-bg);
-  border-radius: 8px;
-  padding: 12px 16px;
   margin-bottom: 16px;
-  font-size: 12px;
 }
-.dc-err-t {
-  flex: 1;
-  min-width: 0;
-  color: var(--sv-danger);
+.dc-empty {
+  max-width: var(--sv-measure);
 }
-.dc-retry {
-  flex: 0 0 auto;
-  background: transparent;
-  border: 1px solid var(--sv-line);
-  color: var(--sv-fg-mid);
-  padding: 5px 12px;
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 11.5px;
-  cursor: pointer;
-}
-.dc-retry:hover {
-  border-color: var(--sv-line-strong);
-  color: var(--sv-fg);
+.dc-none {
+  padding: 4px 15px;
 }
 .dc-grid {
   flex: 1;
@@ -202,7 +224,7 @@ function select(id: string): void {
   min-height: 0;
   overflow-y: auto;
   border: 1px solid var(--sv-line);
-  border-radius: 10px;
+  border-radius: var(--sv-r-box);
 }
 .dc-row {
   display: flex;
@@ -248,7 +270,7 @@ function select(id: string): void {
   font-size: 9.5px;
   letter-spacing: 0.06em;
   padding: 1px 7px;
-  border-radius: 3px;
+  border-radius: var(--sv-r-badge);
 }
 .dc-status[data-status='accepted'] {
   background: var(--sv-accent);
@@ -273,8 +295,8 @@ function select(id: string): void {
   min-height: 0;
   overflow-y: auto;
   border: 1px solid var(--sv-line);
-  border-radius: 10px;
-  padding: 20px 22px;
+  border-radius: var(--sv-r-box);
+  padding: 24px 26px;
   background: var(--sv-raised);
 }
 @media (max-width: 860px) {
@@ -303,14 +325,20 @@ function select(id: string): void {
   margin-left: auto;
   font-variant-numeric: tabular-nums;
 }
+/* Same type as the reader's own h1 (MarkdownBody `.mkd-h1`): a decision reads
+   identically whether its title sits in the frontmatter or in the body. */
 .dc-detail-title {
-  font-size: 17px;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
   color: var(--sv-bright);
-  margin-bottom: 14px;
+  margin: 4px 0 14px;
+  max-width: var(--sv-measure);
 }
 .dc-link {
   font-size: 11px;
-  border-radius: 7px;
+  border-radius: var(--sv-r);
   padding: 8px 11px;
   margin-bottom: 12px;
 }
