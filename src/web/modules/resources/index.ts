@@ -8,14 +8,14 @@ export default function registerResourceModules(): void {
     id: 'milestones',
     label: 'milestones',
     group: 'resources',
-    order: 10,
+    order: 80,
     component: ResourcePlaceholder,
   })
   registerView({
     id: 'drafts',
     label: 'drafts',
     group: 'resources',
-    order: 30,
+    order: 90,
     component: ResourcePlaceholder,
   })
 }

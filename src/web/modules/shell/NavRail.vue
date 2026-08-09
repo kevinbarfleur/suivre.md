@@ -8,14 +8,29 @@ import { useBoard } from '../board/board.store'
 import { useView } from './view.store'
 import { views, type ViewDef } from './view-registry'
 
-// Navigation rail: brand + two groups (tasks / resources) pulled from the
-// view registry. The active view is highlighted; badges are counts.
+// Navigation rail: brand, the three groups pulled from the view registry, and
+// the facts about where the data lives.
+//
+// Selection is carried by contrast alone — no background step, no caret, no
+// indent shift. The active view is the only bright label in the column, so the
+// rail states where you are without spending a surface on it, and nothing has
+// to move when the selection changes.
 const { board } = useBoard()
 const { view, setView } = useView()
 
 const projectName = computed(() => board.value?.config.name ?? '—')
 const taskViews = computed(() => views('tasks'))
 const resourceViews = computed(() => views('resources'))
+// The `system` group is read from the registry like the other two: hard-coding
+// the settings entry here meant a fourth system view would never appear.
+const systemViews = computed(() => views('system'))
+
+/** What the store is, in the rail rather than in a decorative footer. */
+const FACTS: readonly { k: string; v: string }[] = [
+  { k: 'store', v: '.suivre/' },
+  { k: 'format', v: 'markdown' },
+  { k: 'surfaces', v: 'web · cli · mcp' },
+]
 
 function badge(def: ViewDef): string | number {
   if (!def.badge || !board.value) return ''
@@ -27,7 +42,10 @@ function badge(def: ViewDef): string | number {
   <nav class="rail">
     <div class="rail-brand">
       <div class="rail-name">suivre.md</div>
-      <div class="rail-sub">{{ projectName }} · v{{ version }}</div>
+      <div class="rail-sub">
+        <span class="rail-project">{{ projectName }}</span>
+        <span class="rail-version"> · v{{ version }}</span>
+      </div>
     </div>
 
     <div class="rail-group">
@@ -38,11 +56,10 @@ function badge(def: ViewDef): string | number {
         class="rail-item"
         :class="{ 'rail-item--active': view === def.id }"
         type="button"
+        :aria-current="view === def.id ? 'page' : undefined"
         @click="setView(def.id)"
       >
-        <span class="rail-item-label"
-          ><span v-if="view === def.id" class="rail-caret">›</span>{{ def.label }}</span
-        >
+        <span class="rail-item-label">{{ def.label }}</span>
         <span class="rail-item-badge">{{ badge(def) }}</span>
       </button>
     </div>
@@ -55,29 +72,31 @@ function badge(def: ViewDef): string | number {
         class="rail-item"
         :class="{ 'rail-item--active': view === def.id }"
         type="button"
+        :aria-current="view === def.id ? 'page' : undefined"
         @click="setView(def.id)"
       >
-        <span class="rail-item-label"
-          ><span v-if="view === def.id" class="rail-caret">›</span>{{ def.label }}</span
-        >
+        <span class="rail-item-label">{{ def.label }}</span>
         <span class="rail-item-badge">{{ badge(def) }}</span>
       </button>
     </div>
 
     <div class="rail-bottom">
+      <div class="rail-group-l">system</div>
       <button
+        v-for="def in systemViews"
+        :key="def.id"
         class="rail-item"
-        :class="{ 'rail-item--active': view === 'settings' }"
+        :class="{ 'rail-item--active': view === def.id }"
         type="button"
-        @click="setView('settings')"
+        :aria-current="view === def.id ? 'page' : undefined"
+        @click="setView(def.id)"
       >
-        <span class="rail-item-label"
-          ><span v-if="view === 'settings'" class="rail-caret">›</span>settings</span
-        >
+        <span class="rail-item-label">{{ def.label }}</span>
+        <span class="rail-item-badge">{{ badge(def) }}</span>
       </button>
-      <div class="rail-foot">
-        <div>.suivre/ · markdown</div>
-        <div>web · cli · mcp</div>
+      <div v-for="f in FACTS" :key="f.k" class="rail-fact">
+        <span class="rail-fact-k">{{ f.k }}</span>
+        <span class="rail-fact-v">{{ f.v }}</span>
       </div>
     </div>
   </nav>
@@ -88,11 +107,16 @@ function badge(def: ViewDef): string | number {
   flex: 0 0 208px;
   border-right: 1px solid var(--sv-line);
   background: var(--sv-rail-bg);
-  padding: 22px 16px;
+  /* Vertical only: the items run edge to edge, so their own padding sets the
+     left margin and a selected item can never look inset. */
+  padding: 22px 0;
   display: flex;
   flex-direction: column;
   gap: 22px;
   overflow-y: auto;
+}
+.rail-brand {
+  padding: 0 16px;
 }
 .rail-name {
   font-size: 14px;
@@ -101,53 +125,43 @@ function badge(def: ViewDef): string | number {
 }
 .rail-sub {
   font-size: 10px;
-  color: var(--sv-fg-dim);
   margin-top: 3px;
+}
+.rail-project {
+  color: var(--sv-fg-mid);
+}
+.rail-version {
+  color: var(--sv-faint);
 }
 .rail-group-l {
   font-size: 9px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--sv-faint);
-  margin: 0 8px 8px;
+  margin: 0 16px 8px;
 }
 .rail-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  padding: 7px 9px;
+  padding: 7px 16px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 0;
   background: transparent;
   font-family: inherit;
   font-size: 12.5px;
-  color: var(--sv-fg-mid);
+  text-align: left;
+  color: var(--sv-fg-dim);
   cursor: pointer;
-  transition:
-    background-color 0.12s ease,
-    color 0.12s ease;
+  transition: color 0.12s ease;
 }
 .rail-item:hover {
-  background: var(--sv-surface-2);
-  color: var(--sv-fg-card);
+  color: var(--sv-fg-mid);
 }
 .rail-item--active,
 .rail-item--active:hover {
-  background: var(--sv-surface-3);
-  color: var(--sv-fg);
-}
-.rail-item-label {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  padding-left: 11px;
-}
-.rail-item--active .rail-item-label {
-  padding-left: 0;
-}
-.rail-caret {
-  color: var(--sv-prompt);
+  color: var(--sv-bright);
 }
 .rail-item-badge {
   font-size: 10px;
@@ -156,15 +170,21 @@ function badge(def: ViewDef): string | number {
 }
 .rail-bottom {
   margin-top: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
-.rail-foot {
+.rail-fact {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 16px;
   font-size: 10px;
+  line-height: 1.5;
+}
+.rail-fact-k {
   color: var(--sv-faint);
-  line-height: 1.7;
-  border-top: 1px solid var(--sv-line-soft);
-  padding-top: 14px;
+}
+.rail-fact-v {
+  color: var(--sv-fg-dim);
+  text-align: right;
 }
 </style>
