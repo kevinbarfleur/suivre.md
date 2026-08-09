@@ -21,8 +21,8 @@ _suivre_ is French for "to track".
 ## Quick start
 
 ```bash
-# Install the `suivre` bin once (prebuilt, from npm):
-npm install -g suivre.md
+# Install the `suivre` bin once (builds on install):
+npm install -g github:kevinbarfleur/suivre.md
 
 # In your project: create the board and wire the agent workflow
 cd /path/to/your/repo
@@ -103,16 +103,16 @@ A typical run after that: `/grill-with-docs` → `/to-tickets` → `/triage`, wi
 
 ## Concepts
 
-| Concept | What it is |
-| --- | --- |
-| **Board / columns** | The workflow, defined in `config.yml`. Each column is a `{ id, label, wipLimit? }`. A task's `status` is a column `id`. |
-| **Task** | `id`, `title`, `status`, optional `priority` (`low`/`medium`/`high`/`urgent`), `labels[]`, optional `assignee`, a fractional `order` (rank in the column), optional `parent` and `depends[]`, plus `created`/`updated`. |
-| **Acceptance criteria** | `- [ ]` / `- [x]` checkboxes in the task body. Surfaced as a progress meter on the card and in the list. |
-| **Labels** | Free-form tags. `debt` is special-cased (highlighted as tech debt). |
-| **Sprints** | `.suivre/sprints/*.md` — an **ordered checklist of task ids** to ship (an effort map). No task duplication: progress is read from the tasks' real status, so the sprint and the board never disagree. |
-| **Decisions (ADR)** | `.suivre/decisions/*.md` — architecture/product decisions with `status` (`proposed`/`accepted`/`rejected`/`superseded`), `date`, and `supersedes`/`supersededBy` links. |
-| **Docs** | `.suivre/docs/*.md` — project documentation, rendered read-only in the app. |
-| **Archive** | A cross-type view of everything retired (see [Archive](#archive)). |
+| Concept                 | What it is                                                                                                                                                                                                              |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Board / columns**     | The workflow, defined in `config.yml`. Each column is a `{ id, label, wipLimit? }`. A task's `status` is a column `id`.                                                                                                 |
+| **Task**                | `id`, `title`, `status`, optional `priority` (`low`/`medium`/`high`/`urgent`), `labels[]`, optional `assignee`, a fractional `order` (rank in the column), optional `parent` and `depends[]`, plus `created`/`updated`. |
+| **Acceptance criteria** | `- [ ]` / `- [x]` checkboxes in the task body. Surfaced as a progress meter on the card and in the list.                                                                                                                |
+| **Labels**              | Free-form tags. `debt` is special-cased (highlighted as tech debt).                                                                                                                                                     |
+| **Sprints**             | `.suivre/sprints/*.md` — an **ordered checklist of task ids** to ship (an effort map). No task duplication: progress is read from the tasks' real status, so the sprint and the board never disagree.                   |
+| **Decisions (ADR)**     | `.suivre/decisions/*.md` — architecture/product decisions with `status` (`proposed`/`accepted`/`rejected`/`superseded`), `date`, and `supersedes`/`supersededBy` links.                                                 |
+| **Docs**                | `.suivre/docs/*.md` — project documentation, rendered read-only in the app.                                                                                                                                             |
+| **Archive**             | A cross-type view of everything retired (see [Archive](#archive)).                                                                                                                                                      |
 
 ---
 
@@ -120,17 +120,17 @@ A typical run after that: `/grill-with-docs` → `/to-tickets` → `/triage`, wi
 
 Reachable from the nav rail; each is deep-linkable by URL hash (`#<view>/<item>`).
 
-| View | Purpose |
-| --- | --- |
-| **board** | The kanban. Drag tasks between columns; add a task at the bottom of any column. |
-| **list** | Every task in a dense, sortable table (status, priority, labels, criteria, …). |
-| **overview** | Project state in depth: progress, breakdowns by column/priority/label/owner, freshness. Every breakdown is clickable → filtered list. |
-| **deps** | Execution order: blocked tasks, high-impact blockers, subtasks, and direct dependency cycles. |
-| **sprints** | Effort maps: ordered task checklists with live progress ("you are here"). |
-| **docs** | Read the project documentation (markdown reader). |
-| **decisions** | The ADR log, filterable by status, with supersede links. |
-| **archive** | Everything archived, all types in one list (see below). |
-| **settings** | Theme and default-view preferences (machine + project level). |
+| View          | Purpose                                                                                                                               |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **board**     | The kanban. Drag tasks between columns; add a task at the bottom of any column.                                                       |
+| **list**      | Every task in a dense, sortable table (status, priority, labels, criteria, …).                                                        |
+| **overview**  | Project state in depth: progress, breakdowns by column/priority/label/owner, freshness. Every breakdown is clickable → filtered list. |
+| **deps**      | Execution order: blocked tasks, high-impact blockers, subtasks, and direct dependency cycles.                                         |
+| **sprints**   | Effort maps: ordered task checklists with live progress ("you are here").                                                             |
+| **docs**      | Read the project documentation (markdown reader).                                                                                     |
+| **decisions** | The ADR log, filterable by status, with supersede links.                                                                              |
+| **archive**   | Everything archived, all types in one list (see below).                                                                               |
+| **settings**  | Theme and default-view preferences (machine + project level).                                                                         |
 
 `milestones` and `drafts` are placeholders — no backend yet.
 
@@ -223,18 +223,18 @@ Point any command at another repo with `SUIVRE_ROOT=/path/to/repo suivre …`.
 A stdio MCP server (`suivre mcp`, or `node dist/mcp/index.js`) exposes the backlog
 as native tools so an agent can drive it directly — the same vocabulary as the CLI:
 
-| Tool | Does |
-| --- | --- |
-| `backlog_init` / `backlog_list` | Initialize; return the full board (columns + tasks + orphans). |
-| `task_list` | List tasks with filters (`status`, `label`, `assignee`, `ready`). |
-| `task_get` / `task_add` / `task_edit` / `task_move` / `task_remove` | CRUD, board order preserved. |
-| `task_comment` | Append a timestamped comment (`## Comments` section). |
-| `task_close` | Final column + optional resolution comment + optional archive. |
-| `task_next` | Next ready task; with `sprintId`, the sprint-order frontier. |
-| `sprint_create` / `sprint_list` / `sprint_get` / `sprint_edit` | Effort maps with real task progress. |
-| `doc_create` / `doc_list` / `doc_get` | Specs and notes, rendered in the dashboard. |
-| `decision_create` / `decision_list` / `decision_get` | The ADR log. |
-| `reveal_overlay` | Pop the desktop overlay on a view/item (macOS app). |
+| Tool                                                                | Does                                                              |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `backlog_init` / `backlog_list`                                     | Initialize; return the full board (columns + tasks + orphans).    |
+| `task_list`                                                         | List tasks with filters (`status`, `label`, `assignee`, `ready`). |
+| `task_get` / `task_add` / `task_edit` / `task_move` / `task_remove` | CRUD, board order preserved.                                      |
+| `task_comment`                                                      | Append a timestamped comment (`## Comments` section).             |
+| `task_close`                                                        | Final column + optional resolution comment + optional archive.    |
+| `task_next`                                                         | Next ready task; with `sprintId`, the sprint-order frontier.      |
+| `sprint_create` / `sprint_list` / `sprint_get` / `sprint_edit`      | Effort maps with real task progress.                              |
+| `doc_create` / `doc_list` / `doc_get`                               | Specs and notes, rendered in the dashboard.                       |
+| `decision_create` / `decision_list` / `decision_get`                | The ADR log.                                                      |
+| `reveal_overlay`                                                    | Pop the desktop overlay on a view/item (macOS app).               |
 
 `suivre setup` wires it into the repo's `.mcp.json`; or configure your client
 manually with `SUIVRE_ROOT` set to the target repo.
@@ -246,10 +246,12 @@ manually with `SUIVRE_ROOT` set to the target repo.
 An agent can read and maintain the board directly. The contract:
 
 **Read the state**
+
 - MCP `backlog_list`, or `GET /api/board` (also `/api/archive`, `/api/decisions`,
   `/api/docs`), or just read the `.md` files under `.suivre/`.
 
 **Change a task** — any of these; the live board reflects it within a moment:
+
 - MCP tools (`task_edit`, `task_move`, …) or CLI (`suivre move`, …).
 - **Edit the file directly.** To change status, set the frontmatter `status` to a
   column `id` (`backlog`, `todo`, `doing`, `test`, `done`, …) or to `archived`.
@@ -265,9 +267,11 @@ priority: high
 labels:
   - export
 ---
+
 One-line description.
 
 ## Acceptance criteria
+
 - [ ] OAuth connects
 - [x] Base is created
 ```
@@ -291,7 +295,7 @@ http://localhost:45188/#archive/doc-a01
 **Decisions & docs** — edit files directly under `.suivre/decisions/` and
 `.suivre/docs/` (same frontmatter + body shape as tasks).
 
-**Language** — the *tool* (UI, statuses, labels, metadata) is always English. Task and
+**Language** — the _tool_ (UI, statuses, labels, metadata) is always English. Task and
 doc **content** (titles, bodies) may be in the project's working language.
 
 ---
@@ -318,11 +322,24 @@ Node ≥ 20.
 
 ```bash
 npm run dev        # web (Vite) + API, concurrently
-npm test           # Vitest (domain + storage + service)
-npm run typecheck  # tsc --noEmit (backend; the SPA is type-checked by the build)
+npm test           # unit suite (domain, storage, service, server, web)
+npm run test:e2e   # builds, then drives the real CLI / MCP / server in temp repos
+npm run test:all   # both
+npm run typecheck  # tsc --noEmit
 npm run build      # SPA + node bundles
 npm run format     # Prettier
 ```
+
+The **e2e suite** is where the defects that matter actually show up — option
+coercion, process boundaries, concurrent writers, files on disk — so it drives
+the shipped bundles rather than importing modules. Two parts earn their keep:
+
+- `e2e/adapter.test.ts` extracts every command from the agent contract
+  (`src/setup/templates.ts`) and **runs it**, including the shell examples, under
+  zsh, with a real `suivre` on PATH. A contract that promises a command the CLI
+  does not have fails the build.
+- `e2e/regressions.test.ts` and friends replay, by execution, each defect a full
+  audit turned up, so none of them can come back quietly.
 
 Ports: board/API `45188`, Vite dev `45189`.
 

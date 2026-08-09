@@ -5,16 +5,27 @@ import { useBoard } from '../board/board.store'
 // Client-side filter, singleton. The board and the list read `matches` to
 // restrict the displayed cards/rows; the toolbar drives the criteria.
 // No disk writes — filtering is a view, not a mutation.
+
+/**
+ * "The task has no priority" — distinct from `null`, which is "do not filter on
+ * priority at all". Without it the Overview's `none` row had nowhere to point,
+ * and clicking a row reading `none 12` landed on the full list.
+ */
+export const NO_PRIORITY = 'none'
+export type PriorityFilter = Priority | typeof NO_PRIORITY
+
 const text = ref('')
 const status = ref<string | null>(null)
-const priority = ref<Priority | null>(null)
+const priority = ref<PriorityFilter | null>(null)
 const label = ref<string | null>(null)
 const assignee = ref<string | null>(null)
 
 function matches(task: Task): boolean {
   const fm = task.frontmatter
   if (status.value && fm.status !== status.value) return false
-  if (priority.value && fm.priority !== priority.value) return false
+  if (priority.value === NO_PRIORITY) {
+    if (fm.priority) return false
+  } else if (priority.value && fm.priority !== priority.value) return false
   if (label.value && !fm.labels.includes(label.value)) return false
   if (assignee.value && fm.assignee !== assignee.value) return false
   const query = text.value.trim().toLowerCase()

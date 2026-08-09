@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Priority } from '../../../domain'
+
 import { useBoard } from '../board/board.store'
-import { useFilter } from './filter.store'
+import { NO_PRIORITY, useFilter, type PriorityFilter } from './filter.store'
 import FilterMenu, { type FilterOption } from './FilterMenu.vue'
 import SearchField from '../../components/SearchField.vue'
 
@@ -25,6 +25,7 @@ const PRIORITIES: FilterOption[] = [
   { value: 'high', label: 'high' },
   { value: 'medium', label: 'medium' },
   { value: 'low', label: 'low' },
+  { value: NO_PRIORITY, label: 'none' },
 ]
 const statusOptions = computed<FilterOption[]>(
   () => board.value?.columns.map((c) => ({ value: c.column.id, label: c.column.label })) ?? [],
@@ -38,7 +39,7 @@ const assigneeOptions = computed<FilterOption[]>(() =>
 
 // Casts in the script (never in a template expression).
 function setPriority(value: string | null): void {
-  priority.value = value as Priority | null
+  priority.value = value as PriorityFilter | null
 }
 </script>
 

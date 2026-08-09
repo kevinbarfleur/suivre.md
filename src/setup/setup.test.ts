@@ -288,11 +288,14 @@ describe('the adapter contract', () => {
   })
 
   it('states the replace semantics the MCP tools do not share with the CLI', () => {
-    expect(ADAPTER_BODY).toContain('There is no `sprint_add`')
     expect(ADAPTER_BODY).toContain('List fields replace, they do not merge')
-    for (const tool of ['task_get', 'task_edit', 'task_move']) {
+    for (const tool of ['task_get', 'task_edit', 'task_move', 'sprint_add']) {
       expect(ADAPTER_BODY).toContain(`\`${tool}\``)
     }
+    // It used to declare `sprint_add` missing while the tool was registered,
+    // which pushed agents into a read-modify-write race for no reason. The e2e
+    // suite checks the enumeration against the live registry.
+    expect(ADAPTER_BODY).not.toContain('There is no `sprint_add`')
   })
 
   it('tells the agent where to read the state it cannot guess', () => {

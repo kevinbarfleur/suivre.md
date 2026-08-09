@@ -116,12 +116,33 @@ export function upsertBlock(
   if (existing === null || existing.trim() === '') {
     return { action: 'create', content: `${block}\n` }
   }
+  // A fenced block is documentation ABOUT the pointer, not the pointer: an
+  // AGENTS.md that shows the markers inside ```md had its example overwritten
+  // with the live block, and the run reported success.
+  const { text, restore } = maskFences(existing)
   const pairs = pairRe(startMarker, endMarker)
-  const paired = count(existing, pairs)
-  const starts = count(existing, new RegExp(anchored(startMarker), 'gm'))
-  const ends = count(existing, new RegExp(anchored(endMarker), 'gm'))
+  const paired = count(text, pairs)
+  const starts = count(text, new RegExp(anchored(startMarker), 'gm'))
+  const ends = count(text, new RegExp(anchored(endMarker), 'gm'))
   if (starts !== paired || ends !== paired) return { action: 'unbalanced', starts, ends }
-  const next =
-    paired > 0 ? existing.replace(pairs, () => block) : `${existing.trimEnd()}\n\n${block}\n`
+  const replaced = paired > 0 ? text.replace(pairs, () => block) : `${text.trimEnd()}\n\n${block}\n`
+  const next = restore(replaced)
   return next === existing ? { action: 'up-to-date' } : { action: 'update', content: next }
+}
+
+/**
+ * Replaces every fenced region with a same-shape placeholder so the marker scan
+ * cannot see inside one, and hands back the inverse. Fences are matched by their
+ * own opening run, so a ``` inside a ~~~ block stays content.
+ */
+function maskFences(text: string): { text: string; restore: (masked: string) => string } {
+  const fences: string[] = []
+  const masked = text.replace(/^([ \t]*)(`{3,}|~{3,})[^\n]*\n[\s\S]*?^\1?\2[^\n]*$/gm, (hit) => {
+    fences.push(hit)
+    return `\u0000FENCE${fences.length - 1}\u0000`
+  })
+  return {
+    text: masked,
+    restore: (out) => out.replace(/\u0000FENCE(\d+)\u0000/g, (_, i) => fences[Number(i)] ?? ''),
+  }
 }

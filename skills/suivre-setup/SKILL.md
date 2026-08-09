@@ -20,11 +20,11 @@ consent for the installs it performs.
 1. Make sure the CLI is on PATH:
 
    ```bash
-   command -v suivre || npm install -g suivre.md
+   command -v suivre || npm install -g github:kevinbarfleur/suivre.md
    ```
 
-   The package ships prebuilt — no compile step. If a global install fails
-   (permissions), stop and say why: everything else needs the bin.
+   Installing from git builds the package, so allow it a minute. If a global
+   install fails (permissions), stop and say why: everything else needs the bin.
 
 2. From the repo root, run `suivre setup --yes`.
 
@@ -59,4 +59,4 @@ consent for the installs it performs.
 - Different target repo: every command honors `SUIVRE_ROOT=/path`.
 - `.mcp.json` runs `suivre mcp`, so the bin must stay on PATH. Claude Code may
   ask the user to approve the project MCP server.
-- Updating later: `npm update -g suivre.md`, then re-run this skill.
+- Updating later: re-run the install command above, then re-run this skill.

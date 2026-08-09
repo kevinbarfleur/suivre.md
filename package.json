@@ -46,6 +46,8 @@
     "build:node": "rm -f dist/*.js && rm -rf dist/cli dist/mcp dist/domain && tsup",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "npm run build && vitest run --config vitest.e2e.config.ts",
+    "test:all": "npm run test && npm run test:e2e",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "prepublishOnly": "node -e \"const{execFileSync}=require('node:child_process');const p=require('./package.json');const g=require('./.claude-plugin/plugin.json');if(p.version!==g.version){console.error('Version drift: package.json '+p.version+', .claude-plugin/plugin.json '+g.version);process.exit(1)}let out='';try{out=execFileSync('npm',['view',p.name+'@'+p.version,'version'],{encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim()}catch{}if(out){console.error(p.name+'@'+p.version+' is already on the registry, bump the version first');process.exit(1)}\""

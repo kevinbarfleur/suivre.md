@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import type { Priority } from '../../../domain'
 import { useBoard } from '../board/board.store'
-import { useFilter } from '../filter/filter.store'
+import { useFilter, type PriorityFilter } from '../filter/filter.store'
 import { useView } from '../shell/view.store'
 import {
   acAggregate,
@@ -68,9 +68,7 @@ function goStatus(key: string): void {
   setView('list')
 }
 function goPriority(key: string): void {
-  // No filter value expresses "has no priority", so the `none` row can only
-  // land on an unfiltered list. Fixing it belongs to the filter model.
-  if (key !== 'none') priority.value = key as Priority
+  priority.value = key as PriorityFilter
   setView('list')
 }
 function goLabel(key: string): void {

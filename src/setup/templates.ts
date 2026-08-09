@@ -13,7 +13,7 @@
  */
 
 /** Adapter version: bump on every template change. */
-export const ADAPTER_VERSION = 2
+export const ADAPTER_VERSION = 3
 
 /** Conventional path (the one the skills read), relative to the repo root. */
 export const ADAPTER_RELATIVE_PATH = 'docs/agents/issue-tracker.md'
@@ -150,9 +150,9 @@ If the \`suivre\` MCP server is connected, the same operations exist as native
 tools — prefer them over shelling out: \`backlog_init\`, \`backlog_list\`,
 \`task_add\`, \`task_get\`, \`task_list\`, \`task_edit\`, \`task_move\`,
 \`task_comment\`, \`task_close\`, \`task_next\`, \`task_remove\`, \`sprint_create\`,
-\`sprint_get\`, \`sprint_list\`, \`sprint_edit\`, \`doc_create\`, \`doc_get\`,
-\`doc_list\`, \`decision_create\`, \`decision_get\`, \`decision_list\`,
-\`reveal_overlay\`.
+\`sprint_get\`, \`sprint_list\`, \`sprint_add\`, \`sprint_edit\`, \`sprint_done\`,
+\`doc_create\`, \`doc_get\`, \`doc_list\`, \`doc_edit\`, \`decision_create\`,
+\`decision_get\`, \`decision_list\`, \`decision_edit\`, \`reveal_overlay\`.
 
 Two places where the tools do NOT mirror the CLI:
 
@@ -160,13 +160,15 @@ Two places where the tools do NOT mirror the CLI:
   \`task_edit {depends}\` and \`sprint_edit {items}\` overwrite the whole list.
   Read the current value with \`task_get\` / \`sprint_get\` first, then send the
   full new list. There is no tool equivalent of \`--add-label\` / \`--remove-label\`.
-- **There is no \`sprint_add\`.** Appending a task to a sprint is \`sprint_get\`,
-  then \`sprint_edit\` with the existing \`items\` plus the new id.
+  \`sprint_add\` is the exception: it appends without replacing, so prefer it
+  over a \`sprint_get\` + \`sprint_edit\` round trip, which two agents working at
+  once can lose.
 
 ## Showing your work (macOS, optional)
 
 If the suivre desktop app is installed, reveal what you just changed — the overlay
-pops over whatever the user is doing. The command is a safe no-op otherwise.
+pops over whatever the user is doing. When it is not installed the command says
+so and still exits 0, so it is always safe to call at the end of a step.
 
 - After publishing tickets, or after a triage pass: \`suivre show board\`
 - After creating or updating a map: \`suivre show sprints/<sprint-id>\`

@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.19'
+          cache: npm
+
+      # `npm ci` runs `prepare`, which builds — so the bundles the e2e suite
+      # drives are the ones this commit produces, not a stale checkout.
+      - run: npm ci
+
+      - run: npm run typecheck
+      - run: npx prettier --check "src/**" "e2e/**" "*.ts"
+      - run: npm test
+
+      # The e2e suite spawns the built CLI, the stdio MCP entry and the HTTP
+      # server. zsh is not on the runner by default and the adapter's examples
+      # are executed under it, because that is the shell agents get on macOS.
+      - name: Install zsh
+        run: sudo apt-get update && sudo apt-get install -y zsh
+      - run: npx vitest run --config vitest.e2e.config.ts
+
+  plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.19'
+      # The repo is its own Claude Code marketplace: a malformed manifest breaks
+      # installation for everyone, and nothing else would catch it.
+      - run: npx --yes @anthropic-ai/claude-code plugin validate . --strict

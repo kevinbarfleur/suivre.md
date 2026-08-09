@@ -137,3 +137,43 @@ describe('hasBlock', () => {
     expect(hasBlock(`${END}\n${START}\n`, START, END)).toBe(false)
   })
 })
+
+describe('upsertBlock and fenced examples', () => {
+  const START = '<!-- s -->'
+  const END = '<!-- e -->'
+  const block = `${START}\npointer\n${END}`
+
+  it('does not touch a marker pair shown inside a fenced example', () => {
+    const doc = [
+      '# AGENTS',
+      '',
+      'The pointer looks like this:',
+      '',
+      '```md',
+      START,
+      'EXAMPLE BODY',
+      END,
+      '```',
+      '',
+      START,
+      'old pointer',
+      END,
+      '',
+    ].join('\n')
+    const plan = upsertBlock(doc, block, START, END)
+    expect(plan.action).toBe('update')
+    const out = plan.action === 'update' ? plan.content : ''
+    expect(out).toContain('EXAMPLE BODY')
+    expect(out).toContain('pointer')
+    expect(out).not.toContain('old pointer')
+  })
+
+  it('appends rather than hijacking an example when there is no real block', () => {
+    const doc = ['# AGENTS', '', '```md', START, 'EXAMPLE BODY', END, '```', ''].join('\n')
+    const plan = upsertBlock(doc, block, START, END)
+    expect(plan.action).toBe('update')
+    const out = plan.action === 'update' ? plan.content : ''
+    expect(out).toContain('EXAMPLE BODY')
+    expect(out.trimEnd().endsWith(END)).toBe(true)
+  })
+})

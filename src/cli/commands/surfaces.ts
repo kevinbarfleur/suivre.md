@@ -70,15 +70,18 @@ export function registerSurfaceCommands(cli: CAC, opts: SurfaceOptions): void {
         // and its exit code is the only signal that the overlay is installed.
         const { spawnSync } = await import('node:child_process')
         const result = spawnSync('open', [url], { encoding: 'utf8' })
-        if (result.error) throw new Error(`overlay not reachable: ${result.error.message}`)
-        if (result.status !== 0) {
-          const detail = result.stderr.trim() || `open exited ${result.status}`
-          throw new Error(
-            `overlay not reachable: ${detail} — install it with \`suivre overlay install\``,
-          )
+        if (result.status === 0 && !result.error) {
+          if (options.json) printJson({ url, revealed: true })
+          else console.log(`overlay -> ${url}`)
+          return
         }
-        if (options.json) printJson({ url, revealed: true })
-        else console.log(`overlay -> ${url}`)
+        // Revealing is best-effort by design: the agent contract prescribes
+        // `suivre show` after publishing or triaging, and a missing optional app
+        // must not fail the step that just succeeded. Say so, exit 0.
+        const detail = result.error?.message ?? result.stderr.trim() ?? ''
+        const reason = `overlay not reachable${detail ? `: ${detail}` : ''} — install it with \`suivre overlay install\``
+        if (options.json) printJson({ url, revealed: false, reason })
+        else console.log(`show: ${reason}`)
       }),
     )
 
