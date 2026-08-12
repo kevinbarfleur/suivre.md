@@ -365,6 +365,15 @@ export function createMcpServer(root: string): McpServer {
       asText({ sprint: sprintJson(await service.editSprint(id, { status: 'done' })) }),
   )
 
+  server.registerTool(
+    'sprint_remove',
+    {
+      description: 'Delete a sprint. The tasks it lists are untouched.',
+      inputSchema: { id: z.string() },
+    },
+    async ({ id }) => asText({ removed: (await service.removeSprint(id)) ? id : null }),
+  )
+
   // --- Knowledge: docs (specs) and decisions (ADR) ---
 
   server.registerTool(
@@ -409,6 +418,15 @@ export function createMcpServer(root: string): McpServer {
       },
     },
     async ({ id, ...patch }) => asText({ doc: docJson(await service.editDoc(id, patch)) }),
+  )
+
+  server.registerTool(
+    'doc_remove',
+    {
+      description: 'Delete a doc. The file is removed from the repo.',
+      inputSchema: { id: z.string() },
+    },
+    async ({ id }) => asText({ removed: (await service.removeDoc(id)) ? id : null }),
   )
 
   server.registerTool(
@@ -460,6 +478,15 @@ export function createMcpServer(root: string): McpServer {
     },
     async ({ id, ...patch }) =>
       asText({ decision: decisionJson(await service.editDecision(id, patch)) }),
+  )
+
+  server.registerTool(
+    'decision_remove',
+    {
+      description: 'Delete a decision. The file is removed from the repo.',
+      inputSchema: { id: z.string() },
+    },
+    async ({ id }) => asText({ removed: (await service.removeDecision(id)) ? id : null }),
   )
 
   // --- Showing your work ---

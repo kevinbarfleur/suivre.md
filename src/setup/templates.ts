@@ -151,10 +151,11 @@ tools — prefer them over shelling out: \`backlog_init\`, \`backlog_list\`,
 \`task_add\`, \`task_get\`, \`task_list\`, \`task_edit\`, \`task_move\`,
 \`task_comment\`, \`task_close\`, \`task_next\`, \`task_remove\`, \`sprint_create\`,
 \`sprint_get\`, \`sprint_list\`, \`sprint_add\`, \`sprint_edit\`, \`sprint_done\`,
-\`doc_create\`, \`doc_get\`, \`doc_list\`, \`doc_edit\`, \`decision_create\`,
-\`decision_get\`, \`decision_list\`, \`decision_edit\`, \`reveal_overlay\`.
+\`sprint_remove\`, \`doc_create\`, \`doc_get\`, \`doc_list\`, \`doc_edit\`,
+\`doc_remove\`, \`decision_create\`, \`decision_get\`, \`decision_list\`,
+\`decision_edit\`, \`decision_remove\`, \`reveal_overlay\`.
 
-Two places where the tools do NOT mirror the CLI:
+One place where the tools do NOT mirror the CLI:
 
 - **List fields replace, they do not merge.** \`task_edit {labels}\`,
   \`task_edit {depends}\` and \`sprint_edit {items}\` overwrite the whole list.

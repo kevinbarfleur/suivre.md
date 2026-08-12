@@ -342,6 +342,10 @@ async function setupMcp(root: string, say: Say): Promise<void> {
     'mcp',
     `.mcp.json ${raw === null ? 'created' : 'updated'} → \`suivre mcp\` (requires suivre on PATH)`,
   )
+  // An MCP client reads .mcp.json when its session starts, so the tools this
+  // step just declared are not in the session that ran setup. Without this line
+  // the next tool call looks like a bug in suivre.
+  say('•', 'mcp', 'restart your agent session to pick the tools up — the CLI works right away')
 }
 
 /** The adapter promises "git is the history" — say so when there is no git. */

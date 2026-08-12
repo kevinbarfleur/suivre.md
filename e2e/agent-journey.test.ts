@@ -213,12 +213,20 @@ async function columnIds(board: Board): Promise<string[]> {
   return [...config.matchAll(/^ {2}- id: (\S+)$/gm)].map((match) => match[1]!)
 }
 
-/** The MCP tools the adapter promises: an agent calls them without checking. */
+/**
+ * The MCP tools the adapter promises: an agent calls them without checking.
+ * Anchored on the section heading rather than on a sentence — rewording the
+ * prose must not silently empty this list and make the assertion vacuous.
+ */
 function promisedTools(adapter: string): string[] {
-  const from = adapter.indexOf('prefer them over shelling out:')
-  const to = adapter.indexOf('Two places where', from)
-  if (from < 0 || to < from) throw new Error('the adapter no longer enumerates its MCP tools')
-  return [...adapter.slice(from, to).matchAll(/`(\w+)`/g)].map((match) => match[1]!)
+  const from = adapter.indexOf('## MCP tools')
+  if (from < 0) throw new Error('the adapter no longer has an MCP tools section')
+  const rest = adapter.slice(from + '## MCP tools'.length)
+  const end = rest.indexOf('\n## ')
+  const section = end < 0 ? rest : rest.slice(0, end)
+  const tools = [...section.matchAll(/`([a-z]+_[a-z_]+)`/g)].map((match) => match[1]!)
+  if (tools.length < 15) throw new Error(`only ${tools.length} tools found — the anchor moved`)
+  return [...new Set(tools)]
 }
 
 describe('the journey docs/agents/issue-tracker.md prescribes', () => {

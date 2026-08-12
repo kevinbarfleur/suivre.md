@@ -1,6 +1,15 @@
 import type { CAC } from 'cac'
 import { decisionStatusSchema } from '../../domain'
-import { decisionJson, docJson, parseEnum, printJson, requireBoard, run, toArray } from '../context'
+import {
+  compact,
+  decisionJson,
+  docJson,
+  parseEnum,
+  printJson,
+  requireBoard,
+  run,
+  toArray,
+} from '../context'
 
 /**
  * Knowledge commands: docs (specs, notes) and decisions (ADR). This is where a
@@ -64,6 +73,37 @@ export function registerKnowledgeCommands(cli: CAC): void {
       }),
     )
 
+  cli
+    .command('doc edit <id>', 'Edit a doc (title / tags / body)')
+    .option('--title <title>', 'New title')
+    .option('--tag <tag>', 'Replace the tags (repeatable)')
+    .option('--body <markdown>', 'Replace the body')
+    .option('--json', 'JSON output')
+    .action(
+      run(async (id: string, options) => {
+        const doc = await (
+          await requireBoard()
+        ).editDoc(
+          id,
+          compact({ title: options.title, tags: toArray(options.tag), body: options.body }),
+        )
+        if (options.json) printJson(docJson(doc))
+        else console.log(`${doc.frontmatter.id}  ${doc.frontmatter.title}`)
+      }),
+    )
+
+  cli
+    .command('doc rm <id>', 'Delete a doc')
+    .option('--json', 'JSON output')
+    .action(
+      run(async (id: string, options) => {
+        const removed = await (await requireBoard()).removeDoc(id)
+        if (!removed) throw new Error(`Doc not found: ${id}`)
+        if (options.json) printJson({ removed: id })
+        else console.log('Deleted.')
+      }),
+    )
+
   // --- Decisions (ADR) ---
 
   cli
@@ -123,6 +163,46 @@ export function registerKnowledgeCommands(cli: CAC): void {
           console.log(`${fm.id}  [${fm.status}]  ${fm.title}`)
           if (decision.body.trim()) console.log(`\n${decision.body.trim()}`)
         }
+      }),
+    )
+  cli
+    .command('decision edit <id>', 'Edit a decision (title / status / supersedes / labels / body)')
+    .option('--title <title>', 'New title')
+    .option('--status <status>', 'proposed | accepted | rejected | superseded')
+    .option('--supersedes <id>', 'Decision this one replaces')
+    .option('--label <label>', 'Replace the labels (repeatable)')
+    .option('--body <markdown>', 'Replace the body')
+    .option('--json', 'JSON output')
+    .action(
+      run(async (id: string, options) => {
+        const decision = await (
+          await requireBoard()
+        ).editDecision(
+          id,
+          compact({
+            title: options.title,
+            status: options.status
+              ? parseEnum('--status', decisionStatusSchema.options, options.status)
+              : undefined,
+            supersedes: options.supersedes,
+            labels: toArray(options.label),
+            body: options.body,
+          }),
+        )
+        if (options.json) printJson(decisionJson(decision))
+        else console.log(`${decision.frontmatter.id}  ${decision.frontmatter.title}`)
+      }),
+    )
+
+  cli
+    .command('decision rm <id>', 'Delete a decision')
+    .option('--json', 'JSON output')
+    .action(
+      run(async (id: string, options) => {
+        const removed = await (await requireBoard()).removeDecision(id)
+        if (!removed) throw new Error(`Decision not found: ${id}`)
+        if (options.json) printJson({ removed: id })
+        else console.log('Deleted.')
       }),
     )
 }

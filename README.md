@@ -80,6 +80,10 @@ What it does:
   create, triage and close tickets here (and when to pop the overlay)
 - points `AGENTS.md` at it, and adds the MCP server to `.mcp.json`
 
+The MCP tools land on the **next** agent session — a client reads `.mcp.json` at
+startup, so the session that ran the setup still has to use the CLI. Same
+operations, no restart needed for that.
+
 Safe to re-run anytime: it updates what's stale and repairs what's missing —
 that's also how you update after a new suivre version. If you edited
 `docs/agents/issue-tracker.md` by hand, your version stays; the new template is

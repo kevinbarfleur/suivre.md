@@ -127,4 +127,16 @@ export function registerSprintCommands(cli: CAC): void {
         else console.log(`${id} → done`)
       }),
     )
+
+  cli
+    .command('sprint rm <id>', 'Delete a sprint (the tasks it lists are untouched)')
+    .option('--json', 'JSON output')
+    .action(
+      run(async (id: string, options) => {
+        const removed = await (await requireBoard()).removeSprint(id)
+        if (!removed) throw new Error(`Sprint not found: ${id}`)
+        if (options.json) printJson({ removed: id })
+        else console.log('Deleted.')
+      }),
+    )
 }

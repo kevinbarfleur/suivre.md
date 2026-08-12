@@ -59,4 +59,8 @@ consent for the installs it performs.
 - Different target repo: every command honors `SUIVRE_ROOT=/path`.
 - `.mcp.json` runs `suivre mcp`, so the bin must stay on PATH. Claude Code may
   ask the user to approve the project MCP server.
+- **The MCP tools are not available in the session that ran the setup.** A client
+  reads `.mcp.json` when its session starts, so they appear on the next one. Say
+  this when you relay the report, and use the CLI for the rest of this session —
+  it is the same operations and it works immediately.
 - Updating later: re-run the install command above, then re-run this skill.
