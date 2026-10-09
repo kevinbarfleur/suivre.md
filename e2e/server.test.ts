@@ -3,7 +3,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { networkInterfaces } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { CLI, startBoard, withBoard } from './harness'
+import { callTool, CLI, mcpPayload, mcpSession, startBoard, withBoard } from './harness'
 import type { Board } from './harness'
 
 /**
@@ -60,6 +60,43 @@ function runToExit(
 }
 
 describe('write routes', () => {
+  it('clears a priority through HTTP and MCP without storing null on disk', async () => {
+    await withBoard(async (board) => {
+      expect(board.cli('add', 'Alpha', '--priority', 'high').status).toBe(0)
+      const server = await startBoard(board)
+      try {
+        const patch = (body: unknown) =>
+          fetch(`${server.url}/api/tasks/task-001`, {
+            method: 'PATCH',
+            headers: JSON_HEADERS,
+            body: JSON.stringify(body),
+          })
+
+        const unrelated = await patch({ body: 'Notes' })
+        expect(unrelated.status).toBe(200)
+        expect((await unrelated.json()).frontmatter.priority).toBe('high')
+
+        const cleared = await patch({ priority: null })
+        expect(cleared.status).toBe(200)
+        expect((await cleared.json()).frontmatter).not.toHaveProperty('priority')
+        expect(await board.read('.suivre/tasks/task-001-alpha.md')).not.toMatch(/^priority:/m)
+        expect(board.cli('get', 'task-001', '--json').json()).not.toHaveProperty('priority')
+
+        expect((await patch({ priority: 'low' })).status).toBe(200)
+        const responses = await board.mcp(
+          mcpSession(callTool(1, 'task_edit', { id: 'task-001', priority: null })),
+        )
+        expect(responses.get(1)?.result?.isError).not.toBe(true)
+        expect(
+          mcpPayload<{ task: Record<string, unknown> }>(responses.get(1)).task,
+        ).not.toHaveProperty('priority')
+        expect(await board.read('.suivre/tasks/task-001-alpha.md')).not.toMatch(/^priority:/m)
+      } finally {
+        await server.stop()
+      }
+    })
+  })
+
   it('answers a malformed body with 4xx and writes nothing', async () => {
     await withBoard(async (board) => {
       board.cli('add', 'Alpha')

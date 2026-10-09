@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Board, Task } from '../../../domain'
+import type { Board, Column, Task } from '../../../domain'
 
 const api = vi.hoisted(() => ({
   fetchBoard: vi.fn(),
@@ -47,11 +47,16 @@ function task(id: string, over: Partial<Task['frontmatter']> = {}, body = ''): T
   }
 }
 
-function board(tasks: Task[]): Board {
+function board(tasks: Task[], columns: Column[] = [{ id: 'todo', label: 'To do' }]): Board {
   return {
-    config: { name: 'demo', taskPrefix: 'task', columns: [{ id: 'todo', label: 'To do' }] },
-    columns: [{ column: { id: 'todo', label: 'To do' }, tasks }],
-    orphans: [],
+    config: { name: 'demo', taskPrefix: 'task', columns },
+    columns: columns.map((column) => ({
+      column,
+      tasks: tasks.filter((task) => task.frontmatter.status === column.id),
+    })),
+    orphans: tasks.filter(
+      (task) => !columns.some((column) => column.id === task.frontmatter.status),
+    ),
   }
 }
 
@@ -160,6 +165,54 @@ describe('reload', () => {
 
     expect(store.board.value).toBeNull()
     expect(store.error.value).toBe('Failed to fetch')
+  })
+})
+
+describe('dependency hints', () => {
+  const columns: Column[] = [
+    { id: 'todo', label: 'To do' },
+    { id: 'shipped', label: 'Shipped' },
+  ]
+
+  it('updates blockers when a prerequisite finishes or reopens', async () => {
+    const store = await freshStore()
+    const dependent = task('task-2', { depends: ['task-1'] })
+    api.fetchBoard.mockResolvedValue(board([task('task-1'), dependent], columns))
+    await store.ensureLoaded()
+    expect(store.blockedById.value.get('task-2')).toBe('task-1')
+
+    api.fetchBoard.mockResolvedValue(
+      board([task('task-1', { status: 'shipped' }), dependent], columns),
+    )
+    await store.reload()
+    expect(store.blockedById.value.has('task-2')).toBe(false)
+
+    api.fetchBoard.mockResolvedValue(board([task('task-1'), dependent], columns))
+    await store.reload()
+    expect(store.blockedById.value.get('task-2')).toBe('task-1')
+  })
+
+  it('selects the unresolved prerequisite and ignores archived or missing ones', async () => {
+    const store = await freshStore()
+    api.fetchBoard.mockResolvedValue(
+      board(
+        [
+          task('task-1', { status: 'shipped' }),
+          task('task-2', { status: 'archived' }),
+          task('task-3'),
+          task('task-4', { depends: ['task-1', 'task-2', 'task-missing', 'task-3'] }),
+        ],
+        columns,
+      ),
+    )
+    await store.ensureLoaded()
+    expect(store.blockedById.value.get('task-4')).toBe('task-3')
+
+    api.fetchBoard.mockResolvedValue(
+      board([task('task-4', { depends: ['task-1', 'task-2', 'task-missing'] })], columns),
+    )
+    await store.reload()
+    expect(store.blockedById.value.size).toBe(0)
   })
 })
 

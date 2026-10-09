@@ -42,7 +42,20 @@ final class SnapshotDelegate: NSObject, NSApplicationDelegate, WKNavigationDeleg
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         // Give the SPA a moment to fetch /api/board and mount before snapshotting.
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-            self?.snapshot()
+            // Offscreen windows can suspend CSS animations at their initial
+            // opacity. Capture the final static state so task cards are visible.
+            webView.evaluateJavaScript("""
+                const style = document.createElement('style');
+                style.textContent = '* { animation: none !important; transition: none !important; }';
+                document.head.appendChild(style);
+                document.body.offsetHeight;
+                """) { [weak self] _, error in
+                if let error {
+                    self?.fail("prepare snapshot: \(error.localizedDescription)")
+                    return
+                }
+                self?.snapshot()
+            }
         }
     }
 

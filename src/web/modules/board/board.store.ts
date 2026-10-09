@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import type { Board, Task } from '../../../domain'
 import * as api from '../../lib/api'
+import { blockedTasks } from '../../lib/aggregate'
 
 // Singleton store (module-level refs). Board + selection + actions + live SSE.
 // Every mutation writes server-side → the file-watcher pushes an SSE event →
@@ -21,6 +22,16 @@ let liveStarted = false
 const allTasks = computed<Task[]>(() =>
   board.value ? board.value.columns.flatMap((c) => c.tasks).concat(board.value.orphans) : [],
 )
+
+/** Shared blocker hints for cards and rows, resolved once per board update. */
+const blockedById = computed(() => {
+  const result = new Map<string, string>()
+  for (const task of blockedTasks(allTasks.value, board.value?.config.columns ?? [])) {
+    const blocker = task.blockers.find((candidate) => !candidate.resolved)
+    if (blocker) result.set(task.id, blocker.id)
+  }
+  return result
+})
 
 function messageOf(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause)
@@ -100,6 +111,7 @@ export function useBoard() {
   return {
     board,
     allTasks,
+    blockedById,
     loading,
     error,
     actionError,

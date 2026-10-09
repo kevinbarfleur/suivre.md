@@ -56,11 +56,6 @@ export function subtaskCount(id: string, all: readonly Task[]): number {
   return all.filter((task) => task.frontmatter.parent === id).length
 }
 
-/** First blocking dependency of a task, if any. */
-export function blockedBy(task: Task): string | null {
-  return task.frontmatter.depends[0] ?? null
-}
-
 /** Terminal prompt slug from the project name (suivre@<slug>). */
 export function slug(name: string): string {
   const cleaned = name

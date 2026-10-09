@@ -3,12 +3,11 @@ import { computed, ref } from 'vue'
 import type { Task } from '../../../domain'
 import { useBoard } from '../board/board.store'
 import { useFilter } from '../filter/filter.store'
-import { finalColumnId } from '../../lib/aggregate'
-import { acProgress, blockedBy, meter, shortDate } from '../../lib/task-meta'
+import { acProgress, meter, shortDate } from '../../lib/task-meta'
 import NoResults from '../../components/NoResults.vue'
 
 // "List" view: all tasks in a dense, sortable table. Reuses the filter.
-const { board, allTasks, openTask } = useBoard()
+const { board, allTasks, blockedById, openTask } = useBoard()
 const { text, status, priority, label, assignee, matches, clear } = useFilter()
 
 const PRIO_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 }
@@ -77,10 +76,6 @@ const activeFilters = computed<string[]>(() => {
 const rows = computed<Row[]>(() => {
   if (!board.value) return []
   const columns = board.value.columns.map((c) => c.column)
-  const done = finalColumnId(columns)
-  const doneById = new Map(
-    allTasks.value.map((t) => [t.frontmatter.id, t.frontmatter.status === done]),
-  )
   const statusIndex = new Map(columns.map((c, i) => [c.id, i]))
   const statusLabel = statusLabels.value
 
@@ -89,8 +84,6 @@ const rows = computed<Row[]>(() => {
     const ac = acProgress(task.body)
     const acRatio = ac.total > 0 ? ac.done / ac.total : -1
     const m = meter(ac.done, ac.total, 5)
-    const dep = blockedBy(task)
-    const blocked = task.frontmatter.depends.some((id) => doneById.get(id) !== true)
     const isOrphan = !statusIndex.has(fm.status)
     return {
       task,
@@ -109,7 +102,7 @@ const rows = computed<Row[]>(() => {
       acRatio,
       acFilled: m.filled,
       acEmpty: m.empty,
-      blocked: dep != null && blocked,
+      blocked: blockedById.value.has(fm.id),
       updated: fm.updated,
       updatedShort: shortDate(fm.updated),
     }
