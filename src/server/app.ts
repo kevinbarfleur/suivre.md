@@ -70,7 +70,7 @@ const taskCreateSchema = z.object({
 const taskPatchSchema = z.object({
   title: z.string().min(1).optional(),
   status: taskFields.status.optional(),
-  priority: taskFields.priority.optional(),
+  priority: taskFields.priority.nullable().optional(),
   labels: taskFields.labels.optional(),
   assignee: taskFields.assignee.optional(),
   parent: taskFields.parent.optional(),

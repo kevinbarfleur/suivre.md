@@ -73,17 +73,19 @@ export function createTask(input: CreateTaskInput, ctx: CreateTaskContext): Task
 }
 
 export type TaskPatch = Partial<
-  Pick<
-    TaskFrontmatter,
-    'title' | 'status' | 'priority' | 'labels' | 'assignee' | 'order' | 'parent' | 'depends'
-  >
-> & { body?: string }
+  Pick<TaskFrontmatter, 'title' | 'status' | 'labels' | 'assignee' | 'order' | 'parent' | 'depends'>
+> & { body?: string; priority?: Priority | null }
 
 /** Applies a patch, bumps `updated`, renames the file when the title changes. */
 export function editTask(task: Task, patch: TaskPatch, now: string): Task {
-  const { body, ...fmPatch } = patch
+  const { body, priority, ...fmPatch } = patch
   const id = task.frontmatter.id
-  const frontmatter = checkedFrontmatter({ ...task.frontmatter, ...fmPatch, updated: now }, id)
+  const next = { ...task.frontmatter, ...fmPatch, updated: now }
+  if ('priority' in patch) {
+    if (priority === null) delete next.priority
+    else next.priority = priority
+  }
+  const frontmatter = checkedFrontmatter(next, id)
   const fileName =
     frontmatter.title !== task.frontmatter.title
       ? taskFileName(frontmatter.id, frontmatter.title)

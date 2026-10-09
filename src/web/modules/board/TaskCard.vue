@@ -4,10 +4,10 @@ import { draggable, dropTargetForElements } from '@atlaskit/pragmatic-drag-and-d
 import type { Task } from '../../../domain'
 import { useBoard } from './board.store'
 import { closestEdge, type Edge } from './drop'
-import { acProgress, blockedBy, meter, subtaskCount } from '../../lib/task-meta'
+import { acProgress, meter, subtaskCount } from '../../lib/task-meta'
 
 const props = defineProps<{ task: Task; orphan?: boolean; columnId?: string }>()
-const { openTask, allTasks } = useBoard()
+const { openTask, allTasks, blockedById } = useBoard()
 
 const el = ref<HTMLElement | null>(null)
 const dragging = ref(false)
@@ -67,7 +67,7 @@ const prio = computed(() => fm.value.priority)
 const ac = computed(() => acProgress(props.task.body))
 const acMeter = computed(() => meter(ac.value.done, ac.value.total, 5))
 const subs = computed(() => subtaskCount(fm.value.id, allTasks.value))
-const blocked = computed(() => blockedBy(props.task))
+const blocked = computed(() => blockedById.value.get(fm.value.id) ?? null)
 const labels = computed(() => fm.value.labels.filter((l) => l !== 'debt'))
 const hasDebt = computed(() => fm.value.labels.includes('debt'))
 const hasLinks = computed(() => subs.value > 0 || blocked.value != null)

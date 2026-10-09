@@ -62,7 +62,7 @@ export async function createTask(input: CreateInput): Promise<Task> {
 export interface UpdateInput {
   title?: string
   status?: string
-  priority?: Priority
+  priority?: Priority | null
   labels?: string[]
   body?: string
 }

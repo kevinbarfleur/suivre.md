@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -42,6 +42,7 @@ describe('server API', () => {
 
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), 'suivre-api-'))
+    vi.stubEnv('XDG_CONFIG_HOME', join(root, '.config'))
     const service = new BoardService(root)
     await service.init('Project')
     events = new EventEmitter()
@@ -50,6 +51,7 @@ describe('server API', () => {
 
   afterEach(async () => {
     events.emit('close')
+    vi.unstubAllEnvs()
     await rm(root, { recursive: true, force: true })
   })
 

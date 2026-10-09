@@ -163,12 +163,12 @@ export function createMcpServer(root: string): McpServer {
       description:
         'Edit a task (title / status / priority / labels / assignee / parent / depends / body). ' +
         `${REPLACES} The \`## Comments\` section is the one exception: it survives a body ` +
-        'rewrite. assignee: "" to unassign.',
+        'rewrite. assignee: "" to unassign. priority: null to clear.',
       inputSchema: {
         id: z.string(),
         title: z.string().optional(),
         status: z.string().optional(),
-        priority: prioritySchema.optional(),
+        priority: prioritySchema.nullable().optional(),
         labels: z.array(z.string()).optional(),
         assignee: z.string().optional(),
         parent: z.string().optional(),

@@ -92,8 +92,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
  * Only the fields the user actually changed, measured against `base`. Sending
  * the whole form would revert whatever landed on disk since the card opened —
  * a `suivre move`, a comment appended to the body.
- * `priority` is left out when cleared: the PATCH schema takes the enum only,
- * so an empty value cannot express "no priority" over HTTP.
+ * An explicit null clears priority; omitting it preserves the current value.
  */
 function patchOf(clean: string): UpdateInput {
   const patch: UpdateInput = {}
@@ -103,8 +102,8 @@ function patchOf(clean: string): UpdateInput {
     .filter(Boolean)
   if (clean !== base.frontmatter.title) patch.title = clean
   if (status.value !== base.frontmatter.status) patch.status = status.value
-  if (priority.value && priority.value !== base.frontmatter.priority)
-    patch.priority = priority.value as Priority
+  if (priority.value !== (base.frontmatter.priority ?? ''))
+    patch.priority = priority.value ? (priority.value as Priority) : null
   if (list.join('\0') !== base.frontmatter.labels.join('\0')) patch.labels = list
   if (body.value !== base.body) patch.body = body.value
   return patch
